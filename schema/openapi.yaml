@@ -1,0 +1,601 @@
+openapi: 3.0.3
+info:
+  title: Publora API
+  description: |
+    Affordable REST API for scheduling and publishing social media posts
+    across X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube,
+    Facebook, Bluesky, Mastodon, and Telegram.
+
+    All plans include full API access. Starting at $9/month.
+    14-day free trial, no credit card needed.
+  version: "1.0.0"
+  contact:
+    email: sev@publora.com
+    url: https://publora.com
+servers:
+  - url: https://api.publora.com/api/v1
+    description: Production
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-publora-key
+      description: "API key from Settings > API Keys. Format: sk_timestamp.hexstring"
+
+  schemas:
+    PlatformConnection:
+      type: object
+      properties:
+        platformId:
+          type: string
+          description: "Unique ID in format platform-id (e.g., twitter-123456789)"
+          example: "twitter-123456789"
+        username:
+          type: string
+          example: "@yourhandle"
+        displayName:
+          type: string
+          example: "Your Name"
+        profileImageUrl:
+          type: string
+          format: uri
+          example: "https://pbs.twimg.com/profile_images/..."
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-05-15T10:30:00.000Z"
+
+    Post:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        platform:
+          type: string
+          enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram]
+          example: "twitter"
+        platformId:
+          type: string
+          example: "123456789"
+        content:
+          type: string
+          example: "Hello from Publora API!"
+        status:
+          type: string
+          enum: [draft, scheduled, pending, processing, published, failed]
+          example: "published"
+        postedId:
+          type: string
+          description: "Platform-specific post ID after publishing"
+          example: "1234567890123456789"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid API key"
+
+paths:
+  /platform-connections:
+    get:
+      summary: List connected social accounts
+      description: Returns all social media accounts connected to your Publora account.
+      operationId: getPlatformConnections
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of connected accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  connections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlatformConnection"
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /create-post:
+    post:
+      summary: Create and schedule a social media post
+      description: |
+        Create a post to be published across one or more social media platforms.
+        Supports text, images (up to 4), and video (1 per post).
+        If scheduledTime is provided, the post will be published at that time.
+        If omitted, the post is saved as a draft.
+      operationId: createPost
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, platforms]
+              properties:
+                content:
+                  type: string
+                  description: Post text content
+                  example: "Excited to share our new product launch! 🚀 #launch"
+                platforms:
+                  type: array
+                  items:
+                    type: string
+                  description: "Array of platform connection IDs (format: platform-platformId)"
+                  example: ["twitter-123456789", "linkedin-ABC123"]
+                scheduledTime:
+                  type: string
+                  format: date-time
+                  description: "ISO 8601 UTC datetime for scheduling. Omit for draft."
+                  example: "2026-03-01T14:00:00.000Z"
+      responses:
+        "200":
+          description: Post created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  postGroupId:
+                    type: string
+                    example: "507f1f77bcf86cd799439011"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingContent:
+                  value: { "error": "Content is required" }
+                invalidTime:
+                  value: { "error": "Invalid scheduled time" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Subscription required or free plan limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                noSub:
+                  value: { "error": "Subscription required" }
+                freeLimit:
+                  value: { "error": "Free plan limit reached" }
+
+  /get-post/{postGroupId}:
+    get:
+      summary: Get post details and status
+      description: Retrieve the details, platform statuses, and posted IDs for a post group.
+      operationId: getPost
+      parameters:
+        - name: postGroupId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "507f1f77bcf86cd799439011"
+        - name: x-publora-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  postGroupId:
+                    type: string
+                  posts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /update-post/{postGroupId}:
+    put:
+      summary: Update post timing or status
+      description: |
+        Modify the scheduled time or status of an existing draft or scheduled post.
+        Cannot update published or failed posts.
+      operationId: updatePost
+      parameters:
+        - name: postGroupId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-publora-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [draft, scheduled]
+                  description: "New status"
+                scheduledTime:
+                  type: string
+                  format: date-time
+                  description: "New ISO 8601 UTC scheduled time"
+      responses:
+        "200":
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Post updated successfully"
+                  postGroup:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      status:
+                        type: string
+                      scheduledTime:
+                        type: string
+                        format: date-time
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /delete-post/{postGroupId}:
+    delete:
+      summary: Delete a scheduled post
+      description: Delete a post group, all platform posts, and associated media from storage.
+      operationId: deletePost
+      parameters:
+        - name: postGroupId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-publora-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /get-upload-url:
+    post:
+      summary: Get pre-signed URL for media upload
+      description: |
+        Get a pre-signed S3 URL to upload images or videos.
+        Upload the file directly to S3 via HTTP PUT, then create a post.
+        Upload URLs expire in 1 hour. Max 4 images or 1 video per post.
+      operationId: getUploadUrl
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, contentType, type, postGroupId]
+              properties:
+                fileName:
+                  type: string
+                  example: "photo.jpg"
+                contentType:
+                  type: string
+                  description: "MIME type (image/jpeg, image/png, video/mp4, etc.)"
+                  example: "image/jpeg"
+                type:
+                  type: string
+                  enum: [image, video]
+                  example: "image"
+                postGroupId:
+                  type: string
+                  description: "Post group to attach media to"
+                  example: "507f1f77bcf86cd799439011"
+      responses:
+        "200":
+          description: Upload URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  uploadUrl:
+                    type: string
+                    format: uri
+                    description: "Pre-signed S3 URL. PUT your file here."
+                  fileUrl:
+                    type: string
+                    format: uri
+                    description: "Public URL after upload"
+                  mediaId:
+                    type: string
+                    description: "Media record ID"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /linkedin-post-statistics:
+    post:
+      summary: Get LinkedIn post analytics
+      description: |
+        Retrieve analytics for a LinkedIn post: impressions, reach, reactions, comments, reshares.
+        Results are cached for 30 minutes. Use queryTypes: "ALL" to get all 5 metrics at once.
+      operationId: getLinkedInPostStatistics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postedId, platformId]
+              properties:
+                postedId:
+                  type: string
+                  description: "LinkedIn URN or share ID"
+                  example: "urn:li:share:7123456789012345678"
+                platformId:
+                  type: string
+                  description: "LinkedIn connection ID"
+                  example: "linkedin-Tz9W5i6ZYG"
+                queryType:
+                  type: string
+                  enum: [IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT]
+                  description: "Single metric to fetch"
+                queryTypes:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                        enum: [IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT]
+                    - type: string
+                      enum: ["ALL"]
+                  description: "Multiple metrics or ALL"
+                  example: "ALL"
+      responses:
+        "200":
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: Single metric response
+                    properties:
+                      success:
+                        type: boolean
+                      count:
+                        type: integer
+                        example: 1542
+                      cached:
+                        type: boolean
+                  - type: object
+                    description: Multiple metrics response
+                    properties:
+                      success:
+                        type: boolean
+                      metrics:
+                        type: object
+                        properties:
+                          IMPRESSION:
+                            type: integer
+                          MEMBERS_REACHED:
+                            type: integer
+                          RESHARE:
+                            type: integer
+                          REACTION:
+                            type: integer
+                          COMMENT:
+                            type: integer
+                      cached:
+                        type: boolean
+
+  /linkedin-account-statistics:
+    post:
+      summary: Get aggregated LinkedIn account analytics
+      description: Get total metrics across all published LinkedIn posts for an account.
+      operationId: getLinkedInAccountStatistics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platformId]
+              properties:
+                platformId:
+                  type: string
+                  example: "linkedin-Tz9W5i6ZYG"
+      responses:
+        "200":
+          description: Account statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  aggregatedMetrics:
+                    type: object
+                    properties:
+                      totalImpressions:
+                        type: integer
+                      totalMembersReached:
+                        type: integer
+                      totalReshares:
+                        type: integer
+                      totalReactions:
+                        type: integer
+                      totalComments:
+                        type: integer
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postedId:
+                          type: string
+                        metrics:
+                          type: object
+
+  /linkedin-reactions:
+    post:
+      summary: Add a reaction to a LinkedIn post
+      description: React to a LinkedIn post with LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, or ENTERTAINMENT.
+      operationId: addLinkedInReaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postedId, reactionType, platformId]
+              properties:
+                postedId:
+                  type: string
+                  description: "LinkedIn URN (urn:li:share:*, urn:li:ugcPost:*, urn:li:activity:*)"
+                  example: "urn:li:share:7123456789012345678"
+                reactionType:
+                  type: string
+                  enum: [LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT]
+                  example: "LIKE"
+                platformId:
+                  type: string
+                  example: "linkedin-Tz9W5i6ZYG"
+      responses:
+        "201":
+          description: Reaction added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Remove a reaction from a LinkedIn post
+      description: Remove your reaction from a LinkedIn post.
+      operationId: removeLinkedInReaction
+      parameters:
+        - name: postedId
+          in: query
+          schema:
+            type: string
+          example: "urn:li:share:7123456789012345678"
+        - name: platformId
+          in: query
+          schema:
+            type: string
+          example: "linkedin-Tz9W5i6ZYG"
+      responses:
+        "200":
+          description: Reaction removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true

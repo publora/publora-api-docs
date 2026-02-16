@@ -1,0 +1,16 @@
+{
+  "projectTitle": "Publora",
+  "description": "Affordable REST API for scheduling and publishing social media posts across X Twitter LinkedIn Instagram Threads TikTok YouTube Facebook Bluesky Mastodon and Telegram with media uploads and LinkedIn analytics starting at $9/month",
+  "folders": ["docs", "schema"],
+  "excludeFolders": ["node_modules", ".git"],
+  "excludeFiles": ["LICENSE.md", "CHANGELOG.md"],
+  "rules": [
+    "Always authenticate with x-publora-key header for API requests",
+    "Base URL is https://api.publora.com",
+    "Use ISO 8601 UTC format for scheduledTime parameter",
+    "Posts support up to 4 images or 1 video per post",
+    "Get a pre-signed upload URL before uploading media files to S3",
+    "Platform IDs use format platform-platformId such as twitter-123456 or linkedin-ABC123",
+    "Pricing starts at $9/month with full API access on all plans and 14-day free trial"
+  ]
+}
