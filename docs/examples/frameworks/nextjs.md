@@ -198,8 +198,6 @@ export interface CreatePostRequest {
   content: string;
   platforms: string[];
   scheduledTime?: string;
-  mediaUrls?: string[];
-  mediaKeys?: string[];
 }
 
 export interface PostGroup {
@@ -261,12 +259,12 @@ class PubloraService {
     });
   }
 
-  async getUploadUrl(fileName: string, mimeType: string) {
-    return this.request<{ uploadUrl: string; mediaKey: string }>(
+  async getUploadUrl(fileName: string, contentType: string, postGroupId: string) {
+    return this.request<{ uploadUrl: string; fileUrl: string; mediaId: string }>(
       '/get-upload-url',
       {
         method: 'POST',
-        body: JSON.stringify({ fileName, mimeType }),
+        body: JSON.stringify({ fileName, contentType, postGroupId }),
       }
     );
   }

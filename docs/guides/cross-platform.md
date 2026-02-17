@@ -24,9 +24,9 @@ For example:
 - `threads-111213` -- a connected Threads account
 - `telegram-141516` -- a connected Telegram channel
 - `bluesky-171819` -- a connected Bluesky account
-- `pinterest-202122` -- a connected Pinterest account
+- `mastodon-202122` -- a connected Mastodon account
 
-Retrieve your connected accounts and their platform IDs from the `GET /api/v1/connections` endpoint.
+Retrieve your connected accounts and their platform IDs from the `GET /api/v1/platform-connections` endpoint.
 
 ### Character Limits by Platform
 
@@ -41,7 +41,7 @@ Retrieve your connected accounts and their platform IDs from the `GET /api/v1/co
 | TikTok | 2,200 |
 | YouTube | 5,000 (description) |
 | Bluesky | 300 |
-| Pinterest | 500 |
+| Mastodon | 500 |
 
 ### Automatic Content Adaptation
 
@@ -68,33 +68,33 @@ Publora applies sensible defaults for platform-specific settings:
 ```javascript
 // First, get all connected platform IDs
 const connectionsResponse = await fetch(
-  'https://api.publora.com/api/v1/connections',
+  'https://api.publora.com/api/v1/platform-connections',
   {
     headers: { 'x-publora-key': 'YOUR_API_KEY' }
   }
 );
 
-const connections = await connectionsResponse.json();
-const platformIds = connections.map(c => c.platformId);
+const { connections } = await connectionsResponse.json();
+const platforms = connections.map(c => c.platformId);
 
-console.log('Connected platforms:', platformIds);
+console.log('Connected platforms:', platforms);
 
 // Create a post targeting all platforms
-const postResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
+const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'We just launched our new feature! Check it out at https://example.com',
-    platformIds: platformIds,
+    content: 'We just launched our new feature! Check it out at https://example.com',
+    platforms: platforms,
     scheduledTime: '2026-03-15T14:00:00.000Z'
   })
 });
 
 const post = await postResponse.json();
-console.log('Post scheduled to all platforms:', post.id);
+console.log('Post scheduled to all platforms:', post.postGroupId);
 ```
 
 **Python (requests)**
@@ -110,49 +110,49 @@ HEADERS = {
 
 # Get all connected platform IDs
 connections_response = requests.get(
-    f'{API_URL}/connections',
+    f'{API_URL}/platform-connections',
     headers=HEADERS
 )
 
-connections = connections_response.json()
-platform_ids = [c['platformId'] for c in connections]
-print(f"Connected platforms: {platform_ids}")
+connections = connections_response.json()['connections']
+platforms = [c['platformId'] for c in connections]
+print(f"Connected platforms: {platforms}")
 
 # Create a post targeting all platforms
 post_response = requests.post(
-    f'{API_URL}/post-groups',
+    f'{API_URL}/create-post',
     headers=HEADERS,
     json={
-        'text': 'We just launched our new feature! Check it out at https://example.com',
-        'platformIds': platform_ids,
+        'content': 'We just launched our new feature! Check it out at https://example.com',
+        'platforms': platforms,
         'scheduledTime': '2026-03-15T14:00:00.000Z'
     }
 )
 
 post = post_response.json()
-print(f"Post scheduled to all platforms: {post['id']}")
+print(f"Post scheduled to all platforms: {post['postGroupId']}")
 ```
 
 **cURL**
 
 ```bash
 # Get all connected platform IDs
-CONNECTIONS=$(curl -s https://api.publora.com/api/v1/connections \
+CONNECTIONS=$(curl -s https://api.publora.com/api/v1/platform-connections \
   -H "x-publora-key: YOUR_API_KEY")
 
 echo "Connected platforms:"
-echo "$CONNECTIONS" | jq '.[].platformId'
+echo "$CONNECTIONS" | jq '.connections[].platformId'
 
 # Extract platform IDs into a JSON array
-PLATFORM_IDS=$(echo "$CONNECTIONS" | jq '[.[].platformId]')
+PLATFORMS=$(echo "$CONNECTIONS" | jq '[.connections[].platformId]')
 
 # Create a post targeting all platforms
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d "{
-    \"text\": \"We just launched our new feature! Check it out at https://example.com\",
-    \"platformIds\": $PLATFORM_IDS,
+    \"content\": \"We just launched our new feature! Check it out at https://example.com\",
+    \"platforms\": $PLATFORMS,
     \"scheduledTime\": \"2026-03-15T14:00:00.000Z\"
   }"
 ```
@@ -171,19 +171,19 @@ const api = axios.create({
 });
 
 // Get all connected platform IDs
-const { data: connections } = await api.get('/connections');
-const platformIds = connections.map(c => c.platformId);
+const { data: connectionsData } = await api.get('/platform-connections');
+const platforms = connectionsData.connections.map(c => c.platformId);
 
-console.log('Connected platforms:', platformIds);
+console.log('Connected platforms:', platforms);
 
 // Create a post targeting all platforms
-const { data: post } = await api.post('/post-groups', {
-  text: 'We just launched our new feature! Check it out at https://example.com',
-  platformIds: platformIds,
+const { data: post } = await api.post('/create-post', {
+  content: 'We just launched our new feature! Check it out at https://example.com',
+  platforms: platforms,
   scheduledTime: '2026-03-15T14:00:00.000Z'
 });
 
-console.log('Post scheduled to all platforms:', post.id);
+console.log('Post scheduled to all platforms:', post.postGroupId);
 ```
 
 ---
@@ -193,15 +193,15 @@ console.log('Post scheduled to all platforms:', post.id);
 **JavaScript (fetch)**
 
 ```javascript
-const response = await fetch('https://api.publora.com/api/v1/post-groups', {
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
-    platformIds: [
+    content: 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
+    platforms: [
       'twitter-123456',
       'linkedin-ABCDEF',
       'instagram-789012'
@@ -211,7 +211,7 @@ const response = await fetch('https://api.publora.com/api/v1/post-groups', {
 });
 
 const post = await response.json();
-console.log('Post created:', post.id);
+console.log('Post created:', post.postGroupId);
 // On Twitter, if the text exceeds 280 characters, it becomes a thread automatically.
 // On LinkedIn (3000 char limit) and Instagram (2200 char limit), the full text is posted as-is.
 ```
@@ -222,14 +222,14 @@ console.log('Post created:', post.id);
 import requests
 
 response = requests.post(
-    'https://api.publora.com/api/v1/post-groups',
+    'https://api.publora.com/api/v1/create-post',
     headers={
         'Content-Type': 'application/json',
         'x-publora-key': 'YOUR_API_KEY'
     },
     json={
-        'text': 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
-        'platformIds': [
+        'content': 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
+        'platforms': [
             'twitter-123456',
             'linkedin-ABCDEF',
             'instagram-789012'
@@ -239,18 +239,18 @@ response = requests.post(
 )
 
 post = response.json()
-print(f"Post created: {post['id']}")
+print(f"Post created: {post['postGroupId']}")
 ```
 
 **cURL**
 
 ```bash
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "text": "Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.",
-    "platformIds": [
+    "content": "Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.",
+    "platforms": [
       "twitter-123456",
       "linkedin-ABCDEF",
       "instagram-789012"
@@ -265,10 +265,10 @@ curl -X POST https://api.publora.com/api/v1/post-groups \
 const axios = require('axios');
 
 const { data: post } = await axios.post(
-  'https://api.publora.com/api/v1/post-groups',
+  'https://api.publora.com/api/v1/create-post',
   {
-    text: 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
-    platformIds: [
+    content: 'Big news! We are expanding to 3 new markets this quarter. Stay tuned for more details.',
+    platforms: [
       'twitter-123456',
       'linkedin-ABCDEF',
       'instagram-789012'
@@ -283,7 +283,7 @@ const { data: post } = await axios.post(
   }
 );
 
-console.log('Post created:', post.id);
+console.log('Post created:', post.postGroupId);
 ```
 
 ---
@@ -295,7 +295,7 @@ When posting long-form content, Publora automatically adapts it for each platfor
 **JavaScript (fetch)**
 
 ```javascript
-const longText = `We are thrilled to announce that our platform now supports 10 social media channels!
+const longContent = `We are thrilled to announce that our platform now supports 10 social media channels!
 
 Here is what's new:
 - Twitter/X threading for long posts
@@ -307,19 +307,19 @@ Here is what's new:
 - Threads support
 - Telegram channels
 - Bluesky integration
-- Pinterest pins
+- Mastodon support
 
 This has been months in the making, and we cannot wait for you to try it out. Visit our website to learn more and connect your accounts today.`;
 
-const response = await fetch('https://api.publora.com/api/v1/post-groups', {
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: longText,
-    platformIds: [
+    content: longContent,
+    platforms: [
       'twitter-123456',   // Will become a thread (exceeds 280 chars)
       'linkedin-ABCDEF',  // Full text posted (under 3000 chars)
       'threads-111213',    // Will become a thread (exceeds 500 chars)
@@ -331,18 +331,17 @@ const response = await fetch('https://api.publora.com/api/v1/post-groups', {
 });
 
 const post = await response.json();
-console.log('Post created:', post.id);
+console.log('Post created:', post.postGroupId);
 
 // After publishing, check individual platform results
 const statusResponse = await fetch(
-  `https://api.publora.com/api/v1/post-groups/${post.id}`,
+  `https://api.publora.com/api/v1/get-post/${post.postGroupId}`,
   {
     headers: { 'x-publora-key': 'YOUR_API_KEY' }
   }
 );
 
 const status = await statusResponse.json();
-console.log('Overall status:', status.status);
 
 // Each platform post may have its own status
 if (status.posts) {
@@ -363,7 +362,7 @@ HEADERS = {
     'x-publora-key': 'YOUR_API_KEY'
 }
 
-long_text = """We are thrilled to announce that our platform now supports 10 social media channels!
+long_content = """We are thrilled to announce that our platform now supports 10 social media channels!
 
 Here is what's new:
 - Twitter/X threading for long posts
@@ -375,16 +374,16 @@ Here is what's new:
 - Threads support
 - Telegram channels
 - Bluesky integration
-- Pinterest pins
+- Mastodon support
 
 This has been months in the making, and we cannot wait for you to try it out. Visit our website to learn more and connect your accounts today."""
 
 response = requests.post(
-    f'{API_URL}/post-groups',
+    f'{API_URL}/create-post',
     headers=HEADERS,
     json={
-        'text': long_text,
-        'platformIds': [
+        'content': long_content,
+        'platforms': [
             'twitter-123456',
             'linkedin-ABCDEF',
             'threads-111213',
@@ -396,16 +395,15 @@ response = requests.post(
 )
 
 post = response.json()
-print(f"Post created: {post['id']}")
+print(f"Post created: {post['postGroupId']}")
 
 # Check individual platform results after publishing
 status_response = requests.get(
-    f"{API_URL}/post-groups/{post['id']}",
+    f"{API_URL}/get-post/{post['postGroupId']}",
     headers=HEADERS
 )
 
 status = status_response.json()
-print(f"Overall status: {status['status']}")
 
 if 'posts' in status:
     for platform_post in status['posts']:
@@ -415,12 +413,12 @@ if 'posts' in status:
 **cURL**
 
 ```bash
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "text": "We are thrilled to announce that our platform now supports 10 social media channels!\n\nHere is what'\''s new:\n- Twitter/X threading for long posts\n- LinkedIn articles with rich formatting\n- Instagram Reels for video content\n- TikTok with automatic settings\n- YouTube with public visibility defaults\n- Facebook pages\n- Threads support\n- Telegram channels\n- Bluesky integration\n- Pinterest pins\n\nThis has been months in the making, and we cannot wait for you to try it out.",
-    "platformIds": [
+    "content": "We are thrilled to announce that our platform now supports 10 social media channels!\n\nHere is what'\''s new:\n- Twitter/X threading for long posts\n- LinkedIn articles with rich formatting\n- Instagram Reels for video content\n- TikTok with automatic settings\n- YouTube with public visibility defaults\n- Facebook pages\n- Threads support\n- Telegram channels\n- Bluesky integration\n- Mastodon support\n\nThis has been months in the making, and we cannot wait for you to try it out.",
+    "platforms": [
       "twitter-123456",
       "linkedin-ABCDEF",
       "threads-111213",
@@ -430,9 +428,9 @@ curl -X POST https://api.publora.com/api/v1/post-groups \
     "scheduledTime": "2026-03-15T10:00:00.000Z"
   }'
 
-# Check post status (replace POST_GROUP_ID with the actual ID)
-curl -s https://api.publora.com/api/v1/post-groups/POST_GROUP_ID \
-  -H "x-publora-key: YOUR_API_KEY" | jq '.status, .posts[]?.platform, .posts[]?.status'
+# Check post status (replace POST_GROUP_ID with the actual postGroupId)
+curl -s https://api.publora.com/api/v1/get-post/POST_GROUP_ID \
+  -H "x-publora-key: YOUR_API_KEY" | jq '.posts[]? | {platform, status}'
 ```
 
 **Node.js (axios)**
@@ -448,7 +446,7 @@ const api = axios.create({
   }
 });
 
-const longText = `We are thrilled to announce that our platform now supports 10 social media channels!
+const longContent = `We are thrilled to announce that our platform now supports 10 social media channels!
 
 Here is what's new:
 - Twitter/X threading for long posts
@@ -460,13 +458,13 @@ Here is what's new:
 - Threads support
 - Telegram channels
 - Bluesky integration
-- Pinterest pins
+- Mastodon support
 
 This has been months in the making, and we cannot wait for you to try it out. Visit our website to learn more and connect your accounts today.`;
 
-const { data: post } = await api.post('/post-groups', {
-  text: longText,
-  platformIds: [
+const { data: post } = await api.post('/create-post', {
+  content: longContent,
+  platforms: [
     'twitter-123456',
     'linkedin-ABCDEF',
     'threads-111213',
@@ -476,11 +474,10 @@ const { data: post } = await api.post('/post-groups', {
   scheduledTime: '2026-03-15T10:00:00.000Z'
 });
 
-console.log('Post created:', post.id);
+console.log('Post created:', post.postGroupId);
 
 // Check platform-level results after publishing
-const { data: status } = await api.get(`/post-groups/${post.id}`);
-console.log('Overall status:', status.status);
+const { data: status } = await api.get(`/get-post/${post.postGroupId}`);
 
 if (status.posts) {
   for (const platformPost of status.posts) {
@@ -493,15 +490,15 @@ if (status.posts) {
 
 1. **Keep text concise for multi-platform posts.** If you want the same text to appear identically on all platforms, keep it under 280 characters (the smallest common limit for Twitter/X). Otherwise, expect automatic threading or truncation.
 
-2. **Retrieve platform IDs dynamically.** Do not hardcode platform IDs. Use `GET /api/v1/connections` to discover connected accounts, since users may add or remove connections.
+2. **Retrieve platform IDs dynamically.** Do not hardcode platform IDs. Use `GET /api/v1/platform-connections` to discover connected accounts, since users may add or remove connections.
 
-3. **Check post status after publishing.** A post group may end up `partially_published` if some platforms succeed and others fail. Always inspect individual platform post statuses.
+3. **Check post status after publishing.** A post group may end up `partially_published` if some platforms succeed and others fail. Always inspect individual platform post statuses via `GET /api/v1/get-post/:postGroupId`.
 
 4. **Be aware of media requirements per platform.** Instagram requires media on every post. TikTok requires video. If you include platforms with different media requirements, ensure your media satisfies all of them, or split into separate post groups.
 
 5. **Test with a single platform first.** When developing your integration, start by posting to one platform, verify it works, and then expand to multiple platforms.
 
-6. **Use the same post group for analytics.** Since all platform posts belong to one post group, you can track the overall performance of a campaign through a single ID.
+6. **Use the same post group for analytics.** Since all platform posts belong to one post group, you can track the overall performance of a campaign through a single postGroupId.
 
 ## Common Issues
 
@@ -509,7 +506,7 @@ if (status.posts) {
 |---|---|---|
 | Post succeeds on some platforms but not others | Different requirements per platform (e.g., Instagram needs media) | Check which platforms need media and ensure your post includes it, or create separate post groups |
 | Twitter post appears as a thread | Text exceeds 280 characters | This is expected behavior -- Publora auto-threads long Twitter content |
-| `400` error with invalid platform ID | Platform ID does not match the `{platform}-{id}` format, or account is not connected | Verify the format and check `GET /api/v1/connections` for valid IDs |
+| `400` error with invalid platform ID | Platform ID does not match the `{platform}-{id}` format, or account is not connected | Verify the format and check `GET /api/v1/platform-connections` for valid IDs |
 | Content looks truncated on some platforms | Platform character limit is lower than your text length | Review the character limits table above and shorten content if exact wording matters |
 | Video post fails on Instagram | Instagram requires specific video formats for Reels | Ensure your video is MP4, meets Instagram's aspect ratio requirements, and is within duration limits |
 

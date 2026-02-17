@@ -110,26 +110,28 @@ class PubloraClient
         return $this->request('DELETE', '/delete-post/' . $postGroupId);
     }
 
-    public function getUploadUrl(string $fileName, string $mimeType): array
+    public function getUploadUrl(string $fileName, string $contentType, string $postGroupId): array
     {
         return $this->request('POST', '/get-upload-url', [
             'fileName' => $fileName,
-            'mimeType' => $mimeType,
+            'contentType' => $contentType,
+            'postGroupId' => $postGroupId,
         ]);
     }
 
-    public function getLinkedInPostStats(string $platformConnectionId, string $postUrn): array
+    public function getLinkedInPostStats(string $platformId, string $postedId): array
     {
         return $this->request('POST', '/linkedin-post-statistics', [
-            'platformConnectionId' => $platformConnectionId,
-            'postUrn' => $postUrn,
+            'platformId' => $platformId,
+            'postedId' => $postedId,
+            'queryTypes' => 'ALL',
         ]);
     }
 
-    public function getLinkedInAccountStats(string $platformConnectionId): array
+    public function getLinkedInAccountStats(string $platformId): array
     {
         return $this->request('POST', '/linkedin-account-statistics', [
-            'platformConnectionId' => $platformConnectionId,
+            'platformId' => $platformId,
         ]);
     }
 }
@@ -254,7 +256,7 @@ foreach ($posts as $post) {
 }
 ```
 
-### Post with Image URL
+### Create a Post (Media Auto-Attaches via postGroupId)
 
 ```php
 <?php
@@ -266,10 +268,9 @@ try {
     $response = $client->createPost([
         'content' => 'Check out this amazing screenshot!',
         'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-        'mediaUrls' => ['https://example.com/images/screenshot.png'],
     ]);
 
-    echo "Post with image created: {$response['postGroupId']}\n";
+    echo "Post created: {$response['postGroupId']}\n";
 } catch (PubloraException $e) {
     echo "Failed: " . $e->getMessage() . "\n";
 }
@@ -283,12 +284,11 @@ require_once 'src/PubloraClient.php';
 
 $client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
 
-// Instagram Reel
+// Instagram Reel (upload media first, it auto-attaches via postGroupId)
 try {
     $response = $client->createPost([
         'content' => 'Behind the scenes! #buildinpublic',
         'platforms' => ['instagram-789012345'],
-        'mediaUrls' => ['https://example.com/video.mp4'],
         'platformSettings' => [
             'instagram' => [
                 'videoType' => 'REELS',
@@ -344,13 +344,22 @@ $client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
 $filePath = './screenshot.png';
 
 try {
-    // Step 1: Get upload URL
+    // Step 1: Create post first to get postGroupId
+    $response = $client->createPost([
+        'content' => 'Check out this screenshot!',
+        'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
+    ]);
+
+    $postGroupId = $response['postGroupId'];
+    echo "Post created: $postGroupId\n";
+
+    // Step 2: Get upload URL (media auto-attaches via postGroupId)
     $fileName = basename($filePath);
-    $mimeType = getMimeType($fileName);
+    $contentType = getMimeType($fileName);
 
-    $uploadResult = $client->getUploadUrl($fileName, $mimeType);
+    $uploadResult = $client->getUploadUrl($fileName, $contentType, $postGroupId);
 
-    // Step 2: Upload file to S3
+    // Step 3: Upload file to S3
     $fileContent = file_get_contents($filePath);
 
     $ch = curl_init();
@@ -360,7 +369,7 @@ try {
         CURLOPT_POSTFIELDS => $fileContent,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
-            'Content-Type: ' . $mimeType,
+            'Content-Type: ' . $contentType,
         ],
     ]);
 
@@ -372,14 +381,9 @@ try {
         throw new Exception("Upload failed with status $uploadStatus");
     }
 
-    // Step 3: Create post with media
-    $response = $client->createPost([
-        'content' => 'Check out this screenshot!',
-        'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-        'mediaKeys' => [$uploadResult['mediaKey']],
-    ]);
-
-    echo "Post with uploaded media created: {$response['postGroupId']}\n";
+    echo "Media uploaded: {$uploadResult['mediaId']}\n";
+    echo "File URL: {$uploadResult['fileUrl']}\n";
+    echo "Post with uploaded media created: $postGroupId\n";
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }
@@ -506,7 +510,7 @@ fgetcsv($handle);
 $results = [];
 
 while (($row = fgetcsv($handle)) !== false) {
-    [$content, $platforms, $scheduledTime, $mediaUrl] = $row;
+    [$content, $platforms, $scheduledTime] = $row;
 
     $platformIds = array_map('trim', explode(';', $platforms));
 
@@ -515,10 +519,6 @@ while (($row = fgetcsv($handle)) !== false) {
         'platforms' => $platformIds,
         'scheduledTime' => $scheduledTime,
     ];
-
-    if (!empty($mediaUrl)) {
-        $postData['mediaUrls'] = [$mediaUrl];
-    }
 
     try {
         $response = $client->createPost($postData);
@@ -554,8 +554,8 @@ require_once 'src/PubloraClient.php';
 
 $client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
 
-$platformConnectionId = 'linkedin-ABC123DEF';
-$postUrns = [
+$platformId = 'linkedin-ABC123DEF';
+$postedIds = [
     'urn:li:share:7123456789012345678',
     'urn:li:share:7234567890123456789',
 ];
@@ -565,20 +565,21 @@ echo "=== LinkedIn Analytics Report ===\n\n";
 $totalImpressions = 0;
 $totalEngagement = 0;
 
-foreach ($postUrns as $postUrn) {
+foreach ($postedIds as $postedId) {
     try {
-        $stats = $client->getLinkedInPostStats($platformConnectionId, $postUrn);
+        $result = $client->getLinkedInPostStats($platformId, $postedId);
 
-        $engagement = $stats['likes'] + $stats['comments'] + $stats['shares'];
-        $totalImpressions += $stats['impressions'];
+        $metrics = $result['metrics'];
+        $engagement = $metrics['REACTION'] + $metrics['COMMENT'] + $metrics['RESHARE'];
+        $totalImpressions += $metrics['IMPRESSION'];
         $totalEngagement += $engagement;
 
-        echo "Post: $postUrn\n";
-        echo "  Impressions: " . number_format($stats['impressions']) . "\n";
-        echo "  Engagement: $engagement ({$stats['likes']} likes, {$stats['comments']} comments, {$stats['shares']} shares)\n";
-        echo "  CTR: " . number_format(($stats['clicks'] / $stats['impressions']) * 100, 2) . "%\n\n";
+        echo "Post: $postedId\n";
+        echo "  Impressions: " . number_format($metrics['IMPRESSION']) . "\n";
+        echo "  Members Reached: " . number_format($metrics['MEMBERS_REACHED']) . "\n";
+        echo "  Engagement: $engagement ({$metrics['REACTION']} reactions, {$metrics['COMMENT']} comments, {$metrics['RESHARE']} reshares)\n\n";
     } catch (PubloraException $e) {
-        echo "Post: $postUrn - Error: {$e->getMessage()}\n\n";
+        echo "Post: $postedId - Error: {$e->getMessage()}\n\n";
     }
 }
 

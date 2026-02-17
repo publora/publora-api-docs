@@ -116,13 +116,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Highlights from our company retreat last weekend! Great team, great memories.',
-    platforms: ['facebook-112233445566'],
-    mediaUrls: [
-      'https://example.com/images/retreat-group.jpeg',
-      'https://example.com/images/retreat-activity.jpeg',
-      'https://example.com/images/retreat-dinner.jpeg',
-      'https://example.com/images/retreat-sunset.jpeg'
-    ]
+    platforms: ['facebook-112233445566']
   })
 });
 
@@ -143,13 +137,7 @@ response = requests.post(
     },
     json={
         'content': 'Highlights from our company retreat last weekend! Great team, great memories.',
-        'platforms': ['facebook-112233445566'],
-        'mediaUrls': [
-            'https://example.com/images/retreat-group.jpeg',
-            'https://example.com/images/retreat-activity.jpeg',
-            'https://example.com/images/retreat-dinner.jpeg',
-            'https://example.com/images/retreat-sunset.jpeg'
-        ]
+        'platforms': ['facebook-112233445566']
     }
 )
 
@@ -165,13 +153,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Highlights from our company retreat last weekend! Great team, great memories.",
-    "platforms": ["facebook-112233445566"],
-    "mediaUrls": [
-      "https://example.com/images/retreat-group.jpeg",
-      "https://example.com/images/retreat-activity.jpeg",
-      "https://example.com/images/retreat-dinner.jpeg",
-      "https://example.com/images/retreat-sunset.jpeg"
-    ]
+    "platforms": ["facebook-112233445566"]
   }'
 ```
 
@@ -182,13 +164,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Highlights from our company retreat last weekend! Great team, great memories.',
-  platforms: ['facebook-112233445566'],
-  mediaUrls: [
-    'https://example.com/images/retreat-group.jpeg',
-    'https://example.com/images/retreat-activity.jpeg',
-    'https://example.com/images/retreat-dinner.jpeg',
-    'https://example.com/images/retreat-sunset.jpeg'
-  ]
+  platforms: ['facebook-112233445566']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -198,6 +174,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** To attach media to a Facebook post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Post to Multiple Facebook Pages
 

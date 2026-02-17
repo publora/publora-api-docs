@@ -33,14 +33,12 @@ class PubloraClient
     response['connections'] || []
   end
 
-  def create_post(content:, platforms:, scheduled_time: nil, media_urls: nil, media_keys: nil, platform_settings: nil)
+  def create_post(content:, platforms:, scheduled_time: nil, platform_settings: nil)
     body = {
       content: content,
       platforms: platforms
     }
     body[:scheduledTime] = scheduled_time if scheduled_time
-    body[:mediaUrls] = media_urls if media_urls
-    body[:mediaKeys] = media_keys if media_keys
     body[:platformSettings] = platform_settings if platform_settings
 
     request(:post, '/create-post', body)
@@ -58,17 +56,19 @@ class PubloraClient
     request(:delete, "/delete-post/#{post_group_id}")
   end
 
-  def get_upload_url(file_name, mime_type)
+  def get_upload_url(file_name, content_type, post_group_id)
     request(:post, '/get-upload-url', {
       fileName: file_name,
-      mimeType: mime_type
+      contentType: content_type,
+      postGroupId: post_group_id
     })
   end
 
-  def linkedin_post_stats(platform_connection_id, post_urn)
+  def linkedin_post_stats(platform_id, posted_id)
     request(:post, '/linkedin-post-statistics', {
-      platformConnectionId: platform_connection_id,
-      postUrn: post_urn
+      platformId: platform_id,
+      postedId: posted_id,
+      queryTypes: 'ALL'
     })
   end
 
@@ -210,7 +210,7 @@ posts.each_with_index do |post, index|
 end
 ```
 
-### Post with Image URL
+### Create a Post (Media Auto-Attaches via postGroupId)
 
 ```ruby
 client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
@@ -218,11 +218,10 @@ client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
 begin
   response = client.create_post(
     content: 'Check out this amazing screenshot!',
-    platforms: ['twitter-123456789', 'linkedin-ABC123DEF'],
-    media_urls: ['https://example.com/images/screenshot.png']
+    platforms: ['twitter-123456789', 'linkedin-ABC123DEF']
   )
 
-  puts "Post with image created: #{response['postGroupId']}"
+  puts "Post created: #{response['postGroupId']}"
 rescue PubloraError => e
   puts "Failed: #{e.message}"
 end
@@ -238,7 +237,6 @@ begin
   response = client.create_post(
     content: 'Behind the scenes! #buildinpublic',
     platforms: ['instagram-789012345'],
-    media_urls: ['https://example.com/video.mp4'],
     platform_settings: {
       instagram: {
         videoType: 'REELS'
@@ -291,32 +289,36 @@ client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
 file_path = './screenshot.png'
 
 begin
-  # Step 1: Get upload URL
+  # Step 1: Create post first to get postGroupId
+  post_response = client.create_post(
+    content: 'Check out this screenshot!',
+    platforms: ['twitter-123456789', 'linkedin-ABC123DEF']
+  )
+
+  post_group_id = post_response['postGroupId']
+  puts "Post created: #{post_group_id}"
+
+  # Step 2: Get upload URL (media auto-attaches via postGroupId)
   file_name = File.basename(file_path)
-  mime_type = get_mime_type(file_name)
+  content_type = get_mime_type(file_name)
 
-  upload_result = client.get_upload_url(file_name, mime_type)
+  upload_result = client.get_upload_url(file_name, content_type, post_group_id)
 
-  # Step 2: Upload file to S3
+  # Step 3: Upload file to S3
   uri = URI(upload_result['uploadUrl'])
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
 
   request = Net::HTTP::Put.new(uri)
-  request['Content-Type'] = mime_type
+  request['Content-Type'] = content_type
   request.body = File.read(file_path, mode: 'rb')
 
   response = http.request(request)
   raise "Upload failed: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
-  # Step 3: Create post with media
-  post_response = client.create_post(
-    content: 'Check out this screenshot!',
-    platforms: ['twitter-123456789', 'linkedin-ABC123DEF'],
-    media_keys: [upload_result['mediaKey']]
-  )
-
-  puts "Post with uploaded media created: #{post_response['postGroupId']}"
+  puts "Media uploaded: #{upload_result['mediaId']}"
+  puts "File URL: #{upload_result['fileUrl']}"
+  puts "Post with uploaded media created: #{post_group_id}"
 rescue => e
   puts "Error: #{e.message}"
 end
@@ -427,8 +429,6 @@ CSV.foreach('posts.csv', headers: true) do |row|
     scheduled_time: row['scheduled_time']
   }
 
-  post_data[:media_urls] = [row['media_url']] if row['media_url'] && !row['media_url'].empty?
-
   begin
     response = client.create_post(**post_data)
     results << { content: row['content'][0..29] + '...', success: true, post_group_id: response['postGroupId'] }
@@ -450,8 +450,8 @@ puts "\nImported #{successful}/#{results.length} posts"
 ```ruby
 client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
 
-platform_connection_id = 'linkedin-ABC123DEF'
-post_urns = [
+platform_id = 'linkedin-ABC123DEF'
+posted_ids = [
   'urn:li:share:7123456789012345678',
   'urn:li:share:7234567890123456789'
 ]
@@ -462,21 +462,22 @@ puts
 total_impressions = 0
 total_engagement = 0
 
-post_urns.each do |post_urn|
+posted_ids.each do |posted_id|
   begin
-    stats = client.linkedin_post_stats(platform_connection_id, post_urn)
+    result = client.linkedin_post_stats(platform_id, posted_id)
 
-    engagement = stats['likes'] + stats['comments'] + stats['shares']
-    total_impressions += stats['impressions']
+    metrics = result['metrics']
+    engagement = metrics['REACTION'] + metrics['COMMENT'] + metrics['RESHARE']
+    total_impressions += metrics['IMPRESSION']
     total_engagement += engagement
 
-    puts "Post: #{post_urn}"
-    puts "  Impressions: #{stats['impressions'].to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
-    puts "  Engagement: #{engagement} (#{stats['likes']} likes, #{stats['comments']} comments, #{stats['shares']} shares)"
-    puts "  CTR: #{'%.2f' % ((stats['clicks'].to_f / stats['impressions']) * 100)}%"
+    puts "Post: #{posted_id}"
+    puts "  Impressions: #{metrics['IMPRESSION'].to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+    puts "  Members Reached: #{metrics['MEMBERS_REACHED'].to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+    puts "  Engagement: #{engagement} (#{metrics['REACTION']} reactions, #{metrics['COMMENT']} comments, #{metrics['RESHARE']} reshares)"
     puts
   rescue PubloraError => e
-    puts "Post: #{post_urn} - Error: #{e.message}"
+    puts "Post: #{posted_id} - Error: #{e.message}"
     puts
   end
 end

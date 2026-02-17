@@ -72,7 +72,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'How to Build a REST API in 10 Minutes - A complete tutorial covering Express.js setup, routing, middleware, error handling, and deployment to production. Perfect for beginners who want to get started with backend development.',
     platforms: ['youtube-UCxxxxxxxx'],
-    mediaUrls: ['https://example.com/videos/rest-api-tutorial.mp4'],
     platformSettings: {
       youtube: {
         privacy: 'public',
@@ -100,7 +99,6 @@ response = requests.post(
     json={
         'content': 'How to Build a REST API in 10 Minutes - A complete tutorial covering Express.js setup, routing, middleware, error handling, and deployment to production. Perfect for beginners who want to get started with backend development.',
         'platforms': ['youtube-UCxxxxxxxx'],
-        'mediaUrls': ['https://example.com/videos/rest-api-tutorial.mp4'],
         'platformSettings': {
             'youtube': {
                 'privacy': 'public',
@@ -123,7 +121,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "How to Build a REST API in 10 Minutes - A complete tutorial covering Express.js setup, routing, middleware, error handling, and deployment to production. Perfect for beginners who want to get started with backend development.",
     "platforms": ["youtube-UCxxxxxxxx"],
-    "mediaUrls": ["https://example.com/videos/rest-api-tutorial.mp4"],
     "platformSettings": {
       "youtube": {
         "privacy": "public",
@@ -141,7 +138,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'How to Build a REST API in 10 Minutes - A complete tutorial covering Express.js setup, routing, middleware, error handling, and deployment to production. Perfect for beginners who want to get started with backend development.',
   platforms: ['youtube-UCxxxxxxxx'],
-  mediaUrls: ['https://example.com/videos/rest-api-tutorial.mp4'],
   platformSettings: {
     youtube: {
       privacy: 'public',
@@ -158,6 +154,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 console.log(response.data);
 ```
 
+> **Note:** YouTube requires a video. First create the post, then upload the video using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
+
 ### Upload an Unlisted Video
 
 **JavaScript (fetch)**
@@ -172,7 +170,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Internal demo recording for the team. This video covers the new dashboard features and upcoming roadmap items. Please do not share this link externally.',
     platforms: ['youtube-UCxxxxxxxx'],
-    mediaUrls: ['https://example.com/videos/internal-demo.mp4'],
     platformSettings: {
       youtube: {
         privacy: 'unlisted',
@@ -200,7 +197,6 @@ response = requests.post(
     json={
         'content': 'Internal demo recording for the team. This video covers the new dashboard features and upcoming roadmap items. Please do not share this link externally.',
         'platforms': ['youtube-UCxxxxxxxx'],
-        'mediaUrls': ['https://example.com/videos/internal-demo.mp4'],
         'platformSettings': {
             'youtube': {
                 'privacy': 'unlisted',
@@ -223,7 +219,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Internal demo recording for the team. This video covers the new dashboard features and upcoming roadmap items. Please do not share this link externally.",
     "platforms": ["youtube-UCxxxxxxxx"],
-    "mediaUrls": ["https://example.com/videos/internal-demo.mp4"],
     "platformSettings": {
       "youtube": {
         "privacy": "unlisted",
@@ -241,7 +236,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Internal demo recording for the team. This video covers the new dashboard features and upcoming roadmap items. Please do not share this link externally.',
   platforms: ['youtube-UCxxxxxxxx'],
-  mediaUrls: ['https://example.com/videos/internal-demo.mp4'],
   platformSettings: {
     youtube: {
       privacy: 'unlisted',
@@ -273,8 +267,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Weekly Vlog: What I learned shipping 3 features in 5 days. This week was intense but incredibly productive. We managed to ship the new analytics dashboard, the team collaboration feature, and a complete redesign of the onboarding flow.',
-    platforms: ['youtube-UCxxxxxxxx'],
-    mediaUrls: ['https://example.com/videos/weekly-vlog.mp4']
+    platforms: ['youtube-UCxxxxxxxx']
   })
 });
 
@@ -297,8 +290,7 @@ response = requests.post(
     },
     json={
         'content': 'Weekly Vlog: What I learned shipping 3 features in 5 days. This week was intense but incredibly productive. We managed to ship the new analytics dashboard, the team collaboration feature, and a complete redesign of the onboarding flow.',
-        'platforms': ['youtube-UCxxxxxxxx'],
-        'mediaUrls': ['https://example.com/videos/weekly-vlog.mp4']
+        'platforms': ['youtube-UCxxxxxxxx']
     }
 )
 
@@ -315,8 +307,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Weekly Vlog: What I learned shipping 3 features in 5 days. This week was intense but incredibly productive. We managed to ship the new analytics dashboard, the team collaboration feature, and a complete redesign of the onboarding flow.",
-    "platforms": ["youtube-UCxxxxxxxx"],
-    "mediaUrls": ["https://example.com/videos/weekly-vlog.mp4"]
+    "platforms": ["youtube-UCxxxxxxxx"]
   }'
 ```
 
@@ -327,8 +318,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Weekly Vlog: What I learned shipping 3 features in 5 days. This week was intense but incredibly productive. We managed to ship the new analytics dashboard, the team collaboration feature, and a complete redesign of the onboarding flow.',
-  platforms: ['youtube-UCxxxxxxxx'],
-  mediaUrls: ['https://example.com/videos/weekly-vlog.mp4']
+  platforms: ['youtube-UCxxxxxxxx']
 }, {
   headers: {
     'Content-Type': 'application/json',

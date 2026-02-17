@@ -129,16 +129,16 @@ async function publoraRequest(endpoint, options = {}) {
 
 // Usage
 try {
-  const post = await publoraRequest('/post-groups', {
+  const post = await publoraRequest('/create-post', {
     method: 'POST',
     body: JSON.stringify({
-      text: 'Hello from Publora!',
-      platformIds: ['twitter-123456'],
+      content: 'Hello from Publora!',
+      platforms: ['twitter-123456'],
       scheduledTime: '2026-03-15T14:00:00.000Z'
     })
   });
 
-  console.log('Post created:', post.id);
+  console.log('Post created:', post.postGroupId);
 } catch (error) {
   if (error instanceof PubloraApiError) {
     switch (error.status) {
@@ -209,18 +209,18 @@ class PubloraClient:
 
         return body
 
-    def create_post(self, text, platform_ids, scheduled_time=None):
+    def create_post(self, content, platform_ids, scheduled_time=None):
         payload = {
-            'text': text,
-            'platformIds': platform_ids
+            'content': content,
+            'platforms': platform_ids
         }
         if scheduled_time:
             payload['scheduledTime'] = scheduled_time
 
-        return self._request('POST', '/post-groups', json=payload)
+        return self._request('POST', '/create-post', json=payload)
 
     def get_post(self, post_group_id):
-        return self._request('GET', f'/post-groups/{post_group_id}')
+        return self._request('GET', f'/get-post/{post_group_id}')
 
 
 # Usage
@@ -228,11 +228,11 @@ client = PubloraClient('YOUR_API_KEY')
 
 try:
     post = client.create_post(
-        text='Hello from Publora!',
-        platform_ids=['twitter-123456'],
+        content='Hello from Publora!',
+        platforms=['twitter-123456'],
         scheduled_time='2026-03-15T14:00:00.000Z'
     )
-    print(f"Post created: {post['id']}")
+    print(f"Post created: {post['postGroupId']}")
 
 except PubloraApiError as e:
     if e.status_code == 401:
@@ -261,12 +261,12 @@ API_KEY="YOUR_API_KEY"
 BASE_URL="https://api.publora.com/api/v1"
 
 # Make a request and capture both HTTP status and body
-HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/post-groups" \
+HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/create-post" \
   -H "Content-Type: application/json" \
   -H "x-publora-key: $API_KEY" \
   -d '{
-    "text": "Hello from Publora!",
-    "platformIds": ["twitter-123456"],
+    "content": "Hello from Publora!",
+    "platforms": ["twitter-123456"],
     "scheduledTime": "2026-03-15T14:00:00.000Z"
   }')
 
@@ -356,13 +356,13 @@ api.interceptors.response.use(
 
 // Usage
 try {
-  const { data: post } = await api.post('/post-groups', {
-    text: 'Hello from Publora!',
-    platformIds: ['twitter-123456'],
+  const { data: post } = await api.post('/create-post', {
+    content: 'Hello from Publora!',
+    platforms: ['twitter-123456'],
     scheduledTime: '2026-03-15T14:00:00.000Z'
   });
 
-  console.log('Post created:', post.id);
+  console.log('Post created:', post.postGroupId);
 } catch (error) {
   // Error already logged by the interceptor
   // Add any additional handling here
@@ -429,16 +429,16 @@ async function publoraRequestWithRetry(endpoint, options = {}, maxRetries = 3) {
 
 // Usage
 try {
-  const post = await publoraRequestWithRetry('/post-groups', {
+  const post = await publoraRequestWithRetry('/create-post', {
     method: 'POST',
     body: JSON.stringify({
-      text: 'Retryable post!',
-      platformIds: ['twitter-123456'],
+      content: 'Retryable post!',
+      platforms: ['twitter-123456'],
       scheduledTime: '2026-03-15T14:00:00.000Z'
     })
   });
 
-  console.log('Post created:', post.id);
+  console.log('Post created:', post.postGroupId);
 } catch (error) {
   console.error('Failed after retries:', error.message);
 }
@@ -492,14 +492,14 @@ def publora_request_with_retry(method, endpoint, max_retries=3, **kwargs):
 # Usage
 try:
     post = publora_request_with_retry(
-        'POST', '/post-groups',
+        'POST', '/create-post',
         json={
-            'text': 'Retryable post!',
-            'platformIds': ['twitter-123456'],
+            'content': 'Retryable post!',
+            'platforms': ['twitter-123456'],
             'scheduledTime': '2026-03-15T14:00:00.000Z'
         }
     )
-    print(f"Post created: {post['id']}")
+    print(f"Post created: {post['postGroupId']}")
 except Exception as e:
     print(f'Failed after retries: {e}')
 ```
@@ -549,13 +549,13 @@ async function publoraRequestWithRetry(method, endpoint, data = null, maxRetries
 
 // Usage
 try {
-  const post = await publoraRequestWithRetry('POST', '/post-groups', {
-    text: 'Retryable post!',
-    platformIds: ['twitter-123456'],
+  const post = await publoraRequestWithRetry('POST', '/create-post', {
+    content: 'Retryable post!',
+    platforms: ['twitter-123456'],
     scheduledTime: '2026-03-15T14:00:00.000Z'
   });
 
-  console.log('Post created:', post.id);
+  console.log('Post created:', post.postGroupId);
 } catch (error) {
   console.error('Failed after retries:', error.message);
 }
@@ -572,7 +572,7 @@ After a post group has been processed, check whether all platforms succeeded or 
 ```javascript
 async function checkPostGroupStatus(postGroupId) {
   const response = await fetch(
-    `https://api.publora.com/api/v1/post-groups/${postGroupId}`,
+    `https://api.publora.com/api/v1/get-post/${postGroupId}`,
     {
       headers: { 'x-publora-key': 'YOUR_API_KEY' }
     }
@@ -580,7 +580,7 @@ async function checkPostGroupStatus(postGroupId) {
 
   const postGroup = await response.json();
 
-  console.log(`Post group ${postGroup.id}: ${postGroup.status}`);
+  console.log(`Post group ${postGroup.postGroupId}: ${postGroup.status}`);
 
   if (postGroup.status === 'partially_published') {
     console.log('Some platforms failed:');
@@ -640,14 +640,14 @@ HEADERS = {
 
 def check_post_group_status(post_group_id):
     response = requests.get(
-        f'{API_URL}/post-groups/{post_group_id}',
+        f'{API_URL}/get-post/{post_group_id}',
         headers=HEADERS
     )
 
     post_group = response.json()
     status = post_group['status']
 
-    print(f"Post group {post_group['id']}: {status}")
+    print(f"Post group {post_group['postGroupId']}: {status}")
 
     if status == 'partially_published':
         print('Some platforms failed:')

@@ -71,17 +71,13 @@ class PubloraService:
         result = self._request('GET', '/platform-connections')
         return result.get('connections', [])
 
-    def create_post(self, content, platforms, scheduled_time=None, media_urls=None, media_keys=None, platform_settings=None):
+    def create_post(self, content, platforms, scheduled_time=None, platform_settings=None):
         data = {
             'content': content,
             'platforms': platforms,
         }
         if scheduled_time:
             data['scheduledTime'] = scheduled_time
-        if media_urls:
-            data['mediaUrls'] = media_urls
-        if media_keys:
-            data['mediaKeys'] = media_keys
         if platform_settings:
             data['platformSettings'] = platform_settings
 
@@ -96,16 +92,18 @@ class PubloraService:
     def delete_post(self, post_group_id):
         return self._request('DELETE', f'/delete-post/{post_group_id}')
 
-    def get_upload_url(self, file_name, mime_type):
+    def get_upload_url(self, file_name, content_type, post_group_id):
         return self._request('POST', '/get-upload-url', {
             'fileName': file_name,
-            'mimeType': mime_type,
+            'contentType': content_type,
+            'postGroupId': post_group_id,
         })
 
-    def get_linkedin_stats(self, platform_connection_id, post_urn):
+    def get_linkedin_stats(self, platform_id, posted_id):
         return self._request('POST', '/linkedin-post-statistics', {
-            'platformConnectionId': platform_connection_id,
-            'postUrn': post_urn,
+            'platformId': platform_id,
+            'postedId': posted_id,
+            'queryTypes': 'ALL',
         })
 
 
@@ -318,7 +316,6 @@ class CreatePostSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=10000)
     platforms = serializers.ListField(child=serializers.CharField())
     scheduled_time = serializers.DateTimeField(required=False, allow_null=True)
-    media_urls = serializers.ListField(child=serializers.URLField(), required=False)
 ```
 
 ```python
@@ -377,7 +374,6 @@ class SocialPostViewSet(viewsets.ModelViewSet):
                 content=serializer.validated_data['content'],
                 platforms=serializer.validated_data['platforms'],
                 scheduled_time=serializer.validated_data.get('scheduled_time'),
-                media_urls=serializer.validated_data.get('media_urls'),
             )
 
             post = SocialPost.objects.create(

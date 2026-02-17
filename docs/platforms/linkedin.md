@@ -137,11 +137,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Our team just wrapped up an incredible hackathon weekend. Here are some highlights from the event!',
-    platforms: ['linkedin-987654321'],
-    mediaUrls: [
-      'https://example.com/images/hackathon-team.jpeg',
-      'https://example.com/images/hackathon-demo.png'
-    ]
+    platforms: ['linkedin-987654321']
   })
 });
 
@@ -162,11 +158,7 @@ response = requests.post(
     },
     json={
         'content': 'Our team just wrapped up an incredible hackathon weekend. Here are some highlights from the event!',
-        'platforms': ['linkedin-987654321'],
-        'mediaUrls': [
-            'https://example.com/images/hackathon-team.jpeg',
-            'https://example.com/images/hackathon-demo.png'
-        ]
+        'platforms': ['linkedin-987654321']
     }
 )
 
@@ -182,11 +174,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Our team just wrapped up an incredible hackathon weekend. Here are some highlights from the event!",
-    "platforms": ["linkedin-987654321"],
-    "mediaUrls": [
-      "https://example.com/images/hackathon-team.jpeg",
-      "https://example.com/images/hackathon-demo.png"
-    ]
+    "platforms": ["linkedin-987654321"]
   }'
 ```
 
@@ -197,11 +185,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Our team just wrapped up an incredible hackathon weekend. Here are some highlights from the event!',
-  platforms: ['linkedin-987654321'],
-  mediaUrls: [
-    'https://example.com/images/hackathon-team.jpeg',
-    'https://example.com/images/hackathon-demo.png'
-  ]
+  platforms: ['linkedin-987654321']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -211,6 +195,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** To attach media to a LinkedIn post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Check Post Analytics
 

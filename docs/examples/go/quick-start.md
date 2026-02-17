@@ -148,8 +148,6 @@ type CreatePostRequest struct {
 	Content          string                  `json:"content"`
 	Platforms        []string                `json:"platforms"`
 	ScheduledTime    string                  `json:"scheduledTime,omitempty"`
-	MediaURLs        []string                `json:"mediaUrls,omitempty"`
-	MediaKeys        []string                `json:"mediaKeys,omitempty"`
 	Status           string                  `json:"status,omitempty"`
 	PlatformSettings *PlatformSettings       `json:"platformSettings,omitempty"`
 }
@@ -179,24 +177,30 @@ type CreatePostResponse struct {
 	Success     bool   `json:"success"`
 	PostGroupID string `json:"postGroupId"`
 	Posts       []struct {
-		Platform             string `json:"platform"`
-		PlatformConnectionID string `json:"platformConnectionId"`
-		Status               string `json:"status"`
+		Platform   string `json:"platform"`
+		PlatformID string `json:"platformId"`
+		Status     string `json:"status"`
 	} `json:"posts"`
 }
 
 type UploadURLResponse struct {
 	UploadURL string `json:"uploadUrl"`
-	MediaKey  string `json:"mediaKey"`
+	FileURL   string `json:"fileUrl"`
+	MediaID   string `json:"mediaId"`
 }
 
-type LinkedInStats struct {
-	Impressions    int     `json:"impressions"`
-	Clicks         int     `json:"clicks"`
-	Likes          int     `json:"likes"`
-	Comments       int     `json:"comments"`
-	Shares         int     `json:"shares"`
-	EngagementRate float64 `json:"engagementRate,omitempty"`
+type LinkedInStatsResponse struct {
+	Success bool           `json:"success"`
+	Metrics LinkedInMetrics `json:"metrics"`
+	Cached  bool           `json:"cached"`
+}
+
+type LinkedInMetrics struct {
+	Impression     int `json:"IMPRESSION"`
+	MembersReached int `json:"MEMBERS_REACHED"`
+	Reshare        int `json:"RESHARE"`
+	Reaction       int `json:"REACTION"`
+	Comment        int `json:"COMMENT"`
 }
 ```
 
@@ -271,10 +275,11 @@ func (c *Client) DeletePost(postGroupID string) error {
 	return err
 }
 
-func (c *Client) GetUploadURL(fileName, mimeType string) (*UploadURLResponse, error) {
+func (c *Client) GetUploadURL(fileName, contentType, postGroupID string) (*UploadURLResponse, error) {
 	data, err := c.request("POST", "/get-upload-url", map[string]string{
-		"fileName": fileName,
-		"mimeType": mimeType,
+		"fileName":    fileName,
+		"contentType": contentType,
+		"postGroupId": postGroupID,
 	})
 	if err != nil {
 		return nil, err
@@ -288,16 +293,17 @@ func (c *Client) GetUploadURL(fileName, mimeType string) (*UploadURLResponse, er
 	return &result, nil
 }
 
-func (c *Client) GetLinkedInPostStats(platformConnectionID, postURN string) (*LinkedInStats, error) {
+func (c *Client) GetLinkedInPostStats(platformID, postedID string) (*LinkedInStatsResponse, error) {
 	data, err := c.request("POST", "/linkedin-post-statistics", map[string]string{
-		"platformConnectionId": platformConnectionID,
-		"postUrn":              postURN,
+		"platformId": platformID,
+		"postedId":   postedID,
+		"queryTypes": "ALL",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var result LinkedInStats
+	var result LinkedInStatsResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}
@@ -443,7 +449,6 @@ func main() {
 	resp, err := client.CreatePost(&publora.CreatePostRequest{
 		Content:   "Behind the scenes! #buildinpublic",
 		Platforms: []string{"instagram-789012345"},
-		MediaURLs: []string{"https://example.com/video.mp4"},
 		PlatformSettings: &publora.PlatformSettings{
 			Instagram: &publora.InstagramSettings{
 				VideoType: "REELS",
@@ -495,23 +500,35 @@ func main() {
 	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
 	filePath := "./screenshot.png"
 
-	// Step 1: Get upload URL
-	fileName := filepath.Base(filePath)
-	mimeType := getMimeType(fileName)
+	// Step 1: Create post first to get postGroupId
+	postResp, err := client.CreatePost(&publora.CreatePostRequest{
+		Content:   "Check out this screenshot!",
+		Platforms: []string{"twitter-123456789", "linkedin-ABC123DEF"},
+	})
+	if err != nil {
+		log.Fatalf("Failed to create post: %v", err)
+	}
 
-	uploadResp, err := client.GetUploadURL(fileName, mimeType)
+	postGroupID := postResp.PostGroupID
+	fmt.Printf("Post created: %s\n", postGroupID)
+
+	// Step 2: Get upload URL (media auto-attaches via postGroupId)
+	fileName := filepath.Base(filePath)
+	contentType := getMimeType(fileName)
+
+	uploadResp, err := client.GetUploadURL(fileName, contentType, postGroupID)
 	if err != nil {
 		log.Fatalf("Failed to get upload URL: %v", err)
 	}
 
-	// Step 2: Upload file to S3
+	// Step 3: Upload file to S3
 	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("Failed to read file: %v", err)
 	}
 
 	req, _ := http.NewRequest("PUT", uploadResp.UploadURL, bytes.NewReader(fileData))
-	req.Header.Set("Content-Type", mimeType)
+	req.Header.Set("Content-Type", contentType)
 
 	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
@@ -525,17 +542,9 @@ func main() {
 		log.Fatalf("Upload failed: %s", body)
 	}
 
-	// Step 3: Create post with media
-	postResp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:   "Check out this screenshot!",
-		Platforms: []string{"twitter-123456789", "linkedin-ABC123DEF"},
-		MediaKeys: []string{uploadResp.MediaKey},
-	})
-	if err != nil {
-		log.Fatalf("Failed to create post: %v", err)
-	}
-
-	fmt.Printf("Post with media created: %s\n", postResp.PostGroupID)
+	fmt.Printf("Media uploaded: %s\n", uploadResp.MediaID)
+	fmt.Printf("File URL: %s\n", uploadResp.FileURL)
+	fmt.Printf("Post with media created: %s\n", postGroupID)
 }
 ```
 
@@ -745,8 +754,8 @@ import (
 func main() {
 	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
 
-	platformConnectionID := "linkedin-ABC123DEF"
-	postURNs := []string{
+	platformID := "linkedin-ABC123DEF"
+	postedIDs := []string{
 		"urn:li:share:7123456789012345678",
 		"urn:li:share:7234567890123456789",
 	}
@@ -755,22 +764,23 @@ func main() {
 
 	var totalImpressions, totalEngagement int
 
-	for _, postURN := range postURNs {
-		stats, err := client.GetLinkedInPostStats(platformConnectionID, postURN)
+	for _, postedID := range postedIDs {
+		result, err := client.GetLinkedInPostStats(platformID, postedID)
 		if err != nil {
-			log.Printf("Error fetching stats for %s: %v", postURN, err)
+			log.Printf("Error fetching stats for %s: %v", postedID, err)
 			continue
 		}
 
-		engagement := stats.Likes + stats.Comments + stats.Shares
-		totalImpressions += stats.Impressions
+		metrics := result.Metrics
+		engagement := metrics.Reaction + metrics.Comment + metrics.Reshare
+		totalImpressions += metrics.Impression
 		totalEngagement += engagement
 
-		fmt.Printf("\nPost: %s\n", postURN)
-		fmt.Printf("  Impressions: %d\n", stats.Impressions)
-		fmt.Printf("  Engagement: %d (%d likes, %d comments, %d shares)\n",
-			engagement, stats.Likes, stats.Comments, stats.Shares)
-		fmt.Printf("  CTR: %.2f%%\n", float64(stats.Clicks)/float64(stats.Impressions)*100)
+		fmt.Printf("\nPost: %s\n", postedID)
+		fmt.Printf("  Impressions: %d\n", metrics.Impression)
+		fmt.Printf("  Members Reached: %d\n", metrics.MembersReached)
+		fmt.Printf("  Engagement: %d (%d reactions, %d comments, %d reshares)\n",
+			engagement, metrics.Reaction, metrics.Comment, metrics.Reshare)
 	}
 
 	fmt.Println("\n=== TOTALS ===")

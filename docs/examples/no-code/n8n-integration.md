@@ -229,12 +229,29 @@ Upload an image first, then create a post with it.
 ### Workflow Setup
 
 1. **Trigger** (e.g., Webhook with file URL)
-2. **HTTP Request** → GET upload URL from Publora
-3. **HTTP Request** → Download image from source
-4. **HTTP Request** → PUT upload to S3
-5. **HTTP Request** → POST create post with media key
+2. **HTTP Request** → Create post to get a postGroupId
+3. **HTTP Request** → GET upload URL from Publora (with postGroupId)
+4. **HTTP Request** → Download image from source
+5. **HTTP Request** → PUT upload to S3 (media auto-attaches via postGroupId)
 
-### Step 2: Get Upload URL
+### Step 2: Create Post
+
+**URL:**
+```
+https://api.publora.com/api/v1/create-post
+```
+
+**Method:** `POST`
+
+**Body:**
+```json
+{
+  "content": "Check out this image!",
+  "platforms": ["twitter-123456789"]
+}
+```
+
+### Step 3: Get Upload URL
 
 **URL:**
 ```
@@ -247,11 +264,12 @@ https://api.publora.com/api/v1/get-upload-url
 ```json
 {
   "fileName": "{{ $json.fileName }}",
-  "mimeType": "{{ $json.mimeType }}"
+  "contentType": "{{ $json.contentType }}",
+  "postGroupId": "{{ $node['Create Post'].json.postGroupId }}"
 }
 ```
 
-### Step 4: Upload to S3
+### Step 5: Upload to S3
 
 **URL:** `{{ $node["Get Upload URL"].json.uploadUrl }}`
 
@@ -259,26 +277,12 @@ https://api.publora.com/api/v1/get-upload-url
 
 **Headers:**
 ```
-Content-Type: {{ $json.mimeType }}
+Content-Type: {{ $json.contentType }}
 ```
 
 **Body:** Binary data from previous download node
 
-### Step 5: Create Post with Media
-
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
-
-**Body:**
-```json
-{
-  "content": "Check out this image!",
-  "platforms": ["twitter-123456789"],
-  "mediaKeys": ["{{ $node['Get Upload URL'].json.mediaKey }}"]
-}
-```
+> **Note:** Media is automatically attached to the post via the `postGroupId` provided when requesting the upload URL. No need to pass media references when creating the post.
 
 ---
 

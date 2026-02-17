@@ -121,12 +121,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Our product evolution over the past year. #buildinpublic',
-    platforms: ['threads-55667788'],
-    mediaUrls: [
-      'https://example.com/images/v1-screenshot.png',
-      'https://example.com/images/v2-screenshot.png',
-      'https://example.com/images/v3-screenshot.png'
-    ]
+    platforms: ['threads-55667788']
   })
 });
 
@@ -147,12 +142,7 @@ response = requests.post(
     },
     json={
         'content': 'Our product evolution over the past year. #buildinpublic',
-        'platforms': ['threads-55667788'],
-        'mediaUrls': [
-            'https://example.com/images/v1-screenshot.png',
-            'https://example.com/images/v2-screenshot.png',
-            'https://example.com/images/v3-screenshot.png'
-        ]
+        'platforms': ['threads-55667788']
     }
 )
 
@@ -168,12 +158,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Our product evolution over the past year. #buildinpublic",
-    "platforms": ["threads-55667788"],
-    "mediaUrls": [
-      "https://example.com/images/v1-screenshot.png",
-      "https://example.com/images/v2-screenshot.png",
-      "https://example.com/images/v3-screenshot.png"
-    ]
+    "platforms": ["threads-55667788"]
   }'
 ```
 
@@ -184,12 +169,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Our product evolution over the past year. #buildinpublic',
-  platforms: ['threads-55667788'],
-  mediaUrls: [
-    'https://example.com/images/v1-screenshot.png',
-    'https://example.com/images/v2-screenshot.png',
-    'https://example.com/images/v3-screenshot.png'
-  ]
+  platforms: ['threads-55667788']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -199,6 +179,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** To attach media to a Threads post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Post a Thread (Long Content)
 

@@ -116,19 +116,21 @@ class PubloraService
         return $this->request('delete', "/delete-post/{$postGroupId}");
     }
 
-    public function getUploadUrl(string $fileName, string $mimeType): array
+    public function getUploadUrl(string $fileName, string $contentType, string $postGroupId): array
     {
         return $this->request('post', '/get-upload-url', [
             'fileName' => $fileName,
-            'mimeType' => $mimeType,
+            'contentType' => $contentType,
+            'postGroupId' => $postGroupId,
         ]);
     }
 
-    public function getLinkedInStats(string $platformConnectionId, string $postUrn): array
+    public function getLinkedInStats(string $platformId, string $postedId): array
     {
         return $this->request('post', '/linkedin-post-statistics', [
-            'platformConnectionId' => $platformConnectionId,
-            'postUrn' => $postUrn,
+            'platformId' => $platformId,
+            'postedId' => $postedId,
+            'queryTypes' => 'ALL',
         ]);
     }
 }
@@ -279,8 +281,6 @@ class SocialController extends Controller
             'platforms' => 'required|array|min:1',
             'platforms.*' => 'string',
             'scheduled_time' => 'nullable|date|after:now',
-            'media_urls' => 'nullable|array',
-            'media_urls.*' => 'url',
         ]);
 
         try {
@@ -291,10 +291,6 @@ class SocialController extends Controller
 
             if (!empty($validated['scheduled_time'])) {
                 $postData['scheduledTime'] = $validated['scheduled_time'];
-            }
-
-            if (!empty($validated['media_urls'])) {
-                $postData['mediaUrls'] = $validated['media_urls'];
             }
 
             $result = $this->publora->createPost($postData);
@@ -399,8 +395,6 @@ class CreateSocialPostRequest extends FormRequest
             'platforms' => 'required|array|min:1',
             'platforms.*' => 'string|regex:/^[a-z]+-[A-Za-z0-9]+$/',
             'scheduled_time' => 'nullable|date|after:now',
-            'media_urls' => 'nullable|array|max:4',
-            'media_urls.*' => 'url',
             'platform_settings' => 'nullable|array',
         ];
     }

@@ -122,7 +122,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
     platforms: ['bluesky-did:plc:abc123xyz'],
-    mediaUrls: ['https://example.com/images/dashboard-preview.jpeg'],
     altTexts: ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
   })
 });
@@ -130,6 +129,8 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 const data = await response.json();
 console.log(data);
 ```
+
+> **Note:** To attach media to a Bluesky post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 **Python (requests)**
 
@@ -145,7 +146,6 @@ response = requests.post(
     json={
         'content': 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
         'platforms': ['bluesky-did:plc:abc123xyz'],
-        'mediaUrls': ['https://example.com/images/dashboard-preview.jpeg'],
         'altTexts': ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
     }
 )
@@ -163,7 +163,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic",
     "platforms": ["bluesky-did:plc:abc123xyz"],
-    "mediaUrls": ["https://example.com/images/dashboard-preview.jpeg"],
     "altTexts": ["Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time"]
   }'
 ```
@@ -176,7 +175,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
   platforms: ['bluesky-did:plc:abc123xyz'],
-  mediaUrls: ['https://example.com/images/dashboard-preview.jpeg'],
   altTexts: ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
 }, {
   headers: {
@@ -202,10 +200,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Before and after our office renovation. What a transformation!',
     platforms: ['bluesky-did:plc:abc123xyz'],
-    mediaUrls: [
-      'https://example.com/images/office-before.jpeg',
-      'https://example.com/images/office-after.jpeg'
-    ],
     altTexts: [
       'Office space before renovation showing old desks and dim lighting',
       'Office space after renovation with modern furniture and bright natural light'
@@ -231,10 +225,6 @@ response = requests.post(
     json={
         'content': 'Before and after our office renovation. What a transformation!',
         'platforms': ['bluesky-did:plc:abc123xyz'],
-        'mediaUrls': [
-            'https://example.com/images/office-before.jpeg',
-            'https://example.com/images/office-after.jpeg'
-        ],
         'altTexts': [
             'Office space before renovation showing old desks and dim lighting',
             'Office space after renovation with modern furniture and bright natural light'
@@ -255,10 +245,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Before and after our office renovation. What a transformation!",
     "platforms": ["bluesky-did:plc:abc123xyz"],
-    "mediaUrls": [
-      "https://example.com/images/office-before.jpeg",
-      "https://example.com/images/office-after.jpeg"
-    ],
     "altTexts": [
       "Office space before renovation showing old desks and dim lighting",
       "Office space after renovation with modern furniture and bright natural light"
@@ -274,10 +260,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Before and after our office renovation. What a transformation!',
   platforms: ['bluesky-did:plc:abc123xyz'],
-  mediaUrls: [
-    'https://example.com/images/office-before.jpeg',
-    'https://example.com/images/office-after.jpeg'
-  ],
   altTexts: [
     'Office space before renovation showing old desks and dim lighting',
     'Office space after renovation with modern furniture and bright natural light'
@@ -299,7 +281,7 @@ console.log(response.data);
 - **Up to 4 images**: A maximum of 4 images can be attached to a single post.
 - **Rich text auto-detection**: Publora automatically detects hashtags (`#tag`) and URLs in your content and creates the correct Bluesky facets with proper byte offsets. You do not need to do any special formatting.
 - **Byte offset precision**: Bluesky facets use byte offsets, not character offsets. This means multi-byte characters (emojis, CJK characters, etc.) are handled correctly by Publora, but if you are debugging, be aware of this distinction.
-- **Alt text mapping**: The `altTexts` array maps positionally to the `mediaUrls` array. The first alt text corresponds to the first image, and so on. If you provide fewer alt texts than images, the remaining images will have no alt text.
+- **Alt text mapping**: The `altTexts` array maps positionally to the media files uploaded via the [media upload workflow](../guides/media-uploads.md). The first alt text corresponds to the first uploaded image, and so on. If you provide fewer alt texts than images, the remaining images will have no alt text.
 - **DID-based platform ID**: Unlike other platforms that use numeric IDs, Bluesky uses a DID (Decentralized Identifier) format like `did:plc:abc123xyz`.
 
 ## Character Limits

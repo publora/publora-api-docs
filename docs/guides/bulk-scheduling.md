@@ -38,8 +38,7 @@ async function scheduleWeekOfContent(posts, platforms, startDate = new Date()) {
       body: JSON.stringify({
         content: posts[i].content,
         platforms,
-        scheduledTime: scheduledDate.toISOString(),
-        mediaUrls: posts[i].mediaUrls || []
+        scheduledTime: scheduledDate.toISOString()
       })
     });
 
@@ -105,8 +104,7 @@ def schedule_month_of_content(posts, platforms, start_date=None):
             json={
                 'content': post['content'],
                 'platforms': platforms,
-                'scheduledTime': scheduled_date.isoformat() + 'Z',
-                'mediaUrls': post.get('mediaUrls', [])
+                'scheduledTime': scheduled_date.isoformat() + 'Z'
             }
         )
 
@@ -145,12 +143,12 @@ schedule_month_of_content(monthly_posts, ['twitter-123456'])
 Create a CSV file with your content:
 
 ```csv
-content,platforms,scheduled_time,media_url
-"Monday motivation: Start strong!",twitter-123456;linkedin-ABC123,2026-03-01T09:00:00Z,
-"Check out our new feature!",twitter-123456,2026-03-01T14:00:00Z,https://example.com/feature.png
-"Weekly roundup thread",twitter-123456,2026-03-02T10:00:00Z,
-"LinkedIn deep dive post",linkedin-ABC123,2026-03-02T12:00:00Z,https://example.com/chart.png
-"Behind the scenes",instagram-789012,2026-03-03T11:00:00Z,https://example.com/bts.jpg
+content,platforms,scheduled_time
+"Monday motivation: Start strong!",twitter-123456;linkedin-ABC123,2026-03-01T09:00:00Z
+"Check out our new feature!",twitter-123456,2026-03-01T14:00:00Z
+"Weekly roundup thread",twitter-123456,2026-03-02T10:00:00Z
+"LinkedIn deep dive post",linkedin-ABC123,2026-03-02T12:00:00Z
+"Behind the scenes",instagram-789012,2026-03-03T11:00:00Z
 ```
 
 ### JavaScript CSV Import
@@ -176,10 +174,6 @@ async function importFromCSV(filePath) {
       platforms,
       scheduledTime: row.scheduled_time
     };
-
-    if (row.media_url) {
-      payload.mediaUrls = [row.media_url];
-    }
 
     const response = await fetch(`${BASE_URL}/create-post`, {
       method: 'POST',
@@ -230,9 +224,6 @@ def import_from_csv(file_path):
                 'platforms': platforms,
                 'scheduledTime': row['scheduled_time']
             }
-
-            if row.get('media_url'):
-                payload['mediaUrls'] = [row['media_url']]
 
             response = requests.post(
                 f'{BASE_URL}/create-post',
@@ -577,11 +568,11 @@ async function scheduleWithRetry(post, maxRetries = 3) {
       }
 
       const error = await response.json();
-      return { success: false, error: error.message };
+      return { success: false, error: error.error || error.message };
 
     } catch (error) {
       if (attempt === maxRetries) {
-        return { success: false, error: error.message };
+        return { success: false, error: error.error || error.message };
       }
       await new Promise(r => setTimeout(r, 1000 * attempt));
     }

@@ -38,8 +38,8 @@ def get_connections():
 
 # Example output:
 # [
-#   {'id': 'twitter-123456', 'platform': 'twitter', 'name': '@myaccount'},
-#   {'id': 'linkedin-ABC123', 'platform': 'linkedin', 'name': 'John Doe'}
+#   {'platformId': 'twitter-123456', 'username': '@myaccount', 'displayName': 'My Account'},
+#   {'platformId': 'linkedin-ABC123', 'username': 'johndoe', 'displayName': 'John Doe'}
 # ]
 ```
 
@@ -182,7 +182,7 @@ def main():
         return
 
     # 2. Get platform IDs
-    platform_ids = [c['id'] for c in connections]
+    platform_ids = [c['platformId'] for c in connections]
     print('Posting to:', platform_ids)
 
     # 3. Create a post

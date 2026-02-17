@@ -94,7 +94,6 @@ const post = await fetch('https://api.publora.com/api/v1/create-post', {
     content: 'Your post content',
     platforms: ['twitter-123456789'],
     scheduledTime: '2026-03-01T14:00:00.000Z', // Optional
-    mediaUrls: ['https://example.com/image.jpg'], // Optional
   })
 }).then(r => r.json());
 
@@ -167,8 +166,8 @@ Create a LinkedIn analytics dashboard using Publora API.
 
 Requirements:
 1. Fetch post statistics from /linkedin-post-statistics
-2. Display impressions, clicks, likes, comments, shares
-3. Calculate engagement rate
+2. Display impressions, members reached, reactions, comments, reshares
+3. Calculate engagement rate from reactions + comments + reshares
 4. Show comparison between posts
 5. Add date range filter
 
@@ -268,8 +267,6 @@ declare namespace Publora {
     content: string;
     platforms: string[];
     scheduledTime?: string;
-    mediaUrls?: string[];
-    mediaKeys?: string[];
     status?: 'draft' | 'scheduled';
     platformSettings?: {
       instagram?: { videoType?: 'REELS' | 'STORIES' };
@@ -280,7 +277,7 @@ declare namespace Publora {
 
   interface Post {
     platform: string;
-    platformConnectionId: string;
+    platformId: string;
     status: 'draft' | 'scheduled' | 'pending' | 'processing' | 'published' | 'failed';
     publishedUrl?: string;
     error?: string;
@@ -301,12 +298,15 @@ declare namespace Publora {
   }
 
   interface LinkedInStats {
-    impressions: number;
-    clicks: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    engagementRate?: number;
+    success: boolean;
+    metrics: {
+      IMPRESSION: number;
+      MEMBERS_REACHED: number;
+      RESHARE: number;
+      REACTION: number;
+      COMMENT: number;
+    };
+    cached: boolean;
   }
 }
 ```
@@ -418,8 +418,8 @@ export const mockCreatePostResponse = {
   success: true,
   postGroupId: 'pg_test123',
   posts: [
-    { platform: 'twitter', platformConnectionId: 'twitter-123456789', status: 'scheduled' },
-    { platform: 'linkedin', platformConnectionId: 'linkedin-ABC123DEF', status: 'scheduled' },
+    { platform: 'twitter', platformId: 'twitter-123456789', status: 'scheduled' },
+    { platform: 'linkedin', platformId: 'linkedin-ABC123DEF', status: 'scheduled' },
   ],
 };
 
@@ -442,12 +442,15 @@ export const mockPostGroup = {
 };
 
 export const mockLinkedInStats = {
-  impressions: 1250,
-  clicks: 45,
-  likes: 28,
-  comments: 5,
-  shares: 3,
-  engagementRate: 2.88,
+  success: true,
+  metrics: {
+    IMPRESSION: 1250,
+    MEMBERS_REACHED: 680,
+    RESHARE: 3,
+    REACTION: 28,
+    COMMENT: 5,
+  },
+  cached: false,
 };
 ```
 

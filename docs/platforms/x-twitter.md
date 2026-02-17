@@ -128,8 +128,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Check out this screenshot of our new dashboard!',
-    platforms: ['twitter-12345678'],
-    mediaUrls: ['https://example.com/images/dashboard.png']
+    platforms: ['twitter-12345678']
   })
 });
 
@@ -150,8 +149,7 @@ response = requests.post(
     },
     json={
         'content': 'Check out this screenshot of our new dashboard!',
-        'platforms': ['twitter-12345678'],
-        'mediaUrls': ['https://example.com/images/dashboard.png']
+        'platforms': ['twitter-12345678']
     }
 )
 
@@ -167,8 +165,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Check out this screenshot of our new dashboard!",
-    "platforms": ["twitter-12345678"],
-    "mediaUrls": ["https://example.com/images/dashboard.png"]
+    "platforms": ["twitter-12345678"]
   }'
 ```
 
@@ -179,8 +176,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Check out this screenshot of our new dashboard!',
-  platforms: ['twitter-12345678'],
-  mediaUrls: ['https://example.com/images/dashboard.png']
+  platforms: ['twitter-12345678']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -190,6 +186,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** To attach media to a post, first create the post, then use the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Post a Thread
 

@@ -357,7 +357,7 @@ To create posts for a managed user, include the `x-publora-user-id` header with 
 ```javascript
 const userId = 'user_abc123';
 
-const response = await fetch('https://api.publora.com/api/v1/post-groups', {
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -365,14 +365,14 @@ const response = await fetch('https://api.publora.com/api/v1/post-groups', {
     'x-publora-user-id': userId
   },
   body: JSON.stringify({
-    text: 'Exciting update from Acme Corp! We just hit 10,000 customers.',
-    platformIds: ['twitter-123456', 'linkedin-ABCDEF'],
+    content: 'Exciting update from Acme Corp! We just hit 10,000 customers.',
+    platforms: ['twitter-123456', 'linkedin-ABCDEF'],
     scheduledTime: '2026-03-15T14:00:00.000Z'
   })
 });
 
 const post = await response.json();
-console.log(`Post created for user ${userId}:`, post.id);
+console.log(`Post created for user ${userId}:`, post.postGroupId);
 ```
 
 **Python (requests)**
@@ -383,33 +383,33 @@ import requests
 user_id = 'user_abc123'
 
 response = requests.post(
-    'https://api.publora.com/api/v1/post-groups',
+    'https://api.publora.com/api/v1/create-post',
     headers={
         'Content-Type': 'application/json',
         'x-publora-key': 'YOUR_API_KEY',
         'x-publora-user-id': user_id
     },
     json={
-        'text': 'Exciting update from Acme Corp! We just hit 10,000 customers.',
-        'platformIds': ['twitter-123456', 'linkedin-ABCDEF'],
+        'content': 'Exciting update from Acme Corp! We just hit 10,000 customers.',
+        'platforms': ['twitter-123456', 'linkedin-ABCDEF'],
         'scheduledTime': '2026-03-15T14:00:00.000Z'
     }
 )
 
 post = response.json()
-print(f"Post created for user {user_id}: {post['id']}")
+print(f"Post created for user {user_id}: {post['postGroupId']}")
 ```
 
 **cURL**
 
 ```bash
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -H "x-publora-user-id: user_abc123" \
   -d '{
-    "text": "Exciting update from Acme Corp! We just hit 10,000 customers.",
-    "platformIds": ["twitter-123456", "linkedin-ABCDEF"],
+    "content": "Exciting update from Acme Corp! We just hit 10,000 customers.",
+    "platforms": ["twitter-123456", "linkedin-ABCDEF"],
     "scheduledTime": "2026-03-15T14:00:00.000Z"
   }'
 ```
@@ -422,10 +422,10 @@ const axios = require('axios');
 const userId = 'user_abc123';
 
 const { data: post } = await axios.post(
-  'https://api.publora.com/api/v1/post-groups',
+  'https://api.publora.com/api/v1/create-post',
   {
-    text: 'Exciting update from Acme Corp! We just hit 10,000 customers.',
-    platformIds: ['twitter-123456', 'linkedin-ABCDEF'],
+    content: 'Exciting update from Acme Corp! We just hit 10,000 customers.',
+    platforms: ['twitter-123456', 'linkedin-ABCDEF'],
     scheduledTime: '2026-03-15T14:00:00.000Z'
   },
   {
@@ -437,7 +437,7 @@ const { data: post } = await axios.post(
   }
 );
 
-console.log(`Post created for user ${userId}:`, post.id);
+console.log(`Post created for user ${userId}:`, post.postGroupId);
 ```
 
 ---
@@ -557,7 +557,7 @@ async function onboardClient(email, displayName) {
   // Step 3: (After user connects accounts) Check their connections
   // In production, you would wait for a webhook or poll periodically.
   const connectionsResponse = await fetch(
-    'https://api.publora.com/api/v1/connections',
+    'https://api.publora.com/api/v1/platform-connections',
     {
       headers: {
         'x-publora-key': 'YOUR_API_KEY',
@@ -566,7 +566,7 @@ async function onboardClient(email, displayName) {
     }
   );
 
-  const connections = await connectionsResponse.json();
+  const { connections } = await connectionsResponse.json();
   console.log(`3. User has ${connections.length} connected accounts.`);
 
   if (connections.length === 0) {
@@ -575,23 +575,23 @@ async function onboardClient(email, displayName) {
   }
 
   // Step 4: Post on their behalf
-  const platformIds = connections.map(c => c.platformId);
+  const platforms = connections.map(c => c.platformId);
 
-  const postResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
+  const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
     method: 'POST',
     headers: {
       ...headers,
       'x-publora-user-id': user.id
     },
     body: JSON.stringify({
-      text: `Welcome to ${displayName}'s social presence, powered by our platform!`,
-      platformIds,
+      content: `Welcome to ${displayName}'s social presence, powered by our platform!`,
+      platforms,
       scheduledTime: '2026-03-15T14:00:00.000Z'
     })
   });
 
   const post = await postResponse.json();
-  console.log(`4. Post scheduled for user ${user.id}: ${post.id}`);
+  console.log(`4. Post scheduled for user ${user.id}: ${post.postGroupId}`);
 
   return user;
 }
@@ -635,10 +635,10 @@ def onboard_client(email, display_name):
     # Step 3: Check their connections (after they connect)
     user_headers = {**headers, 'x-publora-user-id': user['id']}
     connections_response = requests.get(
-        f'{api_url}/connections',
+        f'{api_url}/platform-connections',
         headers=user_headers
     )
-    connections = connections_response.json()
+    connections = connections_response.json()['connections']
     print(f"3. User has {len(connections)} connected accounts.")
 
     if not connections:
@@ -648,16 +648,16 @@ def onboard_client(email, display_name):
     # Step 4: Post on their behalf
     platform_ids = [c['platformId'] for c in connections]
     post_response = requests.post(
-        f'{api_url}/post-groups',
+        f'{api_url}/create-post',
         headers=user_headers,
         json={
-            'text': f"Welcome to {display_name}'s social presence, powered by our platform!",
-            'platformIds': platform_ids,
+            'content': f"Welcome to {display_name}'s social presence, powered by our platform!",
+            'platforms': platform_ids,
             'scheduledTime': '2026-03-15T14:00:00.000Z'
         }
     )
     post = post_response.json()
-    print(f"4. Post scheduled for user {user['id']}: {post['id']}")
+    print(f"4. Post scheduled for user {user['id']}: {post['postGroupId']}")
 
     return user
 

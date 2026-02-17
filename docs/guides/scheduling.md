@@ -33,22 +33,21 @@ draft --> scheduled --> processing --> published
 **JavaScript (fetch)**
 
 ```javascript
-const response = await fetch('https://api.publora.com/api/v1/post-groups', {
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'Excited to announce our new product launch!',
-    platformIds: ['twitter-123', 'linkedin-ABC'],
+    content: 'Excited to announce our new product launch!',
+    platforms: ['twitter-123', 'linkedin-ABC'],
     scheduledTime: '2026-03-15T14:30:00.000Z'
   })
 });
 
 const data = await response.json();
-console.log('Post group created:', data.id);
-console.log('Status:', data.status); // "scheduled"
+console.log('Post group created:', data.postGroupId);
 ```
 
 **Python (requests)**
@@ -57,32 +56,31 @@ console.log('Status:', data.status); // "scheduled"
 import requests
 
 response = requests.post(
-    'https://api.publora.com/api/v1/post-groups',
+    'https://api.publora.com/api/v1/create-post',
     headers={
         'Content-Type': 'application/json',
         'x-publora-key': 'YOUR_API_KEY'
     },
     json={
-        'text': 'Excited to announce our new product launch!',
-        'platformIds': ['twitter-123', 'linkedin-ABC'],
+        'content': 'Excited to announce our new product launch!',
+        'platforms': ['twitter-123', 'linkedin-ABC'],
         'scheduledTime': '2026-03-15T14:30:00.000Z'
     }
 )
 
 data = response.json()
-print(f"Post group created: {data['id']}")
-print(f"Status: {data['status']}")  # "scheduled"
+print(f"Post group created: {data['postGroupId']}")
 ```
 
 **cURL**
 
 ```bash
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "text": "Excited to announce our new product launch!",
-    "platformIds": ["twitter-123", "linkedin-ABC"],
+    "content": "Excited to announce our new product launch!",
+    "platforms": ["twitter-123", "linkedin-ABC"],
     "scheduledTime": "2026-03-15T14:30:00.000Z"
   }'
 ```
@@ -93,10 +91,10 @@ curl -X POST https://api.publora.com/api/v1/post-groups \
 const axios = require('axios');
 
 const { data } = await axios.post(
-  'https://api.publora.com/api/v1/post-groups',
+  'https://api.publora.com/api/v1/create-post',
   {
-    text: 'Excited to announce our new product launch!',
-    platformIds: ['twitter-123', 'linkedin-ABC'],
+    content: 'Excited to announce our new product launch!',
+    platforms: ['twitter-123', 'linkedin-ABC'],
     scheduledTime: '2026-03-15T14:30:00.000Z'
   },
   {
@@ -107,8 +105,7 @@ const { data } = await axios.post(
   }
 );
 
-console.log('Post group created:', data.id);
-console.log('Status:', data.status); // "scheduled"
+console.log('Post group created:', data.postGroupId);
 ```
 
 ---
@@ -121,26 +118,25 @@ Sometimes you want to prepare content first and schedule it at a later time. Omi
 
 ```javascript
 // Step 1: Create a draft (no scheduledTime)
-const draftResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
+const draftResponse = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'Draft content that needs review before publishing.',
-    platformIds: ['twitter-123', 'linkedin-ABC']
+    content: 'Draft content that needs review before publishing.',
+    platforms: ['twitter-123', 'linkedin-ABC']
     // No scheduledTime -- this creates a draft
   })
 });
 
 const draft = await draftResponse.json();
-console.log('Draft created:', draft.id);
-console.log('Status:', draft.status); // "draft"
+console.log('Draft created:', draft.postGroupId);
 
 // Step 2: After review, schedule the draft
 const scheduleResponse = await fetch(
-  `https://api.publora.com/api/v1/post-groups/${draft.id}`,
+  `https://api.publora.com/api/v1/update-post/${draft.postGroupId}`,
   {
     method: 'PUT',
     headers: {
@@ -154,7 +150,7 @@ const scheduleResponse = await fetch(
 );
 
 const scheduled = await scheduleResponse.json();
-console.log('Now scheduled:', scheduled.status); // "scheduled"
+console.log('Now scheduled:', scheduled.postGroup.status); // "scheduled"
 ```
 
 **Python (requests)**
@@ -170,21 +166,20 @@ HEADERS = {
 
 # Step 1: Create a draft
 draft_response = requests.post(
-    f'{API_URL}/post-groups',
+    f'{API_URL}/create-post',
     headers=HEADERS,
     json={
-        'text': 'Draft content that needs review before publishing.',
-        'platformIds': ['twitter-123', 'linkedin-ABC']
+        'content': 'Draft content that needs review before publishing.',
+        'platforms': ['twitter-123', 'linkedin-ABC']
     }
 )
 
 draft = draft_response.json()
-print(f"Draft created: {draft['id']}")
-print(f"Status: {draft['status']}")  # "draft"
+print(f"Draft created: {draft['postGroupId']}")
 
 # Step 2: Schedule the draft
 schedule_response = requests.put(
-    f"{API_URL}/post-groups/{draft['id']}",
+    f"{API_URL}/update-post/{draft['postGroupId']}",
     headers=HEADERS,
     json={
         'scheduledTime': '2026-03-20T09:00:00.000Z'
@@ -192,23 +187,23 @@ schedule_response = requests.put(
 )
 
 scheduled = schedule_response.json()
-print(f"Now scheduled: {scheduled['status']}")  # "scheduled"
+print(f"Now scheduled: {scheduled['postGroup']['status']}")  # "scheduled"
 ```
 
 **cURL**
 
 ```bash
 # Step 1: Create a draft
-curl -X POST https://api.publora.com/api/v1/post-groups \
+curl -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "text": "Draft content that needs review before publishing.",
-    "platformIds": ["twitter-123", "linkedin-ABC"]
+    "content": "Draft content that needs review before publishing.",
+    "platforms": ["twitter-123", "linkedin-ABC"]
   }'
 
-# Step 2: Schedule it (replace POST_GROUP_ID with the id from step 1)
-curl -X PUT https://api.publora.com/api/v1/post-groups/POST_GROUP_ID \
+# Step 2: Schedule it (replace POST_GROUP_ID with the postGroupId from step 1)
+curl -X PUT https://api.publora.com/api/v1/update-post/POST_GROUP_ID \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
@@ -230,20 +225,19 @@ const api = axios.create({
 });
 
 // Step 1: Create a draft
-const { data: draft } = await api.post('/post-groups', {
-  text: 'Draft content that needs review before publishing.',
-  platformIds: ['twitter-123', 'linkedin-ABC']
+const { data: draft } = await api.post('/create-post', {
+  content: 'Draft content that needs review before publishing.',
+  platforms: ['twitter-123', 'linkedin-ABC']
 });
 
-console.log('Draft created:', draft.id);
-console.log('Status:', draft.status); // "draft"
+console.log('Draft created:', draft.postGroupId);
 
 // Step 2: Schedule the draft
-const { data: scheduled } = await api.put(`/post-groups/${draft.id}`, {
+const { data: scheduled } = await api.put(`/update-post/${draft.postGroupId}`, {
   scheduledTime: '2026-03-20T09:00:00.000Z'
 });
 
-console.log('Now scheduled:', scheduled.status); // "scheduled"
+console.log('Now scheduled:', scheduled.postGroup.status); // "scheduled"
 ```
 
 ---
@@ -256,13 +250,13 @@ You can loop through a set of posts and schedule them across an entire week. Thi
 
 ```javascript
 const posts = [
-  { text: 'Monday motivation: Start the week strong!', day: 1 },
-  { text: 'Tuesday tip: Automate your social media with Publora.', day: 2 },
-  { text: 'Wednesday wisdom: Consistency beats perfection.', day: 3 },
-  { text: 'Thursday thought: Your audience is waiting.', day: 4 },
-  { text: 'Friday feature: Check out our new analytics dashboard!', day: 5 },
-  { text: 'Saturday story: How we built Publora.', day: 6 },
-  { text: 'Sunday summary: Week in review.', day: 7 }
+  { content: 'Monday motivation: Start the week strong!', day: 1 },
+  { content: 'Tuesday tip: Automate your social media with Publora.', day: 2 },
+  { content: 'Wednesday wisdom: Consistency beats perfection.', day: 3 },
+  { content: 'Thursday thought: Your audience is waiting.', day: 4 },
+  { content: 'Friday feature: Check out our new analytics dashboard!', day: 5 },
+  { content: 'Saturday story: How we built Publora.', day: 6 },
+  { content: 'Sunday summary: Week in review.', day: 7 }
 ];
 
 const baseDate = new Date('2026-03-16T10:00:00.000Z'); // Monday at 10 AM UTC
@@ -273,22 +267,22 @@ for (const post of posts) {
   const scheduledTime = new Date(baseDate);
   scheduledTime.setUTCDate(baseDate.getUTCDate() + (post.day - 1));
 
-  const response = await fetch('https://api.publora.com/api/v1/post-groups', {
+  const response = await fetch('https://api.publora.com/api/v1/create-post', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-publora-key': 'YOUR_API_KEY'
     },
     body: JSON.stringify({
-      text: post.text,
-      platformIds: ['twitter-123', 'linkedin-ABC'],
+      content: post.content,
+      platforms: ['twitter-123', 'linkedin-ABC'],
       scheduledTime: scheduledTime.toISOString()
     })
   });
 
   const data = await response.json();
-  results.push({ id: data.id, scheduledTime: scheduledTime.toISOString() });
-  console.log(`Scheduled "${post.text.slice(0, 30)}..." for ${scheduledTime.toISOString()}`);
+  results.push({ postGroupId: data.postGroupId, scheduledTime: scheduledTime.toISOString() });
+  console.log(`Scheduled "${post.content.slice(0, 30)}..." for ${scheduledTime.toISOString()}`);
 }
 
 console.log(`Successfully scheduled ${results.length} posts for the week.`);
@@ -307,13 +301,13 @@ HEADERS = {
 }
 
 posts = [
-    {'text': 'Monday motivation: Start the week strong!', 'day': 0},
-    {'text': 'Tuesday tip: Automate your social media with Publora.', 'day': 1},
-    {'text': 'Wednesday wisdom: Consistency beats perfection.', 'day': 2},
-    {'text': 'Thursday thought: Your audience is waiting.', 'day': 3},
-    {'text': 'Friday feature: Check out our new analytics dashboard!', 'day': 4},
-    {'text': 'Saturday story: How we built Publora.', 'day': 5},
-    {'text': 'Sunday summary: Week in review.', 'day': 6},
+    {'content': 'Monday motivation: Start the week strong!', 'day': 0},
+    {'content': 'Tuesday tip: Automate your social media with Publora.', 'day': 1},
+    {'content': 'Wednesday wisdom: Consistency beats perfection.', 'day': 2},
+    {'content': 'Thursday thought: Your audience is waiting.', 'day': 3},
+    {'content': 'Friday feature: Check out our new analytics dashboard!', 'day': 4},
+    {'content': 'Saturday story: How we built Publora.', 'day': 5},
+    {'content': 'Sunday summary: Week in review.', 'day': 6},
 ]
 
 base_date = datetime(2026, 3, 16, 10, 0, 0, tzinfo=timezone.utc)  # Monday 10 AM UTC
@@ -324,18 +318,18 @@ for post in posts:
     scheduled_time = base_date + timedelta(days=post['day'])
 
     response = requests.post(
-        f'{API_URL}/post-groups',
+        f'{API_URL}/create-post',
         headers=HEADERS,
         json={
-            'text': post['text'],
-            'platformIds': ['twitter-123', 'linkedin-ABC'],
+            'content': post['content'],
+            'platforms': ['twitter-123', 'linkedin-ABC'],
             'scheduledTime': scheduled_time.isoformat()
         }
     )
 
     data = response.json()
-    results.append({'id': data['id'], 'scheduledTime': scheduled_time.isoformat()})
-    print(f"Scheduled: {post['text'][:30]}... for {scheduled_time.isoformat()}")
+    results.append({'postGroupId': data['postGroupId'], 'scheduledTime': scheduled_time.isoformat()})
+    print(f"Scheduled: {post['content'][:30]}... for {scheduled_time.isoformat()}")
 
 print(f"Successfully scheduled {len(results)} posts for the week.")
 ```
@@ -346,7 +340,7 @@ print(f"Successfully scheduled {len(results)} posts for the week.")
 #!/bin/bash
 
 API_KEY="YOUR_API_KEY"
-BASE_URL="https://api.publora.com/api/v1/post-groups"
+BASE_URL="https://api.publora.com/api/v1/create-post"
 
 TEXTS=(
   "Monday motivation: Start the week strong!"
@@ -366,8 +360,8 @@ for i in "${!TEXTS[@]}"; do
     -H "Content-Type: application/json" \
     -H "x-publora-key: $API_KEY" \
     -d "{
-      \"text\": \"${TEXTS[$i]}\",
-      \"platformIds\": [\"twitter-123\", \"linkedin-ABC\"],
+      \"content\": \"${TEXTS[$i]}\",
+      \"platforms\": [\"twitter-123\", \"linkedin-ABC\"],
       \"scheduledTime\": \"$SCHEDULED_TIME\"
     }"
 
@@ -389,13 +383,13 @@ const api = axios.create({
 });
 
 const posts = [
-  { text: 'Monday motivation: Start the week strong!', day: 0 },
-  { text: 'Tuesday tip: Automate your social media with Publora.', day: 1 },
-  { text: 'Wednesday wisdom: Consistency beats perfection.', day: 2 },
-  { text: 'Thursday thought: Your audience is waiting.', day: 3 },
-  { text: 'Friday feature: Check out our new analytics dashboard!', day: 4 },
-  { text: 'Saturday story: How we built Publora.', day: 5 },
-  { text: 'Sunday summary: Week in review.', day: 6 },
+  { content: 'Monday motivation: Start the week strong!', day: 0 },
+  { content: 'Tuesday tip: Automate your social media with Publora.', day: 1 },
+  { content: 'Wednesday wisdom: Consistency beats perfection.', day: 2 },
+  { content: 'Thursday thought: Your audience is waiting.', day: 3 },
+  { content: 'Friday feature: Check out our new analytics dashboard!', day: 4 },
+  { content: 'Saturday story: How we built Publora.', day: 5 },
+  { content: 'Sunday summary: Week in review.', day: 6 },
 ];
 
 const baseDate = new Date('2026-03-16T10:00:00.000Z');
@@ -405,14 +399,14 @@ for (const post of posts) {
   const scheduledTime = new Date(baseDate);
   scheduledTime.setUTCDate(baseDate.getUTCDate() + post.day);
 
-  const { data } = await api.post('/post-groups', {
-    text: post.text,
-    platformIds: ['twitter-123', 'linkedin-ABC'],
+  const { data } = await api.post('/create-post', {
+    content: post.content,
+    platforms: ['twitter-123', 'linkedin-ABC'],
     scheduledTime: scheduledTime.toISOString()
   });
 
-  results.push({ id: data.id, scheduledTime: scheduledTime.toISOString() });
-  console.log(`Scheduled: ${post.text.slice(0, 30)}... for ${scheduledTime.toISOString()}`);
+  results.push({ postGroupId: data.postGroupId, scheduledTime: scheduledTime.toISOString() });
+  console.log(`Scheduled: ${post.content.slice(0, 30)}... for ${scheduledTime.toISOString()}`);
 }
 
 console.log(`Successfully scheduled ${results.length} posts for the week.`);
@@ -424,7 +418,7 @@ console.log(`Successfully scheduled ${results.length} posts for the week.`);
 
 2. **Schedule at least 2 minutes ahead.** Although the scheduler runs every minute, scheduling too close to "now" risks the post not being picked up in the current cycle.
 
-3. **Monitor post status.** After scheduling, poll `GET /api/v1/post-groups/:id` to check whether the post moved to `published`, `failed`, or `partially_published`.
+3. **Monitor post status.** After scheduling, poll `GET /api/v1/get-post/:postGroupId` to check whether the post moved to `published`, `failed`, or `partially_published`.
 
 4. **Respect free tier limits.** Free trial users can have at most 5 pending (scheduled) posts. Attempting to schedule a 6th returns a `403` error. Upgrade your plan or wait for existing posts to publish before scheduling more.
 

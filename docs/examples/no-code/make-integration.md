@@ -203,11 +203,25 @@ Upload an image first, then create a post with it.
 ### Scenario Setup
 
 1. **Trigger** (e.g., Google Drive → Watch Files)
-2. **HTTP** → Get upload URL from Publora
-3. **HTTP** → Upload file to S3
-4. **HTTP** → Create post with media key
+2. **HTTP** → Create post to get a postGroupId
+3. **HTTP** → Get upload URL from Publora (with postGroupId)
+4. **HTTP** → Upload file to S3 (media auto-attaches via postGroupId)
 
-### Step 2: Get Upload URL
+### Step 2: Create Post
+
+**URL:** `https://api.publora.com/api/v1/create-post`
+
+**Method:** `POST`
+
+**Request content:**
+```json
+{
+  "content": "Check out this image!",
+  "platforms": ["twitter-123456789"]
+}
+```
+
+### Step 3: Get Upload URL
 
 **URL:** `https://api.publora.com/api/v1/get-upload-url`
 
@@ -217,13 +231,14 @@ Upload an image first, then create a post with it.
 ```json
 {
   "fileName": "{{1.name}}",
-  "mimeType": "{{1.mimeType}}"
+  "contentType": "{{1.mimeType}}",
+  "postGroupId": "{{2.data.postGroupId}}"
 }
 ```
 
-### Step 3: Upload to S3
+### Step 4: Upload to S3
 
-**URL:** `{{2.data.uploadUrl}}`
+**URL:** `{{3.data.uploadUrl}}`
 
 **Method:** `PUT`
 
@@ -236,18 +251,7 @@ Content-Type: {{1.mimeType}}
 
 **Content:** `{{1.data}}`
 
-### Step 4: Create Post
-
-**URL:** `https://api.publora.com/api/v1/create-post`
-
-**Request content:**
-```json
-{
-  "content": "Check out this image!",
-  "platforms": ["twitter-123456789"],
-  "mediaKeys": ["{{2.data.mediaKey}}"]
-}
-```
+> **Note:** Media is automatically attached to the post via the `postGroupId` provided when requesting the upload URL. No need to pass media references when creating the post.
 
 ---
 

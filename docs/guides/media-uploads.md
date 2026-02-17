@@ -9,10 +9,12 @@ Publora uses a **pre-signed S3 URL workflow** for media uploads. This means your
 The workflow has three steps:
 
 ```
-1. Request a pre-signed upload URL     POST /api/v1/media/get-upload-url
-2. Upload the file directly to S3      PUT {presignedUrl}
-3. Create a post referencing the media  POST /api/v1/post-groups
+1. Create a post group first           POST /api/v1/create-post
+2. Request a pre-signed upload URL     POST /api/v1/get-upload-url  (with postGroupId)
+3. Upload the file directly to S3      PUT {uploadUrl}
 ```
+
+Media is automatically attached to the post group via the `postGroupId` you provide when requesting the upload URL.
 
 ### Supported Formats
 
@@ -38,52 +40,48 @@ The workflow has three steps:
 **JavaScript (fetch)**
 
 ```javascript
-// Step 1: Get a pre-signed upload URL
-const uploadUrlResponse = await fetch(
-  'https://api.publora.com/api/v1/media/get-upload-url',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': 'YOUR_API_KEY'
-    },
-    body: JSON.stringify({
-      fileName: 'product-photo.jpg',
-      contentType: 'image/jpeg'
-    })
-  }
-);
-
-const { presignedUrl, mediaKey } = await uploadUrlResponse.json();
-
-// Step 2: Upload the file directly to S3
-const fileBuffer = await fs.promises.readFile('./product-photo.jpg');
-
-await fetch(presignedUrl, {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'image/jpeg'
-  },
-  body: fileBuffer
-});
-
-// Step 3: Create a post with the uploaded media
-const postResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
+// Step 1: Create a draft post first to get a postGroupId
+const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'Check out our latest product!',
-    platformIds: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-    mediaKeys: [mediaKey],
+    content: 'Check out our latest product!',
+    platforms: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
     scheduledTime: '2026-03-15T14:30:00.000Z'
   })
 });
 
-const post = await postResponse.json();
-console.log('Post created with image:', post.id);
+const { postGroupId } = await postResponse.json();
+
+// Step 2: Get a pre-signed upload URL
+const uploadUrlResponse = await fetch('https://api.publora.com/api/v1/get-upload-url', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    fileName: 'product-photo.jpg',
+    contentType: 'image/jpeg',
+    type: 'image',
+    postGroupId: postGroupId
+  })
+});
+
+const { uploadUrl, fileUrl, mediaId } = await uploadUrlResponse.json();
+
+// Step 3: Upload the file directly to S3
+const fileBuffer = await fs.promises.readFile('./product-photo.jpg');
+await fetch(uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'image/jpeg' },
+  body: fileBuffer
+});
+
+console.log('Image uploaded and attached to post:', fileUrl);
 ```
 
 **Python (requests)**
@@ -97,76 +95,76 @@ HEADERS = {
     'x-publora-key': 'YOUR_API_KEY'
 }
 
-# Step 1: Get a pre-signed upload URL
-upload_url_response = requests.post(
-    f'{API_URL}/media/get-upload-url',
-    headers=HEADERS,
-    json={
-        'fileName': 'product-photo.jpg',
-        'contentType': 'image/jpeg'
-    }
-)
-
-upload_data = upload_url_response.json()
-presigned_url = upload_data['presignedUrl']
-media_key = upload_data['mediaKey']
-
-# Step 2: Upload the file directly to S3
-with open('./product-photo.jpg', 'rb') as f:
-    file_data = f.read()
-
-requests.put(
-    presigned_url,
-    headers={'Content-Type': 'image/jpeg'},
-    data=file_data
-)
-
-# Step 3: Create a post with the uploaded media
+# Step 1: Create a post to get a postGroupId
 post_response = requests.post(
-    f'{API_URL}/post-groups',
+    f'{API_URL}/create-post',
     headers=HEADERS,
     json={
-        'text': 'Check out our latest product!',
-        'platformIds': ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-        'mediaKeys': [media_key],
+        'content': 'Check out our latest product!',
+        'platforms': ['twitter-123', 'linkedin-ABC', 'instagram-456'],
         'scheduledTime': '2026-03-15T14:30:00.000Z'
     }
 )
 
-post = post_response.json()
-print(f"Post created with image: {post['id']}")
+post_group_id = post_response.json()['postGroupId']
+
+# Step 2: Get a pre-signed upload URL
+upload_url_response = requests.post(
+    f'{API_URL}/get-upload-url',
+    headers=HEADERS,
+    json={
+        'fileName': 'product-photo.jpg',
+        'contentType': 'image/jpeg',
+        'type': 'image',
+        'postGroupId': post_group_id
+    }
+)
+
+upload_data = upload_url_response.json()
+
+# Step 3: Upload the file directly to S3
+with open('./product-photo.jpg', 'rb') as f:
+    requests.put(
+        upload_data['uploadUrl'],
+        headers={'Content-Type': 'image/jpeg'},
+        data=f.read()
+    )
+
+print(f"Image uploaded: {upload_data['fileUrl']}")
 ```
 
 **cURL**
 
 ```bash
-# Step 1: Get a pre-signed upload URL
-UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/media/get-upload-url \
+# Step 1: Create a post to get a postGroupId
+POST_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "fileName": "product-photo.jpg",
-    "contentType": "image/jpeg"
+    "content": "Check out our latest product!",
+    "platforms": ["twitter-123", "linkedin-ABC", "instagram-456"],
+    "scheduledTime": "2026-03-15T14:30:00.000Z"
   }')
 
-PRESIGNED_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.presignedUrl')
-MEDIA_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.mediaKey')
+POST_GROUP_ID=$(echo "$POST_RESPONSE" | jq -r '.postGroupId')
 
-# Step 2: Upload the file directly to S3
-curl -X PUT "$PRESIGNED_URL" \
-  -H "Content-Type: image/jpeg" \
-  --data-binary @./product-photo.jpg
-
-# Step 3: Create a post with the uploaded media
-curl -X POST https://api.publora.com/api/v1/post-groups \
+# Step 2: Get a pre-signed upload URL
+UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/get-upload-url \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d "{
-    \"text\": \"Check out our latest product!\",
-    \"platformIds\": [\"twitter-123\", \"linkedin-ABC\", \"instagram-456\"],
-    \"mediaKeys\": [\"$MEDIA_KEY\"],
-    \"scheduledTime\": \"2026-03-15T14:30:00.000Z\"
-  }"
+    \"fileName\": \"product-photo.jpg\",
+    \"contentType\": \"image/jpeg\",
+    \"type\": \"image\",
+    \"postGroupId\": \"$POST_GROUP_ID\"
+  }")
+
+UPLOAD_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.uploadUrl')
+
+# Step 3: Upload the file directly to S3
+curl -X PUT "$UPLOAD_URL" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @./product-photo.jpg
 ```
 
 **Node.js (axios)**
@@ -183,30 +181,28 @@ const api = axios.create({
   }
 });
 
-// Step 1: Get a pre-signed upload URL
-const { data: uploadData } = await api.post('/media/get-upload-url', {
-  fileName: 'product-photo.jpg',
-  contentType: 'image/jpeg'
-});
-
-const { presignedUrl, mediaKey } = uploadData;
-
-// Step 2: Upload the file directly to S3
-const fileBuffer = fs.readFileSync('./product-photo.jpg');
-
-await axios.put(presignedUrl, fileBuffer, {
-  headers: { 'Content-Type': 'image/jpeg' }
-});
-
-// Step 3: Create a post with the uploaded media
-const { data: post } = await api.post('/post-groups', {
-  text: 'Check out our latest product!',
-  platformIds: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-  mediaKeys: [mediaKey],
+// Step 1: Create a post to get a postGroupId
+const { data: postData } = await api.post('/create-post', {
+  content: 'Check out our latest product!',
+  platforms: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
   scheduledTime: '2026-03-15T14:30:00.000Z'
 });
 
-console.log('Post created with image:', post.id);
+// Step 2: Get a pre-signed upload URL
+const { data: uploadData } = await api.post('/get-upload-url', {
+  fileName: 'product-photo.jpg',
+  contentType: 'image/jpeg',
+  type: 'image',
+  postGroupId: postData.postGroupId
+});
+
+// Step 3: Upload the file directly to S3
+const fileBuffer = fs.readFileSync('./product-photo.jpg');
+await axios.put(uploadData.uploadUrl, fileBuffer, {
+  headers: { 'Content-Type': 'image/jpeg' }
+});
+
+console.log('Image uploaded:', uploadData.fileUrl);
 ```
 
 ---
@@ -218,52 +214,50 @@ console.log('Post created with image:', post.id);
 ```javascript
 const fs = require('fs');
 
-// Step 1: Get a pre-signed upload URL for the video
-const uploadUrlResponse = await fetch(
-  'https://api.publora.com/api/v1/media/get-upload-url',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': 'YOUR_API_KEY'
-    },
-    body: JSON.stringify({
-      fileName: 'promo-video.mp4',
-      contentType: 'video/mp4'
-    })
-  }
-);
-
-const { presignedUrl, mediaKey } = await uploadUrlResponse.json();
-
-// Step 2: Upload the video to S3
-const videoBuffer = await fs.promises.readFile('./promo-video.mp4');
-
-await fetch(presignedUrl, {
-  method: 'PUT',
-  headers: { 'Content-Type': 'video/mp4' },
-  body: videoBuffer
-});
-
-// Step 3: Create a post with the video
-// Video metadata (resolution, codec, fps, bitrate, duration, aspect ratio)
-// is extracted automatically by Publora after upload.
-const postResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
+// Step 1: Create a post first
+const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    text: 'Watch our latest promo video!',
-    platformIds: ['twitter-123', 'tiktok-789', 'youtube-012'],
-    mediaKeys: [mediaKey],
+    content: 'Watch our latest promo video!',
+    platforms: ['twitter-123', 'tiktok-789', 'youtube-012'],
     scheduledTime: '2026-03-15T16:00:00.000Z'
   })
 });
 
-const post = await postResponse.json();
-console.log('Video post created:', post.id);
+const { postGroupId } = await postResponse.json();
+
+// Step 2: Get a pre-signed upload URL for the video
+const uploadUrlResponse = await fetch('https://api.publora.com/api/v1/get-upload-url', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    fileName: 'promo-video.mp4',
+    contentType: 'video/mp4',
+    type: 'video',
+    postGroupId: postGroupId
+  })
+});
+
+const { uploadUrl } = await uploadUrlResponse.json();
+
+// Step 3: Upload the video to S3
+// Video metadata (resolution, codec, fps, bitrate, duration, aspect ratio)
+// is extracted automatically by Publora after upload.
+const videoBuffer = await fs.promises.readFile('./promo-video.mp4');
+await fetch(uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'video/mp4' },
+  body: videoBuffer
+});
+
+console.log('Video uploaded and attached to post:', postGroupId);
 ```
 
 **Python (requests)**
@@ -277,76 +271,72 @@ HEADERS = {
     'x-publora-key': 'YOUR_API_KEY'
 }
 
-# Step 1: Get a pre-signed upload URL for the video
-upload_url_response = requests.post(
-    f'{API_URL}/media/get-upload-url',
-    headers=HEADERS,
-    json={
-        'fileName': 'promo-video.mp4',
-        'contentType': 'video/mp4'
-    }
-)
-
-upload_data = upload_url_response.json()
-presigned_url = upload_data['presignedUrl']
-media_key = upload_data['mediaKey']
-
-# Step 2: Upload the video to S3
-with open('./promo-video.mp4', 'rb') as f:
-    video_data = f.read()
-
-requests.put(
-    presigned_url,
-    headers={'Content-Type': 'video/mp4'},
-    data=video_data
-)
-
-# Step 3: Create a post with the video
+# Step 1: Create a post first
 post_response = requests.post(
-    f'{API_URL}/post-groups',
+    f'{API_URL}/create-post',
     headers=HEADERS,
     json={
-        'text': 'Watch our latest promo video!',
-        'platformIds': ['twitter-123', 'tiktok-789', 'youtube-012'],
-        'mediaKeys': [media_key],
+        'content': 'Watch our latest promo video!',
+        'platforms': ['twitter-123', 'tiktok-789', 'youtube-012'],
         'scheduledTime': '2026-03-15T16:00:00.000Z'
     }
 )
 
-post = post_response.json()
-print(f"Video post created: {post['id']}")
+post_group_id = post_response.json()['postGroupId']
+
+# Step 2: Get a pre-signed upload URL
+upload_response = requests.post(
+    f'{API_URL}/get-upload-url',
+    headers=HEADERS,
+    json={
+        'fileName': 'promo-video.mp4',
+        'contentType': 'video/mp4',
+        'type': 'video',
+        'postGroupId': post_group_id
+    }
+)
+
+upload_url = upload_response.json()['uploadUrl']
+
+# Step 3: Upload the video to S3
+with open('./promo-video.mp4', 'rb') as f:
+    requests.put(upload_url, headers={'Content-Type': 'video/mp4'}, data=f.read())
+
+print(f"Video uploaded for post: {post_group_id}")
 ```
 
 **cURL**
 
 ```bash
-# Step 1: Get a pre-signed upload URL
-UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/media/get-upload-url \
+# Step 1: Create a post
+POST_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/create-post \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
-    "fileName": "promo-video.mp4",
-    "contentType": "video/mp4"
+    "content": "Watch our latest promo video!",
+    "platforms": ["twitter-123", "tiktok-789", "youtube-012"],
+    "scheduledTime": "2026-03-15T16:00:00.000Z"
   }')
 
-PRESIGNED_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.presignedUrl')
-MEDIA_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.mediaKey')
+POST_GROUP_ID=$(echo "$POST_RESPONSE" | jq -r '.postGroupId')
 
-# Step 2: Upload the video to S3
-curl -X PUT "$PRESIGNED_URL" \
-  -H "Content-Type: video/mp4" \
-  --data-binary @./promo-video.mp4
-
-# Step 3: Create the video post
-curl -X POST https://api.publora.com/api/v1/post-groups \
+# Step 2: Get upload URL
+UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/get-upload-url \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
   -d "{
-    \"text\": \"Watch our latest promo video!\",
-    \"platformIds\": [\"twitter-123\", \"tiktok-789\", \"youtube-012\"],
-    \"mediaKeys\": [\"$MEDIA_KEY\"],
-    \"scheduledTime\": \"2026-03-15T16:00:00.000Z\"
-  }"
+    \"fileName\": \"promo-video.mp4\",
+    \"contentType\": \"video/mp4\",
+    \"type\": \"video\",
+    \"postGroupId\": \"$POST_GROUP_ID\"
+  }")
+
+UPLOAD_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.uploadUrl')
+
+# Step 3: Upload video to S3
+curl -X PUT "$UPLOAD_URL" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @./promo-video.mp4
 ```
 
 **Node.js (axios)**
@@ -363,30 +353,30 @@ const api = axios.create({
   }
 });
 
-// Step 1: Get a pre-signed upload URL
-const { data: uploadData } = await api.post('/media/get-upload-url', {
-  fileName: 'promo-video.mp4',
-  contentType: 'video/mp4'
+// Step 1: Create a post
+const { data: postData } = await api.post('/create-post', {
+  content: 'Watch our latest promo video!',
+  platforms: ['twitter-123', 'tiktok-789', 'youtube-012'],
+  scheduledTime: '2026-03-15T16:00:00.000Z'
 });
 
-// Step 2: Upload the video to S3
-const videoBuffer = fs.readFileSync('./promo-video.mp4');
+// Step 2: Get upload URL
+const { data: uploadData } = await api.post('/get-upload-url', {
+  fileName: 'promo-video.mp4',
+  contentType: 'video/mp4',
+  type: 'video',
+  postGroupId: postData.postGroupId
+});
 
-await axios.put(uploadData.presignedUrl, videoBuffer, {
+// Step 3: Upload video
+const videoBuffer = fs.readFileSync('./promo-video.mp4');
+await axios.put(uploadData.uploadUrl, videoBuffer, {
   headers: { 'Content-Type': 'video/mp4' },
   maxContentLength: 512 * 1024 * 1024, // 512 MB
   maxBodyLength: 512 * 1024 * 1024
 });
 
-// Step 3: Create the video post
-const { data: post } = await api.post('/post-groups', {
-  text: 'Watch our latest promo video!',
-  platformIds: ['twitter-123', 'tiktok-789', 'youtube-012'],
-  mediaKeys: [uploadData.mediaKey],
-  scheduledTime: '2026-03-15T16:00:00.000Z'
-});
-
-console.log('Video post created:', post.id);
+console.log('Video uploaded for post:', postData.postGroupId);
 ```
 
 ---
@@ -400,6 +390,23 @@ You can attach up to 4 images to a single post. Each image requires its own uplo
 ```javascript
 const fs = require('fs');
 
+// Step 1: Create the post first
+const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    content: 'Our product lineup for 2026 -- swipe to see all!',
+    platforms: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
+    scheduledTime: '2026-03-15T12:00:00.000Z'
+  })
+});
+
+const { postGroupId } = await postResponse.json();
+
+// Step 2: Upload each image
 const images = [
   { path: './slide1.jpg', name: 'slide1.jpg', type: 'image/jpeg' },
   { path: './slide2.png', name: 'slide2.png', type: 'image/png' },
@@ -407,56 +414,36 @@ const images = [
   { path: './slide4.jpg', name: 'slide4.jpg', type: 'image/jpeg' }
 ];
 
-const mediaKeys = [];
-
 for (const image of images) {
   // Get upload URL for each image
-  const uploadUrlResponse = await fetch(
-    'https://api.publora.com/api/v1/media/get-upload-url',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-publora-key': 'YOUR_API_KEY'
-      },
-      body: JSON.stringify({
-        fileName: image.name,
-        contentType: image.type
-      })
-    }
-  );
+  const uploadUrlResponse = await fetch('https://api.publora.com/api/v1/get-upload-url', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-publora-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      fileName: image.name,
+      contentType: image.type,
+      type: 'image',
+      postGroupId: postGroupId
+    })
+  });
 
-  const { presignedUrl, mediaKey } = await uploadUrlResponse.json();
+  const { uploadUrl } = await uploadUrlResponse.json();
 
   // Upload the file to S3
   const fileBuffer = await fs.promises.readFile(image.path);
-  await fetch(presignedUrl, {
+  await fetch(uploadUrl, {
     method: 'PUT',
     headers: { 'Content-Type': image.type },
     body: fileBuffer
   });
 
-  mediaKeys.push(mediaKey);
   console.log(`Uploaded ${image.name}`);
 }
 
-// Create a carousel post with all 4 images
-const postResponse = await fetch('https://api.publora.com/api/v1/post-groups', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-publora-key': 'YOUR_API_KEY'
-  },
-  body: JSON.stringify({
-    text: 'Our product lineup for 2026 -- swipe to see all!',
-    platformIds: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-    mediaKeys: mediaKeys,
-    scheduledTime: '2026-03-15T12:00:00.000Z'
-  })
-});
-
-const post = await postResponse.json();
-console.log('Carousel post created:', post.id);
+console.log('All images attached to post:', postGroupId);
 ```
 
 **Python (requests)**
@@ -470,6 +457,20 @@ HEADERS = {
     'x-publora-key': 'YOUR_API_KEY'
 }
 
+# Step 1: Create the post first
+post_response = requests.post(
+    f'{API_URL}/create-post',
+    headers=HEADERS,
+    json={
+        'content': 'Our product lineup for 2026 -- swipe to see all!',
+        'platforms': ['twitter-123', 'linkedin-ABC', 'instagram-456'],
+        'scheduledTime': '2026-03-15T12:00:00.000Z'
+    }
+)
+
+post_group_id = post_response.json()['postGroupId']
+
+# Step 2: Upload each image
 images = [
     {'path': './slide1.jpg', 'name': 'slide1.jpg', 'type': 'image/jpeg'},
     {'path': './slide2.png', 'name': 'slide2.png', 'type': 'image/png'},
@@ -477,16 +478,16 @@ images = [
     {'path': './slide4.jpg', 'name': 'slide4.jpg', 'type': 'image/jpeg'},
 ]
 
-media_keys = []
-
 for image in images:
     # Get upload URL
     upload_response = requests.post(
-        f'{API_URL}/media/get-upload-url',
+        f'{API_URL}/get-upload-url',
         headers=HEADERS,
         json={
             'fileName': image['name'],
-            'contentType': image['type']
+            'contentType': image['type'],
+            'type': 'image',
+            'postGroupId': post_group_id
         }
     )
 
@@ -495,75 +496,58 @@ for image in images:
     # Upload to S3
     with open(image['path'], 'rb') as f:
         requests.put(
-            upload_data['presignedUrl'],
+            upload_data['uploadUrl'],
             headers={'Content-Type': image['type']},
             data=f.read()
         )
 
-    media_keys.append(upload_data['mediaKey'])
     print(f"Uploaded {image['name']}")
 
-# Create the carousel post
-post_response = requests.post(
-    f'{API_URL}/post-groups',
-    headers=HEADERS,
-    json={
-        'text': 'Our product lineup for 2026 -- swipe to see all!',
-        'platformIds': ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-        'mediaKeys': media_keys,
-        'scheduledTime': '2026-03-15T12:00:00.000Z'
-    }
-)
-
-post = post_response.json()
-print(f"Carousel post created: {post['id']}")
+print(f"All images attached to post: {post_group_id}")
 ```
 
 **cURL**
 
 ```bash
 API_KEY="YOUR_API_KEY"
-MEDIA_KEYS=()
 
-# Upload 4 images
+# Step 1: Create the post
+POST_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/create-post \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: $API_KEY" \
+  -d '{
+    "content": "Our product lineup for 2026 -- swipe to see all!",
+    "platforms": ["twitter-123", "linkedin-ABC", "instagram-456"],
+    "scheduledTime": "2026-03-15T12:00:00.000Z"
+  }')
+
+POST_GROUP_ID=$(echo "$POST_RESPONSE" | jq -r '.postGroupId')
+
+# Step 2: Upload 4 images
 for FILE in slide1.jpg slide2.png slide3.jpg slide4.jpg; do
   CONTENT_TYPE="image/jpeg"
   if [[ "$FILE" == *.png ]]; then
     CONTENT_TYPE="image/png"
   fi
 
-  UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/media/get-upload-url \
+  UPLOAD_RESPONSE=$(curl -s -X POST https://api.publora.com/api/v1/get-upload-url \
     -H "Content-Type: application/json" \
     -H "x-publora-key: $API_KEY" \
     -d "{
       \"fileName\": \"$FILE\",
-      \"contentType\": \"$CONTENT_TYPE\"
+      \"contentType\": \"$CONTENT_TYPE\",
+      \"type\": \"image\",
+      \"postGroupId\": \"$POST_GROUP_ID\"
     }")
 
-  PRESIGNED_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.presignedUrl')
-  MEDIA_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.mediaKey')
+  UPLOAD_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.uploadUrl')
 
-  curl -s -X PUT "$PRESIGNED_URL" \
+  curl -s -X PUT "$UPLOAD_URL" \
     -H "Content-Type: $CONTENT_TYPE" \
     --data-binary @"./$FILE"
 
-  MEDIA_KEYS+=("\"$MEDIA_KEY\"")
   echo "Uploaded $FILE"
 done
-
-# Join media keys into JSON array
-MEDIA_KEYS_JSON=$(IFS=,; echo "[${MEDIA_KEYS[*]}]")
-
-# Create the carousel post
-curl -X POST https://api.publora.com/api/v1/post-groups \
-  -H "Content-Type: application/json" \
-  -H "x-publora-key: $API_KEY" \
-  -d "{
-    \"text\": \"Our product lineup for 2026 -- swipe to see all!\",
-    \"platformIds\": [\"twitter-123\", \"linkedin-ABC\", \"instagram-456\"],
-    \"mediaKeys\": $MEDIA_KEYS_JSON,
-    \"scheduledTime\": \"2026-03-15T12:00:00.000Z\"
-  }"
 ```
 
 **Node.js (axios)**
@@ -580,6 +564,14 @@ const api = axios.create({
   }
 });
 
+// Step 1: Create the post
+const { data: postData } = await api.post('/create-post', {
+  content: 'Our product lineup for 2026 -- swipe to see all!',
+  platforms: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
+  scheduledTime: '2026-03-15T12:00:00.000Z'
+});
+
+// Step 2: Upload each image
 const images = [
   { path: './slide1.jpg', name: 'slide1.jpg', type: 'image/jpeg' },
   { path: './slide2.png', name: 'slide2.png', type: 'image/png' },
@@ -587,34 +579,23 @@ const images = [
   { path: './slide4.jpg', name: 'slide4.jpg', type: 'image/jpeg' }
 ];
 
-const mediaKeys = [];
-
 for (const image of images) {
-  // Get upload URL
-  const { data: uploadData } = await api.post('/media/get-upload-url', {
+  const { data: uploadData } = await api.post('/get-upload-url', {
     fileName: image.name,
-    contentType: image.type
+    contentType: image.type,
+    type: 'image',
+    postGroupId: postData.postGroupId
   });
 
-  // Upload to S3
   const fileBuffer = fs.readFileSync(image.path);
-  await axios.put(uploadData.presignedUrl, fileBuffer, {
+  await axios.put(uploadData.uploadUrl, fileBuffer, {
     headers: { 'Content-Type': image.type }
   });
 
-  mediaKeys.push(uploadData.mediaKey);
   console.log(`Uploaded ${image.name}`);
 }
 
-// Create the carousel post
-const { data: post } = await api.post('/post-groups', {
-  text: 'Our product lineup for 2026 -- swipe to see all!',
-  platformIds: ['twitter-123', 'linkedin-ABC', 'instagram-456'],
-  mediaKeys: mediaKeys,
-  scheduledTime: '2026-03-15T12:00:00.000Z'
-});
-
-console.log('Carousel post created:', post.id);
+console.log('All images attached to post:', postData.postGroupId);
 ```
 
 ## Best Practices
@@ -629,14 +610,12 @@ console.log('Carousel post created:', post.id);
 
 5. **For large video files, consider streaming the upload.** Instead of reading the entire file into memory, use a stream-based approach for files approaching the 512 MB limit.
 
-6. **Keep `mediaKey` references.** Store the `mediaKey` values returned from the upload step. You will need them when creating or updating posts.
-
 ## Common Issues
 
 | Problem | Cause | Solution |
 |---|---|---|
 | S3 upload returns `403 Forbidden` | Pre-signed URL expired or `Content-Type` mismatch | Request a fresh upload URL and ensure the `Content-Type` header matches exactly |
-| `400` when creating post with media | Too many images (>4) or mixing images and video | Use at most 4 images or exactly 1 video per post |
+| `400` when uploading media | Missing required fields (`fileName`, `contentType`, `postGroupId`) | Ensure all required fields are provided |
 | WebP image looks different after posting | Auto-conversion to JPEG for incompatible platforms | Upload as JPEG directly if quality consistency is critical |
 | Video post fails on TikTok | Video does not meet TikTok requirements (FPS, format, duration) | Check video metadata -- ensure proper FPS, supported codec, and acceptable duration |
 | Upload is slow for large files | File being read entirely into memory | Use streaming upload for large video files |

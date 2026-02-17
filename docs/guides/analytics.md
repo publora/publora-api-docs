@@ -5,31 +5,20 @@ Track the performance of your LinkedIn posts with Publora's analytics endpoints.
 ## Overview
 
 Publora provides analytics for LinkedIn posts, including:
-- **Post-level metrics:** impressions, clicks, likes, comments, shares
-- **Account-level metrics:** follower growth, engagement rates
+- **Post-level metrics:** impressions, reach, reactions, comments, reshares
+- **Account-level metrics:** aggregated impressions, reactions, comments, reshares, and reach
 
 > **Note:** Analytics are currently available for LinkedIn only. Other platforms are planned for future releases.
 
 ## Available Metrics
 
-### Post Statistics
-
 | Metric | Description |
 |--------|-------------|
-| `impressions` | Number of times the post was shown |
-| `clicks` | Number of clicks on the post |
-| `likes` | Number of likes received |
-| `comments` | Number of comments |
-| `shares` | Number of times the post was shared |
-
-### Account Statistics
-
-| Metric | Description |
-|--------|-------------|
-| `followers` | Current follower count |
-| `followersGrowth` | Net follower change in period |
-| `impressions` | Total impressions across all posts |
-| `engagementRate` | Average engagement rate |
+| `IMPRESSION` | Total number of times the post was displayed |
+| `MEMBERS_REACHED` | Unique LinkedIn members who saw the post |
+| `RESHARE` | Number of times the post was reposted |
+| `REACTION` | Total reactions (LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT) |
+| `COMMENT` | Total number of comments |
 
 ## Get Post Statistics
 
@@ -41,6 +30,17 @@ POST /api/v1/linkedin-post-statistics
 
 ### Request
 
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:7123456789012345678`) |
+| `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`) |
+| `queryType` | string | No | Single metric: `IMPRESSION`, `MEMBERS_REACHED`, `RESHARE`, `REACTION`, `COMMENT` |
+| `queryTypes` | string[] or `"ALL"` | No | Multiple metrics at once. Use `"ALL"` for all 5 metrics. |
+
+Use either `queryType` (single) or `queryTypes` (multiple), not both.
+
+### Get All Metrics
+
 **JavaScript (fetch)**
 
 ```javascript
@@ -51,14 +51,16 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-post-stati
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    platformConnectionId: 'linkedin-ABC123DEF',
-    postUrn: 'urn:li:share:7123456789012345678'
+    postedId: 'urn:li:share:7123456789012345678',
+    platformId: 'linkedin-ABC123DEF',
+    queryTypes: 'ALL'
   })
 });
 
-const stats = await response.json();
-console.log('Impressions:', stats.impressions);
-console.log('Engagement:', stats.likes + stats.comments + stats.shares);
+const data = await response.json();
+console.log('Impressions:', data.metrics.IMPRESSION);
+console.log('Reach:', data.metrics.MEMBERS_REACHED);
+console.log('Engagement:', data.metrics.REACTION + data.metrics.COMMENT + data.metrics.RESHARE);
 ```
 
 **Python (requests)**
@@ -73,14 +75,17 @@ response = requests.post(
         'x-publora-key': 'YOUR_API_KEY'
     },
     json={
-        'platformConnectionId': 'linkedin-ABC123DEF',
-        'postUrn': 'urn:li:share:7123456789012345678'
+        'postedId': 'urn:li:share:7123456789012345678',
+        'platformId': 'linkedin-ABC123DEF',
+        'queryTypes': 'ALL'
     }
 )
 
-stats = response.json()
-print(f"Impressions: {stats['impressions']}")
-print(f"Engagement: {stats['likes'] + stats['comments'] + stats['shares']}")
+data = response.json()
+metrics = data['metrics']
+print(f"Impressions: {metrics['IMPRESSION']}")
+print(f"Reach: {metrics['MEMBERS_REACHED']}")
+print(f"Engagement: {metrics['REACTION'] + metrics['COMMENT'] + metrics['RESHARE']}")
 ```
 
 **cURL**
@@ -90,21 +95,57 @@ curl -X POST https://api.publora.com/api/v1/linkedin-post-statistics \
   -H "x-publora-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "platformConnectionId": "linkedin-ABC123DEF",
-    "postUrn": "urn:li:share:7123456789012345678"
+    "postedId": "urn:li:share:7123456789012345678",
+    "platformId": "linkedin-ABC123DEF",
+    "queryTypes": "ALL"
   }'
 ```
 
-### Response
+### Response (All Metrics)
 
 ```json
 {
-  "impressions": 1250,
-  "clicks": 45,
-  "likes": 28,
-  "comments": 5,
-  "shares": 3,
-  "engagementRate": 2.88
+  "success": true,
+  "metrics": {
+    "IMPRESSION": 15420,
+    "MEMBERS_REACHED": 8234,
+    "RESHARE": 23,
+    "REACTION": 456,
+    "COMMENT": 89
+  },
+  "cached": false
+}
+```
+
+Results are cached for 30 minutes. `cached: true` means the data was served from cache.
+
+### Get a Single Metric
+
+```javascript
+const response = await fetch('https://api.publora.com/api/v1/linkedin-post-statistics', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    postedId: 'urn:li:share:7123456789012345678',
+    platformId: 'linkedin-ABC123DEF',
+    queryType: 'IMPRESSION'
+  })
+});
+
+const data = await response.json();
+console.log(`Impressions: ${data.count}`); // Single metric returns { success, count, cached }
+```
+
+### Response (Single Metric)
+
+```json
+{
+  "success": true,
+  "count": 15420,
+  "cached": false
 }
 ```
 
@@ -118,6 +159,16 @@ POST /api/v1/linkedin-account-statistics
 
 ### Request
 
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`) |
+| `queryType` | string | No | Single metric (same options as post statistics) |
+| `queryTypes` | string[] or `"ALL"` | No | Multiple metrics at once |
+| `aggregation` | string | No | `"TOTAL"` (default) or `"DAILY"` |
+| `dateRange` | object | No | `{ start: { year, month, day }, end: { year, month, day } }` |
+
+> **Note:** `MEMBERS_REACHED` with `DAILY` aggregation is not supported by the LinkedIn API.
+
 **JavaScript (fetch)**
 
 ```javascript
@@ -128,13 +179,15 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-account-st
     'x-publora-key': 'YOUR_API_KEY'
   },
   body: JSON.stringify({
-    platformConnectionId: 'linkedin-ABC123DEF'
+    platformId: 'linkedin-ABC123DEF',
+    queryTypes: 'ALL',
+    aggregation: 'TOTAL'
   })
 });
 
-const accountStats = await response.json();
-console.log('Followers:', accountStats.followers);
-console.log('Growth:', accountStats.followersGrowth);
+const data = await response.json();
+console.log('Total impressions:', data.metrics.IMPRESSION);
+console.log('Total engagement:', data.metrics.REACTION + data.metrics.COMMENT);
 ```
 
 **Python (requests)**
@@ -149,12 +202,14 @@ response = requests.post(
         'x-publora-key': 'YOUR_API_KEY'
     },
     json={
-        'platformConnectionId': 'linkedin-ABC123DEF'
+        'platformId': 'linkedin-ABC123DEF',
+        'queryTypes': 'ALL',
+        'aggregation': 'TOTAL'
     }
 )
 
-account_stats = response.json()
-print(f"Followers: {account_stats['followers']}")
+data = response.json()
+print(f"Total impressions: {data['metrics']['IMPRESSION']}")
 ```
 
 **cURL**
@@ -164,8 +219,74 @@ curl -X POST https://api.publora.com/api/v1/linkedin-account-statistics \
   -H "x-publora-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "platformConnectionId": "linkedin-ABC123DEF"
+    "platformId": "linkedin-ABC123DEF",
+    "queryTypes": "ALL",
+    "aggregation": "TOTAL"
   }'
+```
+
+### Response (Total Aggregation, Multiple Metrics)
+
+```json
+{
+  "success": true,
+  "metrics": {
+    "IMPRESSION": 45230,
+    "MEMBERS_REACHED": 22150,
+    "RESHARE": 89,
+    "REACTION": 1234,
+    "COMMENT": 256
+  },
+  "aggregation": "TOTAL",
+  "cached": false
+}
+```
+
+### Daily Aggregation with Date Range
+
+```javascript
+const response = await fetch('https://api.publora.com/api/v1/linkedin-account-statistics', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    platformId: 'linkedin-ABC123DEF',
+    queryType: 'IMPRESSION',
+    aggregation: 'DAILY',
+    dateRange: {
+      start: { year: 2026, month: 1, day: 1 },
+      end: { year: 2026, month: 1, day: 31 }
+    }
+  })
+});
+
+const data = await response.json();
+// Returns array of daily values
+for (const entry of data.data) {
+  console.log(`${JSON.stringify(entry.dateRange)}: ${entry.count} impressions`);
+}
+```
+
+### Response (Daily Aggregation, Single Metric)
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "count": 150,
+      "dateRange": { "start": { "year": 2026, "month": 1, "day": 1 }, "end": { "year": 2026, "month": 1, "day": 1 } }
+    },
+    {
+      "count": 220,
+      "dateRange": { "start": { "year": 2026, "month": 1, "day": 2 }, "end": { "year": 2026, "month": 1, "day": 2 } }
+    }
+  ],
+  "aggregation": "DAILY",
+  "cached": false
+}
 ```
 
 ## Finding the Post URN
@@ -195,9 +316,9 @@ const postDetails = await fetch(`https://api.publora.com/api/v1/get-post/${postG
   headers: { 'x-publora-key': 'YOUR_API_KEY' }
 }).then(r => r.json());
 
-// Find the LinkedIn post URN
+// Find the LinkedIn postedId
 const linkedinPost = postDetails.posts.find(p => p.platform === 'linkedin');
-const postUrn = linkedinPost.platformPostId; // e.g., "urn:li:share:7123456789012345678"
+const postedId = linkedinPost.postedId; // e.g., "urn:li:share:7123456789012345678"
 ```
 
 ## Analytics Dashboard Example
@@ -210,76 +331,74 @@ Build a simple analytics tracker for your LinkedIn posts.
 const PUBLORA_API_KEY = 'YOUR_API_KEY';
 const BASE_URL = 'https://api.publora.com/api/v1';
 
-async function getPostAnalytics(platformConnectionId, postUrns) {
+async function getPostAnalytics(platformId, postedIds) {
   const results = [];
 
-  for (const postUrn of postUrns) {
+  for (const postedId of postedIds) {
     const response = await fetch(`${BASE_URL}/linkedin-post-statistics`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-publora-key': PUBLORA_API_KEY
       },
-      body: JSON.stringify({ platformConnectionId, postUrn })
+      body: JSON.stringify({ platformId, postedId, queryTypes: 'ALL' })
     });
 
-    const stats = await response.json();
+    const data = await response.json();
+    const metrics = data.metrics;
     results.push({
-      postUrn,
-      ...stats,
-      totalEngagement: stats.likes + stats.comments + stats.shares
+      postedId,
+      ...metrics,
+      totalEngagement: metrics.REACTION + metrics.COMMENT + metrics.RESHARE
     });
   }
 
   return results;
 }
 
-async function generateReport(platformConnectionId, postUrns) {
+async function generateReport(platformId, postedIds) {
   console.log('=== LinkedIn Analytics Report ===\n');
 
-  // Get post stats
-  const postStats = await getPostAnalytics(platformConnectionId, postUrns);
+  const postStats = await getPostAnalytics(platformId, postedIds);
 
-  // Calculate totals
   const totals = postStats.reduce((acc, post) => ({
-    impressions: acc.impressions + post.impressions,
-    clicks: acc.clicks + post.clicks,
-    likes: acc.likes + post.likes,
-    comments: acc.comments + post.comments,
-    shares: acc.shares + post.shares
-  }), { impressions: 0, clicks: 0, likes: 0, comments: 0, shares: 0 });
+    IMPRESSION: acc.IMPRESSION + post.IMPRESSION,
+    MEMBERS_REACHED: acc.MEMBERS_REACHED + post.MEMBERS_REACHED,
+    REACTION: acc.REACTION + post.REACTION,
+    COMMENT: acc.COMMENT + post.COMMENT,
+    RESHARE: acc.RESHARE + post.RESHARE
+  }), { IMPRESSION: 0, MEMBERS_REACHED: 0, REACTION: 0, COMMENT: 0, RESHARE: 0 });
 
-  // Print per-post stats
   console.log('Post Performance:');
   console.log('-'.repeat(60));
 
   postStats.forEach((post, i) => {
-    console.log(`\nPost ${i + 1}: ${post.postUrn}`);
-    console.log(`  Impressions: ${post.impressions.toLocaleString()}`);
-    console.log(`  Engagement: ${post.totalEngagement} (${post.likes} likes, ${post.comments} comments, ${post.shares} shares)`);
-    console.log(`  Click-through: ${post.clicks} clicks`);
-    console.log(`  Engagement Rate: ${((post.totalEngagement / post.impressions) * 100).toFixed(2)}%`);
+    console.log(`\nPost ${i + 1}: ${post.postedId}`);
+    console.log(`  Impressions: ${post.IMPRESSION.toLocaleString()}`);
+    console.log(`  Reach: ${post.MEMBERS_REACHED.toLocaleString()}`);
+    console.log(`  Engagement: ${post.totalEngagement} (${post.REACTION} reactions, ${post.COMMENT} comments, ${post.RESHARE} reshares)`);
+    console.log(`  Engagement Rate: ${((post.totalEngagement / post.IMPRESSION) * 100).toFixed(2)}%`);
   });
 
-  // Print totals
+  const totalEngagement = totals.REACTION + totals.COMMENT + totals.RESHARE;
   console.log('\n' + '='.repeat(60));
   console.log('TOTALS:');
-  console.log(`  Total Impressions: ${totals.impressions.toLocaleString()}`);
-  console.log(`  Total Engagement: ${totals.likes + totals.comments + totals.shares}`);
-  console.log(`  Total Clicks: ${totals.clicks}`);
-  console.log(`  Avg Engagement Rate: ${(((totals.likes + totals.comments + totals.shares) / totals.impressions) * 100).toFixed(2)}%`);
+  console.log(`  Total Impressions: ${totals.IMPRESSION.toLocaleString()}`);
+  console.log(`  Total Reach: ${totals.MEMBERS_REACHED.toLocaleString()}`);
+  console.log(`  Total Engagement: ${totalEngagement}`);
+  console.log(`  Avg Engagement Rate: ${((totalEngagement / totals.IMPRESSION) * 100).toFixed(2)}%`);
 
   return { postStats, totals };
 }
 
 // Usage
-const postUrns = [
+const postedIds = [
   'urn:li:share:7123456789012345678',
   'urn:li:share:7234567890123456789',
   'urn:li:share:7345678901234567890'
 ];
 
-generateReport('linkedin-ABC123DEF', postUrns);
+generateReport('linkedin-ABC123DEF', postedIds);
 ```
 
 ### Python Implementation
@@ -291,10 +410,10 @@ from datetime import datetime
 PUBLORA_API_KEY = 'YOUR_API_KEY'
 BASE_URL = 'https://api.publora.com/api/v1'
 
-def get_post_analytics(platform_connection_id, post_urns):
+def get_post_analytics(platform_id, post_urns):
     results = []
 
-    for post_urn in post_urns:
+    for posted_id in post_urns:
         response = requests.post(
             f'{BASE_URL}/linkedin-post-statistics',
             headers={
@@ -302,55 +421,53 @@ def get_post_analytics(platform_connection_id, post_urns):
                 'x-publora-key': PUBLORA_API_KEY
             },
             json={
-                'platformConnectionId': platform_connection_id,
-                'postUrn': post_urn
+                'platformId': platform_id,
+                'postedId': posted_id,
+                'queryTypes': 'ALL'
             }
         )
 
-        stats = response.json()
-        stats['postUrn'] = post_urn
-        stats['totalEngagement'] = stats['likes'] + stats['comments'] + stats['shares']
-        results.append(stats)
+        data = response.json()
+        metrics = data['metrics']
+        metrics['postedId'] = posted_id
+        metrics['totalEngagement'] = metrics['REACTION'] + metrics['COMMENT'] + metrics['RESHARE']
+        results.append(metrics)
 
     return results
 
-def generate_report(platform_connection_id, post_urns):
+def generate_report(platform_id, post_urns):
     print('=== LinkedIn Analytics Report ===')
     print(f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}\n')
 
-    # Get post stats
-    post_stats = get_post_analytics(platform_connection_id, post_urns)
+    post_stats = get_post_analytics(platform_id, post_urns)
 
-    # Calculate totals
     totals = {
-        'impressions': sum(p['impressions'] for p in post_stats),
-        'clicks': sum(p['clicks'] for p in post_stats),
-        'likes': sum(p['likes'] for p in post_stats),
-        'comments': sum(p['comments'] for p in post_stats),
-        'shares': sum(p['shares'] for p in post_stats)
+        'IMPRESSION': sum(p['IMPRESSION'] for p in post_stats),
+        'MEMBERS_REACHED': sum(p['MEMBERS_REACHED'] for p in post_stats),
+        'REACTION': sum(p['REACTION'] for p in post_stats),
+        'COMMENT': sum(p['COMMENT'] for p in post_stats),
+        'RESHARE': sum(p['RESHARE'] for p in post_stats)
     }
 
-    # Print per-post stats
     print('Post Performance:')
     print('-' * 60)
 
     for i, post in enumerate(post_stats, 1):
-        engagement_rate = (post['totalEngagement'] / post['impressions'] * 100) if post['impressions'] > 0 else 0
-        print(f"\nPost {i}: {post['postUrn']}")
-        print(f"  Impressions: {post['impressions']:,}")
-        print(f"  Engagement: {post['totalEngagement']} ({post['likes']} likes, {post['comments']} comments, {post['shares']} shares)")
-        print(f"  Click-through: {post['clicks']} clicks")
+        engagement_rate = (post['totalEngagement'] / post['IMPRESSION'] * 100) if post['IMPRESSION'] > 0 else 0
+        print(f"\nPost {i}: {post['postedId']}")
+        print(f"  Impressions: {post['IMPRESSION']:,}")
+        print(f"  Reach: {post['MEMBERS_REACHED']:,}")
+        print(f"  Engagement: {post['totalEngagement']} ({post['REACTION']} reactions, {post['COMMENT']} comments, {post['RESHARE']} reshares)")
         print(f"  Engagement Rate: {engagement_rate:.2f}%")
 
-    # Print totals
-    total_engagement = totals['likes'] + totals['comments'] + totals['shares']
-    avg_engagement_rate = (total_engagement / totals['impressions'] * 100) if totals['impressions'] > 0 else 0
+    total_engagement = totals['REACTION'] + totals['COMMENT'] + totals['RESHARE']
+    avg_engagement_rate = (total_engagement / totals['IMPRESSION'] * 100) if totals['IMPRESSION'] > 0 else 0
 
     print('\n' + '=' * 60)
     print('TOTALS:')
-    print(f"  Total Impressions: {totals['impressions']:,}")
+    print(f"  Total Impressions: {totals['IMPRESSION']:,}")
+    print(f"  Total Reach: {totals['MEMBERS_REACHED']:,}")
     print(f"  Total Engagement: {total_engagement}")
-    print(f"  Total Clicks: {totals['clicks']}")
     print(f"  Avg Engagement Rate: {avg_engagement_rate:.2f}%")
 
     return {'post_stats': post_stats, 'totals': totals}
@@ -371,44 +488,17 @@ report = generate_report('linkedin-ABC123DEF', post_urns)
 
 LinkedIn analytics take time to populate. Wait at least 24 hours after publishing for meaningful data.
 
-```javascript
-// Don't do this immediately after posting
-const stats = await getPostStatistics(postUrn); // Will show zeros
+### 2. Use Caching Wisely
 
-// Instead, schedule analytics collection for the next day
-```
-
-### 2. Track Trends Over Time
-
-Store analytics data to track performance trends:
-
-```javascript
-const analyticsHistory = [];
-
-async function trackDaily(platformConnectionId, postUrn) {
-  const stats = await getPostStatistics(platformConnectionId, postUrn);
-
-  analyticsHistory.push({
-    date: new Date().toISOString().split('T')[0],
-    postUrn,
-    ...stats
-  });
-
-  // Calculate daily change
-  if (analyticsHistory.length > 1) {
-    const yesterday = analyticsHistory[analyticsHistory.length - 2];
-    console.log(`New impressions today: ${stats.impressions - yesterday.impressions}`);
-  }
-}
-```
+Results are cached for 30 minutes (TOTAL) or 15 minutes (DAILY). The `cached` field in the response tells you if data was served from cache.
 
 ### 3. Calculate Engagement Rate
 
 ```javascript
-function calculateEngagementRate(stats) {
-  const engagement = stats.likes + stats.comments + stats.shares;
-  return stats.impressions > 0
-    ? (engagement / stats.impressions) * 100
+function calculateEngagementRate(metrics) {
+  const engagement = metrics.REACTION + metrics.COMMENT + metrics.RESHARE;
+  return metrics.IMPRESSION > 0
+    ? (engagement / metrics.IMPRESSION) * 100
     : 0;
 }
 
@@ -416,41 +506,29 @@ function calculateEngagementRate(stats) {
 // Great engagement rate: 5%+
 ```
 
-### 4. Compare Post Performance
-
-```javascript
-function findTopPerformer(postStats) {
-  return postStats.reduce((best, current) => {
-    const currentRate = calculateEngagementRate(current);
-    const bestRate = calculateEngagementRate(best);
-    return currentRate > bestRate ? current : best;
-  });
-}
-```
-
 ## Error Handling
 
 ```javascript
-async function getStatisticsSafe(platformConnectionId, postUrn) {
+async function getStatisticsSafe(platformId, postedId) {
   try {
-    const response = await fetch(`${BASE_URL}/linkedin-post-statistics`, {
+    const response = await fetch('https://api.publora.com/api/v1/linkedin-post-statistics', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-publora-key': PUBLORA_API_KEY
+        'x-publora-key': 'YOUR_API_KEY'
       },
-      body: JSON.stringify({ platformConnectionId, postUrn })
+      body: JSON.stringify({ platformId, postedId, queryTypes: 'ALL' })
     });
 
     if (!response.ok) {
       const error = await response.json();
 
       if (response.status === 404) {
-        console.log('Post not found or not yet published');
+        console.log('LinkedIn connection not found');
         return null;
       }
 
-      throw new Error(error.message || 'Failed to fetch statistics');
+      throw new Error(error.error || 'Failed to fetch statistics');
     }
 
     return response.json();

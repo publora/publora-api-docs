@@ -46,10 +46,6 @@ def import_from_csv(csv_file):
                 'scheduledTime': row['scheduled_time']
             }
 
-            # Add media if present
-            if row.get('media_url'):
-                payload['mediaUrls'] = [row['media_url']]
-
             # Create the post
             response = requests.post(
                 f'{BASE_URL}/create-post',
@@ -165,9 +161,6 @@ def import_csv_advanced(csv_file, dry_run=False, delay_ms=500):
 
         if row.get('scheduled_time'):
             payload['scheduledTime'] = row['scheduled_time']
-
-        if row.get('media_url'):
-            payload['mediaUrls'] = [url.strip() for url in row['media_url'].split(';')]
 
         response = requests.post(
             f'{BASE_URL}/create-post',
@@ -330,9 +323,6 @@ def import_with_pandas(csv_file):
             'platforms': row['platforms'],
             'scheduledTime': row['scheduled_time'].isoformat() + 'Z'
         }
-
-        if pd.notna(row.get('media_url')):
-            payload['mediaUrls'] = [row['media_url']]
 
         response = requests.post(
             f'{BASE_URL}/create-post',

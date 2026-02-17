@@ -87,7 +87,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'How we built our startup in 60 seconds #startup #tech #coding',
     platforms: ['tiktok-99887766'],
-    mediaUrls: ['https://example.com/videos/startup-story.mp4'],
     platformSettings: {
       tiktok: {
         viewerSetting: 'PUBLIC_TO_EVERYONE',
@@ -120,7 +119,6 @@ response = requests.post(
     json={
         'content': 'How we built our startup in 60 seconds #startup #tech #coding',
         'platforms': ['tiktok-99887766'],
-        'mediaUrls': ['https://example.com/videos/startup-story.mp4'],
         'platformSettings': {
             'tiktok': {
                 'viewerSetting': 'PUBLIC_TO_EVERYONE',
@@ -148,7 +146,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "How we built our startup in 60 seconds #startup #tech #coding",
     "platforms": ["tiktok-99887766"],
-    "mediaUrls": ["https://example.com/videos/startup-story.mp4"],
     "platformSettings": {
       "tiktok": {
         "viewerSetting": "PUBLIC_TO_EVERYONE",
@@ -171,7 +168,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'How we built our startup in 60 seconds #startup #tech #coding',
   platforms: ['tiktok-99887766'],
-  mediaUrls: ['https://example.com/videos/startup-story.mp4'],
   platformSettings: {
     tiktok: {
       viewerSetting: 'PUBLIC_TO_EVERYONE',
@@ -193,6 +189,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 console.log(response.data);
 ```
 
+> **Note:** TikTok requires a video. First create the post, then upload the video using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
+
 ### Post a Private Video with Restricted Interactions
 
 **JavaScript (fetch)**
@@ -207,7 +205,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Preview of our upcoming feature for close friends only',
     platforms: ['tiktok-99887766'],
-    mediaUrls: ['https://example.com/videos/feature-preview.mp4'],
     platformSettings: {
       tiktok: {
         viewerSetting: 'MUTUAL_FOLLOW_FRIENDS',
@@ -240,7 +237,6 @@ response = requests.post(
     json={
         'content': 'Preview of our upcoming feature for close friends only',
         'platforms': ['tiktok-99887766'],
-        'mediaUrls': ['https://example.com/videos/feature-preview.mp4'],
         'platformSettings': {
             'tiktok': {
                 'viewerSetting': 'MUTUAL_FOLLOW_FRIENDS',
@@ -268,7 +264,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Preview of our upcoming feature for close friends only",
     "platforms": ["tiktok-99887766"],
-    "mediaUrls": ["https://example.com/videos/feature-preview.mp4"],
     "platformSettings": {
       "tiktok": {
         "viewerSetting": "MUTUAL_FOLLOW_FRIENDS",
@@ -291,7 +286,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Preview of our upcoming feature for close friends only',
   platforms: ['tiktok-99887766'],
-  mediaUrls: ['https://example.com/videos/feature-preview.mp4'],
   platformSettings: {
     tiktok: {
       viewerSetting: 'MUTUAL_FOLLOW_FRIENDS',

@@ -45,8 +45,6 @@ export interface CreatePostRequest {
   content: string;
   platforms: string[];
   scheduledTime?: string;
-  mediaUrls?: string[];
-  mediaKeys?: string[];
   status?: 'draft' | 'scheduled';
   platformSettings?: PlatformSettings;
 }
@@ -69,11 +67,6 @@ export interface PlatformSettings {
 export interface CreatePostResponse {
   success: boolean;
   postGroupId: string;
-  posts: Array<{
-    platform: string;
-    platformConnectionId: string;
-    status: string;
-  }>;
 }
 
 export interface ApiError {
@@ -83,16 +76,20 @@ export interface ApiError {
 
 export interface UploadUrlResponse {
   uploadUrl: string;
-  mediaKey: string;
+  fileUrl: string;
+  mediaId: string;
 }
 
 export interface LinkedInStats {
-  impressions: number;
-  clicks: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  engagementRate?: number;
+  success: boolean;
+  metrics: {
+    IMPRESSION: number;
+    MEMBERS_REACHED: number;
+    RESHARE: number;
+    REACTION: number;
+    COMMENT: number;
+  };
+  cached: boolean;
 }
 ```
 
@@ -192,21 +189,22 @@ export class PubloraClient {
 
   async getUploadUrl(
     fileName: string,
-    mimeType: string
+    contentType: string,
+    postGroupId: string
   ): Promise<UploadUrlResponse> {
     return this.request<UploadUrlResponse>('/get-upload-url', {
       method: 'POST',
-      body: JSON.stringify({ fileName, mimeType })
+      body: JSON.stringify({ fileName, contentType, postGroupId })
     });
   }
 
   async getLinkedInPostStats(
-    platformConnectionId: string,
-    postUrn: string
+    platformId: string,
+    postedId: string
   ): Promise<LinkedInStats> {
     return this.request<LinkedInStats>('/linkedin-post-statistics', {
       method: 'POST',
-      body: JSON.stringify({ platformConnectionId, postUrn })
+      body: JSON.stringify({ platformId, postedId, queryTypes: 'ALL' })
     });
   }
 }
@@ -253,7 +251,6 @@ async function createTypeSafePost(): Promise<void> {
   const response = await client.createPost(request);
 
   console.log('Post created:', response.postGroupId);
-  console.log('Platforms:', response.posts.map(p => p.platform).join(', '));
 }
 
 createTypeSafePost();
@@ -317,7 +314,6 @@ async function postInstagramReel(): Promise<void> {
   const response = await client.createPost({
     content: 'Behind the scenes! #buildinpublic',
     platforms: ['instagram-789012345'],
-    mediaUrls: ['https://example.com/video.mp4'],
     platformSettings: {
       instagram: {
         videoType: 'REELS'
@@ -352,27 +348,27 @@ import * as path from 'path';
 
 async function uploadAndPost(filePath: string, caption: string): Promise<void> {
   const fileName = path.basename(filePath);
-  const mimeType = getMimeType(fileName);
+  const contentType = getMimeType(fileName);
 
-  // Step 1: Get upload URL
-  const { uploadUrl, mediaKey } = await client.getUploadUrl(fileName, mimeType);
+  // Step 1: Create the post first
+  const postResponse = await client.createPost({
+    content: caption,
+    platforms: ['twitter-123456789', 'linkedin-ABC123DEF']
+  });
 
-  // Step 2: Upload to S3
+  // Step 2: Get upload URL with postGroupId
+  const { uploadUrl, fileUrl, mediaId } = await client.getUploadUrl(fileName, contentType, postResponse.postGroupId);
+
+  // Step 3: Upload to S3
   const fileBuffer = fs.readFileSync(filePath);
   await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': mimeType },
+    headers: { 'Content-Type': contentType },
     body: fileBuffer
   });
 
-  // Step 3: Create post with media
-  const response = await client.createPost({
-    content: caption,
-    platforms: ['twitter-123456789', 'linkedin-ABC123DEF'],
-    mediaKeys: [mediaKey]
-  });
-
-  console.log('Post with media created:', response.postGroupId);
+  console.log('Post with media created:', postResponse.postGroupId);
+  console.log('File URL:', fileUrl);
 }
 
 function getMimeType(fileName: string): string {
@@ -536,30 +532,29 @@ async function batchDeletePosts(postGroupIds: string[]): Promise<void> {
 
 ```typescript
 async function generateLinkedInReport(
-  platformConnectionId: string,
-  postUrns: string[]
+  platformId: string,
+  postedIds: string[]
 ): Promise<void> {
   console.log('=== LinkedIn Analytics Report ===\n');
 
   let totalImpressions = 0;
   let totalEngagement = 0;
 
-  for (const postUrn of postUrns) {
+  for (const postedId of postedIds) {
     try {
-      const stats = await client.getLinkedInPostStats(platformConnectionId, postUrn);
+      const stats = await client.getLinkedInPostStats(platformId, postedId);
 
-      const engagement = stats.likes + stats.comments + stats.shares;
-      totalImpressions += stats.impressions;
+      const engagement = stats.metrics.REACTION + stats.metrics.COMMENT + stats.metrics.RESHARE;
+      totalImpressions += stats.metrics.IMPRESSION;
       totalEngagement += engagement;
 
-      console.log(`Post: ${postUrn}`);
-      console.log(`  Impressions: ${stats.impressions.toLocaleString()}`);
-      console.log(`  Engagement: ${engagement} (${stats.likes} likes, ${stats.comments} comments, ${stats.shares} shares)`);
-      console.log(`  CTR: ${((stats.clicks / stats.impressions) * 100).toFixed(2)}%`);
+      console.log(`Post: ${postedId}`);
+      console.log(`  Impressions: ${stats.metrics.IMPRESSION.toLocaleString()}`);
+      console.log(`  Engagement: ${engagement} (${stats.metrics.REACTION} reactions, ${stats.metrics.COMMENT} comments, ${stats.metrics.RESHARE} shares)`);
       console.log('');
 
     } catch (error) {
-      console.log(`Post: ${postUrn} - Error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      console.log(`Post: ${postedId} - Error: ${error instanceof Error ? error.message : 'Unknown'}`);
     }
   }
 

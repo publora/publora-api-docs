@@ -29,8 +29,8 @@ async function getConnections() {
 
 // Example output:
 // [
-//   { id: 'twitter-123456', platform: 'twitter', name: '@myaccount' },
-//   { id: 'linkedin-ABC123', platform: 'linkedin', name: 'John Doe' }
+//   { platformId: 'twitter-123456', username: '@myaccount', displayName: 'My Account' },
+//   { platformId: 'linkedin-ABC123', username: 'johndoe', displayName: 'John Doe' }
 // ]
 ```
 
@@ -140,13 +140,13 @@ async function main() {
   }
 
   // 2. Get platform IDs
-  const platformIds = connections.map(c => c.id);
-  console.log('Posting to:', platformIds);
+  const platforms = connections.map(c => c.platformId);
+  console.log('Posting to:', platforms);
 
   // 3. Create a post
   const result = await createPost(
     'Testing the Publora API - works great!',
-    platformIds
+    platforms
   );
 
   // 4. Check status after a moment

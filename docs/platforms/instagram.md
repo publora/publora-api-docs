@@ -60,8 +60,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Sunset views from the office rooftop. #startup #views',
-    platforms: ['instagram-11223344'],
-    mediaUrls: ['https://example.com/images/sunset.jpeg']
+    platforms: ['instagram-11223344']
   })
 });
 
@@ -82,8 +81,7 @@ response = requests.post(
     },
     json={
         'content': 'Sunset views from the office rooftop. #startup #views',
-        'platforms': ['instagram-11223344'],
-        'mediaUrls': ['https://example.com/images/sunset.jpeg']
+        'platforms': ['instagram-11223344']
     }
 )
 
@@ -99,8 +97,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Sunset views from the office rooftop. #startup #views",
-    "platforms": ["instagram-11223344"],
-    "mediaUrls": ["https://example.com/images/sunset.jpeg"]
+    "platforms": ["instagram-11223344"]
   }'
 ```
 
@@ -111,8 +108,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Sunset views from the office rooftop. #startup #views',
-  platforms: ['instagram-11223344'],
-  mediaUrls: ['https://example.com/images/sunset.jpeg']
+  platforms: ['instagram-11223344']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -122,6 +118,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** Instagram requires media on every post. First create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`. For carousels, upload multiple files to the same `postGroupId`.
 
 ### Post a Carousel
 
@@ -136,14 +134,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '10 tips for better code reviews. Swipe through to learn them all! #coding #devtips',
-    platforms: ['instagram-11223344'],
-    mediaUrls: [
-      'https://example.com/images/tip-1.png',
-      'https://example.com/images/tip-2.png',
-      'https://example.com/images/tip-3.png',
-      'https://example.com/images/tip-4.png',
-      'https://example.com/images/tip-5.png'
-    ]
+    platforms: ['instagram-11223344']
   })
 });
 
@@ -164,14 +155,7 @@ response = requests.post(
     },
     json={
         'content': '10 tips for better code reviews. Swipe through to learn them all! #coding #devtips',
-        'platforms': ['instagram-11223344'],
-        'mediaUrls': [
-            'https://example.com/images/tip-1.png',
-            'https://example.com/images/tip-2.png',
-            'https://example.com/images/tip-3.png',
-            'https://example.com/images/tip-4.png',
-            'https://example.com/images/tip-5.png'
-        ]
+        'platforms': ['instagram-11223344']
     }
 )
 
@@ -187,14 +171,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "10 tips for better code reviews. Swipe through to learn them all! #coding #devtips",
-    "platforms": ["instagram-11223344"],
-    "mediaUrls": [
-      "https://example.com/images/tip-1.png",
-      "https://example.com/images/tip-2.png",
-      "https://example.com/images/tip-3.png",
-      "https://example.com/images/tip-4.png",
-      "https://example.com/images/tip-5.png"
-    ]
+    "platforms": ["instagram-11223344"]
   }'
 ```
 
@@ -205,14 +182,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: '10 tips for better code reviews. Swipe through to learn them all! #coding #devtips',
-  platforms: ['instagram-11223344'],
-  mediaUrls: [
-    'https://example.com/images/tip-1.png',
-    'https://example.com/images/tip-2.png',
-    'https://example.com/images/tip-3.png',
-    'https://example.com/images/tip-4.png',
-    'https://example.com/images/tip-5.png'
-  ]
+  platforms: ['instagram-11223344']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -237,7 +207,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Behind the scenes of building our product. #buildinpublic',
     platforms: ['instagram-11223344'],
-    mediaUrls: ['https://example.com/videos/behind-scenes.mp4'],
     platformSettings: {
       instagram: {
         videoType: 'REELS'
@@ -264,7 +233,6 @@ response = requests.post(
     json={
         'content': 'Behind the scenes of building our product. #buildinpublic',
         'platforms': ['instagram-11223344'],
-        'mediaUrls': ['https://example.com/videos/behind-scenes.mp4'],
         'platformSettings': {
             'instagram': {
                 'videoType': 'REELS'
@@ -286,7 +254,6 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Behind the scenes of building our product. #buildinpublic",
     "platforms": ["instagram-11223344"],
-    "mediaUrls": ["https://example.com/videos/behind-scenes.mp4"],
     "platformSettings": {
       "instagram": {
         "videoType": "REELS"
@@ -303,7 +270,6 @@ const axios = require('axios');
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Behind the scenes of building our product. #buildinpublic',
   platforms: ['instagram-11223344'],
-  mediaUrls: ['https://example.com/videos/behind-scenes.mp4'],
   platformSettings: {
     instagram: {
       videoType: 'REELS'

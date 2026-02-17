@@ -31,8 +31,7 @@ async function scheduleWeekOfContent(posts, platforms) {
       body: JSON.stringify({
         content: post.content,
         platforms,
-        scheduledTime: scheduledDate.toISOString(),
-        mediaUrls: post.mediaUrls || []
+        scheduledTime: scheduledDate.toISOString()
       })
     });
 

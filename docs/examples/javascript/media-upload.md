@@ -2,155 +2,161 @@
 
 Upload images and videos to Publora using the pre-signed URL workflow.
 
+## How Media Upload Works
+
+1. **Create the post first** using `POST /create-post` (returns a `postGroupId`)
+2. **Get a pre-signed upload URL** using `POST /get-upload-url` with the `postGroupId`
+3. **Upload the file** directly to the returned S3 URL
+4. Media is **automatically attached** to the post via the `postGroupId`
+
 ## Upload a Single Image
 
 ```javascript
 const PUBLORA_API_KEY = 'YOUR_API_KEY';
 const BASE_URL = 'https://api.publora.com/api/v1';
+const fs = require('fs');
 
-async function uploadImage(filePath, fileName, mimeType) {
-  // Step 1: Get pre-signed upload URL
-  const urlResponse = await fetch(`${BASE_URL}/get-upload-url`, {
+async function createPostWithImage(content, platforms, imagePath, fileName, contentType) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-publora-key': PUBLORA_API_KEY
+  };
+
+  // Step 1: Create the post
+  const postResponse = await fetch(`${BASE_URL}/create-post`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({ fileName, mimeType })
+    headers,
+    body: JSON.stringify({ content, platforms })
   });
 
-  const { uploadUrl, mediaKey } = await urlResponse.json();
+  const { postGroupId } = await postResponse.json();
+  console.log('Post created:', postGroupId);
 
-  // Step 2: Upload file to S3
-  const fileBuffer = await fs.promises.readFile(filePath);
+  // Step 2: Get pre-signed upload URL
+  const urlResponse = await fetch(`${BASE_URL}/get-upload-url`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ fileName, contentType, postGroupId })
+  });
+
+  const { uploadUrl, fileUrl, mediaId } = await urlResponse.json();
+
+  // Step 3: Upload file to S3
+  const fileBuffer = await fs.promises.readFile(imagePath);
   await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': mimeType },
+    headers: { 'Content-Type': contentType },
     body: fileBuffer
   });
 
-  console.log('Uploaded! Media key:', mediaKey);
-  return mediaKey;
+  console.log('Uploaded! File URL:', fileUrl);
+  console.log('Media ID:', mediaId);
+
+  return { postGroupId, fileUrl, mediaId };
 }
 
 // Usage
-const mediaKey = await uploadImage(
+await createPostWithImage(
+  'Check out our new feature!',
+  ['twitter-123456', 'linkedin-ABC123'],
   './product-screenshot.png',
   'product-screenshot.png',
   'image/png'
 );
 ```
 
-## Post with Uploaded Image
-
-```javascript
-async function postWithImage(content, platforms, imagePath) {
-  // Upload the image first
-  const mediaKey = await uploadImage(
-    imagePath,
-    'post-image.jpg',
-    'image/jpeg'
-  );
-
-  // Create post with media
-  const response = await fetch(`${BASE_URL}/create-post`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({
-      content,
-      platforms,
-      mediaKeys: [mediaKey]
-    })
-  });
-
-  return response.json();
-}
-
-// Usage
-await postWithImage(
-  'Check out our new feature!',
-  ['twitter-123456', 'linkedin-ABC123'],
-  './feature-screenshot.jpg'
-);
-```
-
 ## Upload Multiple Images (Carousel)
 
 ```javascript
-async function uploadMultipleImages(files) {
-  const mediaKeys = [];
+async function createCarouselPost(content, platforms, images) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-publora-key': PUBLORA_API_KEY
+  };
 
-  for (const file of files) {
-    const mediaKey = await uploadImage(
-      file.path,
-      file.name,
-      file.mimeType
-    );
-    mediaKeys.push(mediaKey);
-  }
-
-  return mediaKeys;
-}
-
-async function postCarousel(content, platforms, imagePaths) {
-  // Prepare file info
-  const files = imagePaths.map((path, i) => ({
-    path,
-    name: `image-${i + 1}.jpg`,
-    mimeType: 'image/jpeg'
-  }));
-
-  // Upload all images
-  const mediaKeys = await uploadMultipleImages(files);
-
-  // Create carousel post
-  const response = await fetch(`${BASE_URL}/create-post`, {
+  // Step 1: Create the post
+  const postResponse = await fetch(`${BASE_URL}/create-post`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({
-      content,
-      platforms,
-      mediaKeys // Up to 4 for most platforms, 10 for Instagram
-    })
+    headers,
+    body: JSON.stringify({ content, platforms })
   });
 
-  return response.json();
+  const { postGroupId } = await postResponse.json();
+  console.log('Post created:', postGroupId);
+
+  // Step 2: Upload each image to the same postGroupId
+  for (const image of images) {
+    const urlResponse = await fetch(`${BASE_URL}/get-upload-url`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        fileName: image.name,
+        contentType: image.contentType,
+        postGroupId
+      })
+    });
+
+    const { uploadUrl, mediaId } = await urlResponse.json();
+
+    const fileBuffer = await fs.promises.readFile(image.path);
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': image.contentType },
+      body: fileBuffer
+    });
+
+    console.log(`Uploaded ${image.name} (mediaId: ${mediaId})`);
+  }
+
+  return postGroupId;
 }
 
 // Usage: Post a carousel to Instagram
-await postCarousel(
+await createCarouselPost(
   '5 tips for better productivity. Swipe through!',
   ['instagram-789012'],
-  ['./tip1.jpg', './tip2.jpg', './tip3.jpg', './tip4.jpg', './tip5.jpg']
+  [
+    { path: './tip1.jpg', name: 'tip1.jpg', contentType: 'image/jpeg' },
+    { path: './tip2.jpg', name: 'tip2.jpg', contentType: 'image/jpeg' },
+    { path: './tip3.jpg', name: 'tip3.jpg', contentType: 'image/jpeg' },
+    { path: './tip4.jpg', name: 'tip4.jpg', contentType: 'image/jpeg' },
+    { path: './tip5.jpg', name: 'tip5.jpg', contentType: 'image/jpeg' }
+  ]
 );
 ```
 
 ## Upload Video
 
 ```javascript
-async function uploadVideo(videoPath, fileName) {
-  // Step 1: Get pre-signed URL for video
+async function createVideoPost(content, platforms, videoPath, fileName) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-publora-key': PUBLORA_API_KEY
+  };
+
+  // Step 1: Create the post
+  const postResponse = await fetch(`${BASE_URL}/create-post`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ content, platforms })
+  });
+
+  const { postGroupId } = await postResponse.json();
+
+  // Step 2: Get upload URL for video
   const urlResponse = await fetch(`${BASE_URL}/get-upload-url`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
+    headers,
     body: JSON.stringify({
       fileName,
-      mimeType: 'video/mp4'
+      contentType: 'video/mp4',
+      postGroupId
     })
   });
 
-  const { uploadUrl, mediaKey } = await urlResponse.json();
+  const { uploadUrl, fileUrl, mediaId } = await urlResponse.json();
 
-  // Step 2: Upload video file
+  // Step 3: Upload video file
   const videoBuffer = await fs.promises.readFile(videoPath);
   await fetch(uploadUrl, {
     method: 'PUT',
@@ -158,76 +164,24 @@ async function uploadVideo(videoPath, fileName) {
     body: videoBuffer
   });
 
-  return mediaKey;
-}
-
-async function postVideo(content, platforms, videoPath, platformSettings = {}) {
-  const mediaKey = await uploadVideo(videoPath, 'video.mp4');
-
-  const response = await fetch(`${BASE_URL}/create-post`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({
-      content,
-      platforms,
-      mediaKeys: [mediaKey],
-      platformSettings
-    })
-  });
-
-  return response.json();
+  console.log('Video uploaded:', fileUrl);
+  return { postGroupId, fileUrl, mediaId };
 }
 
 // Post video as Instagram Reel
-await postVideo(
+await createVideoPost(
   'Behind the scenes of building our product! #buildinpublic',
   ['instagram-789012'],
   './bts-video.mp4',
-  {
-    instagram: { videoType: 'REELS' }
-  }
+  'bts-video.mp4'
 );
 
 // Post video to TikTok
-await postVideo(
+await createVideoPost(
   'Quick tip for developers #coding #devtips',
   ['tiktok-345678'],
   './tip-video.mp4',
-  {
-    tiktok: { disableDuet: false, disableStitch: false }
-  }
-);
-```
-
-## Upload from URL (Remote Image)
-
-```javascript
-async function postWithRemoteImage(content, platforms, imageUrl) {
-  // Publora also accepts mediaUrls for remote images
-  const response = await fetch(`${BASE_URL}/create-post`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({
-      content,
-      platforms,
-      mediaUrls: [imageUrl] // Direct URL to image
-    })
-  });
-
-  return response.json();
-}
-
-// Usage with remote image URL
-await postWithRemoteImage(
-  'Check out this chart from our analytics!',
-  ['twitter-123456', 'linkedin-ABC123'],
-  'https://example.com/charts/monthly-growth.png'
+  'tip-video.mp4'
 );
 ```
 
@@ -235,20 +189,21 @@ await postWithRemoteImage(
 
 ```javascript
 const fs = require('fs');
-const { Readable } = require('stream');
 
-async function uploadWithProgress(filePath, fileName, mimeType) {
+async function uploadWithProgress(postGroupId, filePath, fileName, contentType) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-publora-key': PUBLORA_API_KEY
+  };
+
   // Get upload URL
   const urlResponse = await fetch(`${BASE_URL}/get-upload-url`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-publora-key': PUBLORA_API_KEY
-    },
-    body: JSON.stringify({ fileName, mimeType })
+    headers,
+    body: JSON.stringify({ fileName, contentType, postGroupId })
   });
 
-  const { uploadUrl, mediaKey } = await urlResponse.json();
+  const { uploadUrl, mediaId } = await urlResponse.json();
 
   // Get file stats for progress tracking
   const stats = fs.statSync(filePath);
@@ -269,14 +224,14 @@ async function uploadWithProgress(filePath, fileName, mimeType) {
   await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
-      'Content-Type': mimeType,
+      'Content-Type': contentType,
       'Content-Length': fileSize.toString()
     },
     body: fileBuffer
   });
 
   console.log('\nUpload complete!');
-  return mediaKey;
+  return mediaId;
 }
 ```
 

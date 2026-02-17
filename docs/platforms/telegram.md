@@ -162,8 +162,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '**New Dashboard Preview**\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-    platforms: ['telegram-1001234567890'],
-    mediaUrls: ['https://example.com/images/dashboard-preview.jpeg']
+    platforms: ['telegram-1001234567890']
   })
 });
 
@@ -184,8 +183,7 @@ response = requests.post(
     },
     json={
         'content': '**New Dashboard Preview**\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-        'platforms': ['telegram-1001234567890'],
-        'mediaUrls': ['https://example.com/images/dashboard-preview.jpeg']
+        'platforms': ['telegram-1001234567890']
     }
 )
 
@@ -201,8 +199,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "**New Dashboard Preview**\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.",
-    "platforms": ["telegram-1001234567890"],
-    "mediaUrls": ["https://example.com/images/dashboard-preview.jpeg"]
+    "platforms": ["telegram-1001234567890"]
   }'
 ```
 
@@ -213,8 +210,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: '**New Dashboard Preview**\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-  platforms: ['telegram-1001234567890'],
-  mediaUrls: ['https://example.com/images/dashboard-preview.jpeg']
+  platforms: ['telegram-1001234567890']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -224,6 +220,8 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 console.log(response.data);
 ```
+
+> **Note:** To attach media to a Telegram post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Post with a Video
 
@@ -238,8 +236,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '**Feature Demo**\n\nWatch our 60-second demo of the new collaboration tools.',
-    platforms: ['telegram-1001234567890'],
-    mediaUrls: ['https://example.com/videos/collab-demo.mp4']
+    platforms: ['telegram-1001234567890']
   })
 });
 
@@ -260,8 +257,7 @@ response = requests.post(
     },
     json={
         'content': '**Feature Demo**\n\nWatch our 60-second demo of the new collaboration tools.',
-        'platforms': ['telegram-1001234567890'],
-        'mediaUrls': ['https://example.com/videos/collab-demo.mp4']
+        'platforms': ['telegram-1001234567890']
     }
 )
 
@@ -277,8 +273,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "**Feature Demo**\n\nWatch our 60-second demo of the new collaboration tools.",
-    "platforms": ["telegram-1001234567890"],
-    "mediaUrls": ["https://example.com/videos/collab-demo.mp4"]
+    "platforms": ["telegram-1001234567890"]
   }'
 ```
 
@@ -289,8 +284,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: '**Feature Demo**\n\nWatch our 60-second demo of the new collaboration tools.',
-  platforms: ['telegram-1001234567890'],
-  mediaUrls: ['https://example.com/videos/collab-demo.mp4']
+  platforms: ['telegram-1001234567890']
 }, {
   headers: {
     'Content-Type': 'application/json',

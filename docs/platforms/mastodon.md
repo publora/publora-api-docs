@@ -115,17 +115,15 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'New feature alert: our dashboard now supports dark mode! Here is a side-by-side comparison. #ui #darkmode',
-    platforms: ['mastodon-109876543210'],
-    mediaUrls: [
-      'https://example.com/images/light-mode.png',
-      'https://example.com/images/dark-mode.png'
-    ]
+    platforms: ['mastodon-109876543210']
   })
 });
 
 const data = await response.json();
 console.log(data);
 ```
+
+> **Note:** To attach media to a Mastodon post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 **Python (requests)**
 
@@ -140,11 +138,7 @@ response = requests.post(
     },
     json={
         'content': 'New feature alert: our dashboard now supports dark mode! Here is a side-by-side comparison. #ui #darkmode',
-        'platforms': ['mastodon-109876543210'],
-        'mediaUrls': [
-            'https://example.com/images/light-mode.png',
-            'https://example.com/images/dark-mode.png'
-        ]
+        'platforms': ['mastodon-109876543210']
     }
 )
 
@@ -160,11 +154,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "New feature alert: our dashboard now supports dark mode! Here is a side-by-side comparison. #ui #darkmode",
-    "platforms": ["mastodon-109876543210"],
-    "mediaUrls": [
-      "https://example.com/images/light-mode.png",
-      "https://example.com/images/dark-mode.png"
-    ]
+    "platforms": ["mastodon-109876543210"]
   }'
 ```
 
@@ -175,11 +165,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'New feature alert: our dashboard now supports dark mode! Here is a side-by-side comparison. #ui #darkmode',
-  platforms: ['mastodon-109876543210'],
-  mediaUrls: [
-    'https://example.com/images/light-mode.png',
-    'https://example.com/images/dark-mode.png'
-  ]
+  platforms: ['mastodon-109876543210']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -203,8 +189,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Quick demo of our new real-time collaboration feature. Multiple users editing the same document simultaneously!',
-    platforms: ['mastodon-109876543210'],
-    mediaUrls: ['https://example.com/videos/collab-demo.mp4']
+    platforms: ['mastodon-109876543210']
   })
 });
 
@@ -225,8 +210,7 @@ response = requests.post(
     },
     json={
         'content': 'Quick demo of our new real-time collaboration feature. Multiple users editing the same document simultaneously!',
-        'platforms': ['mastodon-109876543210'],
-        'mediaUrls': ['https://example.com/videos/collab-demo.mp4']
+        'platforms': ['mastodon-109876543210']
     }
 )
 
@@ -242,8 +226,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Quick demo of our new real-time collaboration feature. Multiple users editing the same document simultaneously!",
-    "platforms": ["mastodon-109876543210"],
-    "mediaUrls": ["https://example.com/videos/collab-demo.mp4"]
+    "platforms": ["mastodon-109876543210"]
   }'
 ```
 
@@ -254,8 +237,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Quick demo of our new real-time collaboration feature. Multiple users editing the same document simultaneously!',
-  platforms: ['mastodon-109876543210'],
-  mediaUrls: ['https://example.com/videos/collab-demo.mp4']
+  platforms: ['mastodon-109876543210']
 }, {
   headers: {
     'Content-Type': 'application/json',
