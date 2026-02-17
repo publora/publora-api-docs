@@ -122,3 +122,8 @@ console.log(`All published: ${allPublished}`);
 |--------|-------|-------|
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 404 | `"Post group not found"` | Invalid ID or post belongs to another user |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

@@ -441,3 +441,8 @@ console.log(`Successfully scheduled ${results.length} posts for the week.`);
 | Post stuck in `scheduled` status | The scheduled time has not arrived yet | Check the `scheduledTime` field -- the scheduler runs every minute |
 | `400 "Cannot update published or failed posts"` | Trying to reschedule a post that already published or failed | Only `draft` and `scheduled` posts can be updated |
 | Post shows `partially_published` | Some platforms succeeded, others failed | Check the individual platform post statuses within the post group for details |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

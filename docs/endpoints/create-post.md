@@ -198,3 +198,8 @@ draft → scheduled → processing → published
 - **published**: Successfully posted on all platforms
 - **failed**: Failed on all platforms
 - **partially_published**: Succeeded on some, failed on others
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

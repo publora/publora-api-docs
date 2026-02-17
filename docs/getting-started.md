@@ -175,3 +175,8 @@ curl https://api.publora.com/api/v1/get-post/507f1f77bcf86cd799439011 \
 - [LinkedIn analytics](endpoints/linkedin-statistics.md)
 - [Workspace / B2B API](guides/workspace.md)
 - [Error handling](guides/error-handling.md)
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

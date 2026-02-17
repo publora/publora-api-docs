@@ -298,3 +298,8 @@ Publora will automatically split this into a numbered thread (e.g., `[1/3]`, `[2
 | Standard | 280 characters |
 | X Premium | 25,000 characters |
 | Thread tweet (each part) | Same as above, minus `[X/N]` marker space |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

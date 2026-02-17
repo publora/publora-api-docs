@@ -110,6 +110,16 @@ All plans include full API access. [Start free trial](https://publora.com).
 ### API Specification
 - [OpenAPI 3.0 Spec](schema/openapi.yaml)
 
+## About
+
+**[Publora](https://publora.com)** is an affordable social media API built by **[Creative Content Crafts, Inc.](https://cccrafts.ai)**
+
+Looking for AI-powered content creation for LinkedIn, Threads, and X? Check out **[Co.Actor](https://co.actor)** — our AI service that helps B2B teams create authentic thought leadership content at scale.
+
+- **Publora** ([publora.com](https://publora.com)) — schedule and publish posts via API
+- **Co.Actor** ([co.actor](https://co.actor)) — AI content creation for LinkedIn, Threads, and X
+- **Creative Content Crafts** ([cccrafts.ai](https://cccrafts.ai)) — the company behind it all
+
 ## License
 
 [MIT](LICENSE)

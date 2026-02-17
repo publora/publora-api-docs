@@ -337,3 +337,8 @@ console.log(response.data);
 | Caption | 2,200 characters |
 | Hashtags | 30 per post |
 | Carousel items | 2-10 media items |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

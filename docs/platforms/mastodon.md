@@ -285,3 +285,8 @@ console.log(response.data);
 | Post body | 500 characters |
 | Images | Up to 4 per post |
 | Media description (alt text) | 1,500 characters |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

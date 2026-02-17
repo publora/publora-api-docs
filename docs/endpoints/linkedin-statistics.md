@@ -249,3 +249,8 @@ print(f"Posts analyzed: {len(stats['posts'])}")
 | 400 | `"Invalid queryType"` | queryType not one of the 5 valid types |
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

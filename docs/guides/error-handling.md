@@ -713,3 +713,8 @@ if result['failed']:
 | Post group shows `partially_published` | Some platforms failed while others succeeded | Inspect individual platform post statuses for error details |
 | TikTok post fails with FPS error | Video frame rate below TikTok's minimum requirement | Re-encode the video with at least 24 FPS before uploading |
 | `500` intermittent errors | Temporary server issues | Implement retry logic with exponential backoff |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

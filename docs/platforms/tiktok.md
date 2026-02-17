@@ -329,3 +329,8 @@ console.log(response.data);
 |---------|-------|
 | Video caption | 2,200 characters |
 | Hashtags | Included in caption character count |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

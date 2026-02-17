@@ -178,3 +178,8 @@ curl -X DELETE "https://api.publora.com/api/v1/linkedin-reactions?postedId=urn:l
 | 400 | `"Invalid reactionType"` | Not one of the 6 valid types |
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

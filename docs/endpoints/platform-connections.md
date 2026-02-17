@@ -154,3 +154,8 @@ console.log(platforms);
 Social accounts are connected via the Publora dashboard (OAuth flow). The API does not support connecting new accounts programmatically -- use the dashboard at [app.publora.com](https://app.publora.com).
 
 For workspace users, generate a connection URL via the [Workspace API](../guides/workspace.md).
+
+
+---
+
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*
