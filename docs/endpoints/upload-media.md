@@ -45,9 +45,9 @@ POST https://api.publora.com/api/v1/get-upload-url
 ## Upload Flow
 
 ```
-1. POST /api/v1/get-upload-url    → Get pre-signed URL
-2. PUT {uploadUrl}                 → Upload file directly to S3
-3. POST /api/v1/create-post       → Create post (media auto-attached via postGroupId)
+1. POST /api/v1/create-post       → Create post, get postGroupId
+2. POST /api/v1/get-upload-url    → Get pre-signed URL (requires postGroupId)
+3. PUT {uploadUrl}                 → Upload file to S3 (auto-attached via postGroupId)
 ```
 
 ## Supported Formats
