@@ -2,7 +2,7 @@
 
 **Affordable REST API for scheduling and publishing social media posts across 10 platforms.**
 
-Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. Starting at **$9/month** with full API access. 14-day free trial, no credit card needed.
+Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. Starting at **$5.40/month** (yearly) or $9/month with full API access. 14-day free trial, no credit card needed.
 
 **Website:** [publora.com](https://publora.com) | **Dashboard:** [app.publora.com](https://app.publora.com) | **Email:** sev@publora.com
 
@@ -24,7 +24,31 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   }'
 ```
 
-**3 API calls. 10 platforms. $9/month.**
+**3 API calls. 10 platforms. From $5.40/month.**
+
+## Why Publora?
+
+### Price Comparison
+
+| Feature | Publora | Ayrshare | Publer | Sprout Social |
+|---------|---------|----------|--------|---------------|
+| **Starting price** | **$5.40/mo** | $49/mo | $12/mo | $249/mo |
+| Social accounts | 10 (Starter) | 1 (Basic) | 5 (Free) | 5 (Standard) |
+| Platforms | **10** | 13 | 9 | 6 |
+| API access | All plans | Paid only | Paid only | Enterprise |
+| Bluesky support | Yes | Yes | No | No |
+| Threads support | Yes | Yes | Yes | No |
+| Mastodon support | Yes | No | Yes | No |
+
+**Publora is 5-50x cheaper than alternatives with comparable features.**
+
+### Why Developers Choose Publora
+
+1. **Affordable** — Starting at $5.40/month with full API access. No enterprise tier required.
+2. **10 Platforms** — X, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram.
+3. **API-First** — Clean REST API designed for developers, not a bloated dashboard.
+4. **AI-Ready** — Docs indexed on [Context7](https://context7.com) so AI coding assistants already know our API.
+5. **Modern Platforms** — First-class support for Bluesky, Threads, and Mastodon that competitors lack.
 
 ## API Endpoints
 
@@ -75,9 +99,9 @@ See [Authentication Guide](docs/authentication.md) for details.
 
 | Plan | Monthly | Yearly | Social Accounts | Video Upload |
 |------|---------|--------|-----------------|--------------|
-| Starter | $12/mo | $9/mo | 10 | 100 MB |
-| Pro | $19/mo | $15/mo | 30 | 250 MB |
-| Premium | $35/mo | $25/mo | Unlimited | Custom |
+| Starter | $9/mo | $5.40/mo | 10 | 100 MB |
+| Pro | $15/mo | $12/mo | 30 | 250 MB |
+| Premium | $25/mo | $20/mo | 100 | Custom |
 
 All plans include full API access. [Start free trial](https://publora.com).
 
@@ -102,10 +126,19 @@ All plans include full API access. [Start free trial](https://publora.com).
 
 ### Usage Guides
 - [Scheduling Posts](docs/guides/scheduling.md) — timing, drafts, batch scheduling
+- [Bulk Scheduling](docs/guides/bulk-scheduling.md) — CSV import, weekly content batches
 - [Media Uploads](docs/guides/media-uploads.md) — images, videos, carousels
 - [Cross-Platform Posting](docs/guides/cross-platform.md) — one call, many platforms
+- [LinkedIn Analytics](docs/guides/analytics.md) — post performance, account metrics
 - [Error Handling](docs/guides/error-handling.md) — status codes, retries
 - [Workspace / B2B API](docs/guides/workspace.md) — managed users, white-label
+
+### Code Examples
+- [JavaScript Examples](docs/examples/javascript/) — fetch, axios, Node.js
+- [Python Examples](docs/examples/python/) — requests, async workflows
+- [cURL Examples](docs/examples/curl/) — command-line reference
+- [Zapier Integration](docs/examples/no-code/zapier-integration.md) — no-code automation
+- [Make Integration](docs/examples/no-code/make-integration.md) — visual workflows
 
 ### API Specification
 - [OpenAPI 3.0 Spec](schema/openapi.yaml)
