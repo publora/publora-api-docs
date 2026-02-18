@@ -242,8 +242,12 @@ for (const image of images) {
 |--------|-------|-------|
 | 400 | `"fileName is required"` | Missing fileName |
 | 400 | `"contentType is required"` | Missing contentType |
+| 400 | `"type is required"` | Missing type parameter |
+| 400 | `"postGroupId is required"` | Missing postGroupId |
 | 400 | `"Invalid content type"` | Not an image/* or video/* MIME type |
+| 400 | `"Invalid type"` | type must be "image" or "video" |
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
+| 500 | `"Server error"` | Internal server error during URL generation |
 
 ## Platform Media Limits
 

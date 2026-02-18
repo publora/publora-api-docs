@@ -29,7 +29,6 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
   "postGroupId": "507f1f77bcf86cd799439011",
   "posts": [
     {
-      "_id": "507f1f77bcf86cd799439012",
       "platform": "twitter",
       "platformId": "123456789",
       "content": "Excited to share our new product launch! 🚀",
@@ -37,7 +36,6 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "postedId": "1234567890123456789"
     },
     {
-      "_id": "507f1f77bcf86cd799439013",
       "platform": "linkedin",
       "platformId": "ABC123",
       "content": "Excited to share our new product launch! 🚀",
@@ -57,7 +55,7 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 | `pending` | Being processed by scheduler |
 | `processing` | Currently publishing to platform |
 | `published` | Successfully posted |
-| `failed` | Publishing failed (check `errorMessage`) |
+| `failed` | Publishing failed |
 
 ## Examples
 

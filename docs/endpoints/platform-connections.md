@@ -26,6 +26,7 @@ GET https://api.publora.com/api/v1/platform-connections
       "username": "@yourhandle",
       "displayName": "Your Name",
       "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
+      "profileUrl": "https://twitter.com/yourhandle",
       "accessTokenExpiresAt": null
     },
     {
@@ -33,6 +34,7 @@ GET https://api.publora.com/api/v1/platform-connections
       "username": "John Doe",
       "displayName": "John Doe",
       "profileImageUrl": "https://media.licdn.com/...",
+      "profileUrl": "https://linkedin.com/in/johndoe",
       "accessTokenExpiresAt": "2026-05-15T10:30:00.000Z"
     },
     {
@@ -40,6 +42,7 @@ GET https://api.publora.com/api/v1/platform-connections
       "username": "yourinstagram",
       "displayName": "Your Brand",
       "profileImageUrl": "https://...",
+      "profileUrl": null,
       "accessTokenExpiresAt": "2026-04-20T08:00:00.000Z"
     }
   ]
@@ -54,6 +57,7 @@ GET https://api.publora.com/api/v1/platform-connections
 | `username` | string | Platform username or handle |
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
+| `profileUrl` | string/null | URL to the user's profile on the platform. Can be null if not available for the platform. |
 | `accessTokenExpiresAt` | string/null | Token expiration (null = no expiration) |
 
 ## Platform ID Format
@@ -148,6 +152,7 @@ console.log(platforms);
 | Status | Error | Cause |
 |--------|-------|-------|
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
+| 500 | `"Failed to fetch platform connections"` | Server error while fetching connections |
 
 ## Connecting Accounts
 

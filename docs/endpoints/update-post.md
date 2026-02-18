@@ -1,6 +1,6 @@
 # Update Post
 
-Modify the scheduling time or status of an existing post.
+Modify the scheduling time or status of an existing post. Updating a post group also updates all associated platform-specific posts.
 
 ## Endpoint
 
@@ -24,10 +24,12 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 
 ## Request Body
 
+At least one of `status` or `scheduledTime` must be provided.
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `status` | string | No | `"draft"` or `"scheduled"` |
-| `scheduledTime` | string | No | New ISO 8601 UTC datetime |
+| `scheduledTime` | string | No | New ISO 8601 UTC datetime (must be in the future) |
 
 ## Response
 
@@ -42,6 +44,8 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
   }
 }
 ```
+
+**Note:** The `scheduledTime` field is conditionally included in the response only if the post has a scheduled time set.
 
 ## Examples
 
@@ -120,11 +124,14 @@ response = requests.put(
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"Status must be draft or scheduled"` | Invalid status value |
-| 400 | `"Cannot update published or failed posts"` | Post already published/failed |
-| 400 | `"Invalid scheduled time"` | Time is in the past or malformed |
+| 400 | `"Either status or scheduledTime must be provided"` | Neither field was provided in the request |
+| 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
+| 400 | `"Invalid scheduled time format"` | Malformed datetime string |
+| 400 | `"Scheduled time cannot be in the past"` | Provided time is before current time |
+| 400 | `"Cannot update post: post is currently in {status} status"` | Post is in a status that cannot be updated (e.g., published, failed, pending, processing) |
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 404 | `"Post group not found"` | Invalid ID or post belongs to another user |
+| 500 | `"Failed to update post"` | Server error during update operation |
 
 
 ---

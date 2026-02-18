@@ -56,6 +56,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 |--------|----------|-------------|------|
 | `GET` | `/platform-connections` | List connected social accounts | [View](docs/endpoints/platform-connections.md) |
 | `POST` | `/create-post` | Create and schedule a post | [View](docs/endpoints/create-post.md) |
+| `GET` | `/list-posts` | List all posts with pagination | [View](docs/endpoints/list-posts.md) |
 | `GET` | `/get-post/:postGroupId` | Get post details and status | [View](docs/endpoints/get-post.md) |
 | `PUT` | `/update-post/:postGroupId` | Update post timing or status | [View](docs/endpoints/update-post.md) |
 | `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](docs/endpoints/delete-post.md) |
@@ -113,9 +114,10 @@ All plans include full API access. [Start free trial](https://publora.com).
 
 ### Endpoint Reference
 - [Create Post](docs/endpoints/create-post.md) — schedule posts across platforms
+- [List Posts](docs/endpoints/list-posts.md) — fetch all posts with pagination and filters
 - [Get Post](docs/endpoints/get-post.md) — check post status and details
 - [Update Post](docs/endpoints/update-post.md) — reschedule or change status
-- [Delete Post](docs/endpoints/delete-post.md) — remove posts and media
+- [Delete Post](docs/endpoints/delete-post.md) — remove posts across all platforms
 - [Platform Connections](docs/endpoints/platform-connections.md) — list connected accounts
 - [Upload Media](docs/endpoints/upload-media.md) — images and video uploads
 - [LinkedIn Statistics](docs/endpoints/linkedin-statistics.md) — post and account analytics
@@ -127,6 +129,7 @@ All plans include full API access. [Start free trial](https://publora.com).
 ### Usage Guides
 - [Scheduling Posts](docs/guides/scheduling.md) — timing, drafts, batch scheduling
 - [Bulk Scheduling](docs/guides/bulk-scheduling.md) — CSV import, weekly content batches
+- [Rate Limits & Optimal Times](docs/guides/rate-limits.md) — platform limits, peak engagement, queue scheduling
 - [Media Uploads](docs/guides/media-uploads.md) — images, videos, carousels
 - [Cross-Platform Posting](docs/guides/cross-platform.md) — one call, many platforms
 - [LinkedIn Analytics](docs/guides/analytics.md) — post performance, account metrics

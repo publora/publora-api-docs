@@ -181,6 +181,7 @@ response = requests.post(
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 403 | `"Subscription required"` | No active subscription |
 | 403 | `"Free plan limit reached"` | Free tier: max 5 pending posts |
+| 500 | `"Internal server error"` | Unexpected server error |
 
 ## Post Statuses
 

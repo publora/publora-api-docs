@@ -248,6 +248,8 @@ print(f"Total engagement: {stats['metrics']['REACTION'] + stats['metrics']['COMM
 
 ## Errors
 
+### Post Statistics Errors
+
 | Status | Error | Cause |
 |--------|-------|-------|
 | 400 | `"postedId is required"` | Missing postedId |
@@ -255,6 +257,28 @@ print(f"Total engagement: {stats['metrics']['REACTION'] + stats['metrics']['COMM
 | 400 | `"Invalid queryType"` | queryType not one of the 5 valid types |
 | 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+
+### Account Statistics Errors
+
+| Status | Error | Cause |
+|--------|-------|-------|
+| 400 | `"platformId is required"` | Missing platformId |
+| 400 | `"Invalid queryType"` | queryType not one of the 5 valid types |
+| 400 | `"Invalid aggregation"` | aggregation not TOTAL or DAILY |
+| 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
+| 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+| 500 | `"Internal server error"` | Server error while fetching statistics |
+
+### Reactions Errors
+
+| Status | Error | Cause |
+|--------|-------|-------|
+| 400 | `"postedId is required"` | Missing postedId |
+| 400 | `"platformId is required"` | Missing platformId |
+| 400 | `"Invalid reactionType"` | reactionType not one of the 6 valid types |
+| 401 | `"Invalid API key"` | Bad or missing `x-publora-key` |
+| 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+| 500 | `"Internal server error"` | Server error while adding/removing reaction |
 
 
 ---

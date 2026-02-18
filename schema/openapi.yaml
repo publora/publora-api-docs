@@ -44,6 +44,12 @@ components:
           type: string
           format: uri
           example: "https://pbs.twimg.com/profile_images/..."
+        profileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "URL to the user's profile on the platform. Can be null if not available for the platform."
+          example: "https://twitter.com/yourhandle"
         accessTokenExpiresAt:
           type: string
           format: date-time
@@ -53,9 +59,6 @@ components:
     Post:
       type: object
       properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439012"
         platform:
           type: string
           enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram]
@@ -72,7 +75,7 @@ components:
           example: "published"
         postedId:
           type: string
-          description: "Platform-specific post ID after publishing"
+          description: "Platform-specific post ID (only present if published)"
           example: "1234567890123456789"
 
     Error:
@@ -116,6 +119,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to fetch platform connections"
 
   /create-post:
     post:
@@ -198,6 +209,12 @@ paths:
                   value: { "error": "Subscription required" }
                 freeLimit:
                   value: { "error": "Free plan limit reached" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /get-post/{postGroupId}:
     get:
@@ -245,7 +262,9 @@ paths:
       summary: Update post timing or status
       description: |
         Modify the scheduled time or status of an existing draft or scheduled post.
-        Cannot update published or failed posts.
+        Cannot update posts that are published, failed, pending, or processing.
+        At least one of status or scheduledTime must be provided.
+        Updating a post group also updates all associated platform-specific posts.
       operationId: updatePost
       parameters:
         - name: postGroupId
@@ -264,6 +283,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: "At least one of status or scheduledTime must be provided"
               properties:
                 status:
                   type: string
@@ -272,7 +292,7 @@ paths:
                 scheduledTime:
                   type: string
                   format: date-time
-                  description: "New ISO 8601 UTC scheduled time"
+                  description: "New ISO 8601 UTC scheduled time (must be in the future)"
       responses:
         "200":
           description: Post updated
@@ -296,8 +316,26 @@ paths:
                       scheduledTime:
                         type: string
                         format: date-time
+                        description: "Only included if post has a scheduled time"
         "400":
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingFields:
+                  value: { "error": "Either status or scheduledTime must be provided" }
+                invalidStatus:
+                  value: { "error": "Status must be either 'draft' or 'scheduled'" }
+                invalidTimeFormat:
+                  value: { "error": "Invalid scheduled time format" }
+                pastTime:
+                  value: { "error": "Scheduled time cannot be in the past" }
+                cannotUpdate:
+                  value: { "error": "Cannot update post: post is currently in published status" }
+        "401":
+          description: Invalid API key
           content:
             application/json:
               schema:
@@ -308,11 +346,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group not found"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to update post"
 
   /delete-post/{postGroupId}:
     delete:
       summary: Delete a scheduled post
-      description: Delete a post group, all platform posts, and associated media from storage.
+      description: |
+        Delete a post group and all associated data. This operation removes:
+        - The post group record
+        - All platform-specific posts (Twitter, LinkedIn, Instagram, etc.)
+        - All media file records from the database
+        - All media files from S3 storage
+
+        The database deletion is atomic (uses MongoDB transaction). S3 deletion
+        failures are logged but do not fail the request.
       operationId: deletePost
       parameters:
         - name: postGroupId
@@ -337,11 +393,21 @@ paths:
                     type: boolean
                     example: true
         "404":
-          description: Post not found
+          description: Post group not found (ID doesn't exist or belongs to another user)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group not found"
+        "500":
+          description: Server error during deletion (transaction rolled back)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to delete post group"
 
   /get-upload-url:
     post:
@@ -402,11 +468,39 @@ paths:
                     type: string
                     description: "Media record ID"
         "400":
-          description: Invalid request
+          description: Missing required fields
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                missingFileName:
+                  value: { "error": "fileName is required" }
+                missingContentType:
+                  value: { "error": "contentType is required" }
+                missingType:
+                  value: { "error": "type is required" }
+                missingPostGroupId:
+                  value: { "error": "postGroupId is required" }
+                invalidContentType:
+                  value: { "error": "Invalid content type" }
+                invalidType:
+                  value: { "error": "Invalid type" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                serverError:
+                  value: { "error": "Server error" }
 
   /linkedin-post-statistics:
     post:
@@ -482,6 +576,38 @@ paths:
                             type: integer
                       cached:
                         type: boolean
+        "400":
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPostedId:
+                  value:
+                    error: "postedId is required"
+                missingPlatformId:
+                  value:
+                    error: "platformId is required"
+                invalidQueryType:
+                  value:
+                    error: "Invalid queryType. Must be one of: IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT"
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "LinkedIn connection not found"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to fetch post statistics"
 
   /linkedin-account-statistics:
     post:
@@ -499,6 +625,47 @@ paths:
                 platformId:
                   type: string
                   example: "linkedin-Tz9W5i6ZYG"
+                queryType:
+                  type: string
+                  enum: [IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT]
+                  description: "Single metric to fetch"
+                queryTypes:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                        enum: [IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT]
+                    - type: string
+                      enum: ["ALL"]
+                  description: "Multiple metrics or ALL"
+                  example: "ALL"
+                aggregation:
+                  type: string
+                  enum: [TOTAL, DAILY]
+                  default: TOTAL
+                  description: "Aggregation type: TOTAL (default) or DAILY"
+                dateRange:
+                  type: object
+                  description: "Optional date range filter"
+                  properties:
+                    start:
+                      type: object
+                      properties:
+                        year:
+                          type: integer
+                        month:
+                          type: integer
+                        day:
+                          type: integer
+                    end:
+                      type: object
+                      properties:
+                        year:
+                          type: integer
+                        month:
+                          type: integer
+                        day:
+                          type: integer
       responses:
         "200":
           description: Account statistics
@@ -509,28 +676,307 @@ paths:
                 properties:
                   success:
                     type: boolean
-                  aggregatedMetrics:
+                  metrics:
                     type: object
-                    properties:
-                      totalImpressions:
-                        type: integer
-                      totalMembersReached:
-                        type: integer
-                      totalReshares:
-                        type: integer
-                      totalReactions:
-                        type: integer
-                      totalComments:
-                        type: integer
-                  posts:
-                    type: array
-                    items:
+                    description: "Flexible object with dynamic metric keys (e.g., IMPRESSION, REACTION, etc.)"
+                    additionalProperties:
+                      type: integer
+                  aggregation:
+                    type: string
+                    enum: [TOTAL, DAILY]
+                  cached:
+                    type: boolean
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPlatformId:
+                  value: { "error": "platformId is required" }
+                invalidQueryType:
+                  value: { "error": "Invalid queryType" }
+                invalidAggregation:
+                  value: { "error": "Invalid aggregation" }
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /linkedin-profile-summary:
+    post:
+      summary: Get LinkedIn profile summary
+      description: |
+        Retrieve a summary of your LinkedIn profile analytics including follower counts
+        and aggregated post engagement metrics. Optionally filter by date range to track
+        follower growth over a specific period.
+      operationId: getLinkedInProfileSummary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platformId]
+              properties:
+                platformId:
+                  type: string
+                  description: "LinkedIn connection ID (format: linkedin-{id})"
+                  example: "linkedin-Tz9W5i6ZYG"
+                dateRange:
+                  type: object
+                  description: "Optional date range for filtering metrics and calculating follower growth"
+                  properties:
+                    start:
                       type: object
                       properties:
-                        postedId:
-                          type: string
-                        metrics:
+                        year:
+                          type: integer
+                          example: 2026
+                        month:
+                          type: integer
+                          example: 1
+                        day:
+                          type: integer
+                          example: 1
+                    end:
+                      type: object
+                      properties:
+                        year:
+                          type: integer
+                          example: 2026
+                        month:
+                          type: integer
+                          example: 1
+                        day:
+                          type: integer
+                          example: 31
+      responses:
+        "200":
+          description: Profile summary retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  partialData:
+                    type: boolean
+                    description: "True if some data failed to fetch but partial results are available"
+                  profile:
+                    type: object
+                    properties:
+                      followers:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            description: "Total follower count"
+                            example: 5000
+                          periodGrowth:
+                            type: integer
+                            description: "Follower growth during date range (only present when dateRange is provided)"
+                            example: 150
+                      posts:
+                        type: object
+                        properties:
+                          totalImpressions:
+                            type: integer
+                            example: 25000
+                          totalReactions:
+                            type: integer
+                            example: 500
+                          totalComments:
+                            type: integer
+                            example: 75
+                          totalReshares:
+                            type: integer
+                            example: 30
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    description: "List of errors when partialData is true"
+                    example: ["Failed to fetch followers"]
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPlatformId:
+                  value: { "error": "platformId is required" }
+                invalidDateRange:
+                  value: { "error": "Invalid dateRange format" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "LinkedIn connection not found"
+        "500":
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: All requests to LinkedIn failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "All requests failed"
+
+  /linkedin-followers:
+    post:
+      summary: Get LinkedIn follower statistics
+      description: |
+        Retrieve follower statistics for your LinkedIn account.
+        Use period="lifetime" (default) for total follower count, or period="daily" with a dateRange for daily growth data.
+        Results are cached for improved performance.
+      operationId: getLinkedInFollowers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platformId]
+              properties:
+                platformId:
+                  type: string
+                  description: "LinkedIn connection ID"
+                  example: "linkedin-Tz9W5i6ZYG"
+                period:
+                  type: string
+                  enum: [lifetime, daily]
+                  default: lifetime
+                  description: "Type of statistics to retrieve"
+                  example: "lifetime"
+                dateRange:
+                  type: object
+                  description: "Required when period is 'daily'"
+                  properties:
+                    start:
+                      type: object
+                      properties:
+                        year:
+                          type: integer
+                          example: 2024
+                        month:
+                          type: integer
+                          example: 1
+                        day:
+                          type: integer
+                          example: 1
+                    end:
+                      type: object
+                      properties:
+                        year:
+                          type: integer
+                          example: 2024
+                        month:
+                          type: integer
+                          example: 1
+                        day:
+                          type: integer
+                          example: 31
+      responses:
+        "200":
+          description: Follower statistics retrieved
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: Lifetime response
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      followersCount:
+                        type: integer
+                        example: 1234
+                      cached:
+                        type: boolean
+                  - type: object
+                    description: Daily response
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      data:
+                        type: array
+                        items:
                           type: object
+                          properties:
+                            date:
+                              type: string
+                              example: "2024-01-15"
+                            count:
+                              type: integer
+                              example: 10
+                      totalGrowth:
+                        type: integer
+                        example: 25
+                      cached:
+                        type: boolean
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPlatformId:
+                  value: { "error": "platformId is required" }
+                invalidPeriod:
+                  value: { "error": "Invalid period" }
+                missingDateRange:
+                  value: { "error": "dateRange is required for daily period" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to fetch statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                fetchFailed:
+                  value: { "error": "Failed to fetch followers statistics" }
 
   /linkedin-reactions:
     post:
@@ -567,27 +1013,78 @@ paths:
                   success:
                     type: boolean
                     example: true
+                  reaction:
+                    type: object
+                    description: "Reaction details"
+                    properties:
+                      reactionType:
+                        type: string
+                        enum: [LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT]
+                      actor:
+                        type: string
+                        description: "LinkedIn member URN"
+                      object:
+                        type: string
+                        description: "LinkedIn post URN"
         "400":
           description: Invalid request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                missingPostedId:
+                  value: { "error": "postedId is required" }
+                missingPlatformId:
+                  value: { "error": "platformId is required" }
+                invalidReactionType:
+                  value: { "error": "Invalid reactionType" }
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     delete:
       summary: Remove a reaction from a LinkedIn post
-      description: Remove your reaction from a LinkedIn post.
+      description: |
+        Remove your reaction from a LinkedIn post.
+        Parameters can be provided either as query parameters OR in the request body.
       operationId: removeLinkedInReaction
       parameters:
         - name: postedId
           in: query
+          description: "LinkedIn URN (can also be provided in request body)"
           schema:
             type: string
           example: "urn:li:share:7123456789012345678"
         - name: platformId
           in: query
+          description: "LinkedIn connection ID (can also be provided in request body)"
           schema:
             type: string
           example: "linkedin-Tz9W5i6ZYG"
+      requestBody:
+        required: false
+        description: "Alternative to query parameters - provide postedId and platformId in body"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                postedId:
+                  type: string
+                  description: "LinkedIn URN (urn:li:share:*, urn:li:ugcPost:*, urn:li:activity:*)"
+                  example: "urn:li:share:7123456789012345678"
+                platformId:
+                  type: string
+                  example: "linkedin-Tz9W5i6ZYG"
       responses:
         "200":
           description: Reaction removed
@@ -599,3 +1096,208 @@ paths:
                   success:
                     type: boolean
                     example: true
+                  reaction:
+                    type: object
+                    description: "Details of the removed reaction"
+                    properties:
+                      reactionType:
+                        type: string
+                      actor:
+                        type: string
+                      object:
+                        type: string
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPostedId:
+                  value: { "error": "postedId is required" }
+                missingPlatformId:
+                  value: { "error": "platformId is required" }
+        "404":
+          description: LinkedIn connection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /list-posts:
+    get:
+      summary: List posts with pagination and filters
+      description: |
+        Retrieve a paginated list of all your scheduled, draft, published, and failed posts.
+
+        **Pagination behavior:** The `page` and `limit` parameters are silently clamped to valid ranges
+        rather than returning errors. `page` is clamped to a minimum of 1, and `limit` is clamped to 1-100.
+
+        **Platform filtering:** The `platform` filter uses case-insensitive prefix matching.
+      operationId: listPosts
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          description: "Page number (1-indexed). Values < 1 are silently clamped to 1."
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: "Items per page. Values are silently clamped to range 1-100."
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          required: false
+          description: Filter by post status
+          schema:
+            type: string
+            enum: [draft, scheduled, published, failed, partially_published]
+        - name: platform
+          in: query
+          required: false
+          description: "Filter by platform (case-insensitive prefix matching)"
+          schema:
+            type: string
+            enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram]
+        - name: sortBy
+          in: query
+          required: false
+          description: Field to sort by
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, scheduledTime]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          required: false
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: fromDate
+          in: query
+          required: false
+          description: Filter posts scheduled after this ISO 8601 date
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          required: false
+          description: Filter posts scheduled before this ISO 8601 date
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Paginated list of posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postGroupId:
+                          type: string
+                          example: "507f1f77bcf86cd799439011"
+                        content:
+                          type: string
+                          example: "Excited to share our new product launch!"
+                        status:
+                          type: string
+                          enum: [draft, scheduled, published, failed, partially_published]
+                        scheduledTime:
+                          type: string
+                          format: date-time
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+                        platforms:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              platformId:
+                                type: string
+                              platform:
+                                type: string
+                              status:
+                                type: string
+                        mediaUrls:
+                          type: array
+                          items:
+                            type: string
+                            format: uri
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      totalItems:
+                        type: integer
+                        example: 47
+                      totalPages:
+                        type: integer
+                        example: 3
+                      hasNextPage:
+                        type: boolean
+                        example: true
+                      hasPrevPage:
+                        type: boolean
+                        example: false
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                invalidStatus:
+                  value: { "error": "Invalid status. Must be one of: draft, scheduled, published, failed, partially_published" }
+                invalidSortBy:
+                  value: { "error": "Invalid sortBy. Must be one of: createdAt, updatedAt, scheduledTime" }
+                invalidFromDate:
+                  value: { "error": "Invalid fromDate format" }
+                invalidToDate:
+                  value: { "error": "Invalid toDate format" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
