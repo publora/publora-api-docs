@@ -10,7 +10,7 @@ info:
     14-day free trial, no credit card needed.
   version: "1.0.0"
   contact:
-    email: sev@publora.com
+    email: serge@publora.com
     url: https://publora.com
 servers:
   - url: https://api.publora.com/api/v1
