@@ -2,7 +2,7 @@
   "url": "https://context7.com/publora/publora-api-docs",
   "public_key": "pk_6HnZbIU4C2bvFHRoPBD7c",
   "projectTitle": "Publora API Documentation",
-  "description": "Complete API and MCP documentation for Publora social media scheduling platform supporting Twitter LinkedIn Instagram Threads TikTok YouTube Facebook Bluesky Mastodon Telegram with REST API endpoints MCP server integration analytics workspace management",
+  "description": "Complete API and MCP documentation for Publora social media scheduling platform supporting Twitter LinkedIn Instagram Threads TikTok YouTube Facebook Bluesky Mastodon Telegram with REST API endpoints MCP server integration OpenClaw mcporter CLI analytics workspace management autonomous AI agents",
   "folders": ["docs"],
   "excludeFolders": ["node_modules", ".git"],
   "excludeFiles": ["package-lock.json"],
@@ -13,6 +13,7 @@
     "16 MCP tools available for posts, connections, analytics, and workspace",
     "Supports 10 platforms: Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram",
     "MCP config type must be 'http' not 'url'",
+    "OpenClaw integration via mcporter CLI for autonomous AI agents",
     "No coding required for MCP - users describe tasks in natural language",
     "Pricing starts at $5.40/month with full API and MCP access"
   ]

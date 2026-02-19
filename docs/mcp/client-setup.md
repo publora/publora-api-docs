@@ -205,6 +205,56 @@ Create or edit `.windsurf/mcp.json`:
 
 ---
 
+## OpenClaw / mcporter CLI
+
+[mcporter](https://github.com/openclaw/mcporter) is a CLI tool for connecting MCP servers to OpenClaw and other agents.
+
+### List Available Tools
+
+```bash
+mcporter list --http-url https://mcp.publora.com --name publora
+```
+
+### With Authentication
+
+```bash
+mcporter list \
+  --http-url https://mcp.publora.com \
+  --name publora \
+  --header "Authorization: Bearer sk_YOUR_API_KEY"
+```
+
+### Persist Configuration
+
+```bash
+mcporter list \
+  --http-url https://mcp.publora.com \
+  --name publora \
+  --header "Authorization: Bearer sk_YOUR_API_KEY" \
+  --persist config/mcporter.json
+```
+
+### Configuration File
+
+Create `config/mcporter.json`:
+
+```json
+{
+  "servers": {
+    "publora": {
+      "url": "https://mcp.publora.com",
+      "headers": {
+        "Authorization": "Bearer sk_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+See [OpenClaw Integration Guide](./openclaw.md) for complete autonomous agent examples.
+
+---
+
 ## Multiple MCP Servers
 
 You can use Publora alongside other MCP servers. They don't conflict — tools are merged.

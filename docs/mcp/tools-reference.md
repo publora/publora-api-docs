@@ -128,20 +128,22 @@ async def schedule_post():
 asyncio.run(schedule_post())
 ```
 
-**Platform character limits:**
+**Platform limits:**
 
-| Platform | Character Limit |
-|----------|-----------------|
-| Twitter/X | 280 |
-| LinkedIn | 3,000 |
-| Instagram | 2,200 |
-| Threads | 500 |
-| Bluesky | 300 |
-| Mastodon | 500 |
-| Telegram | 4,096 |
-| Facebook | 63,206 |
-| TikTok | 2,200 |
-| YouTube | 5,000 |
+| Platform | Characters | Images | Video | Special Features |
+|----------|------------|--------|-------|------------------|
+| LinkedIn | 3,000 | 20 | 200MB | Documents, carousels |
+| X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
+| Instagram | 2,200 | 10 | 90s | Reels supported |
+| Threads | 500 | 10 | 5min | Auto-threading |
+| TikTok | 2,200 | 35 carousel | 10min | Video-focused |
+| YouTube | 5,000 desc | N/A | 12h | Shorts support |
+| Facebook | 63,206 | 10 | 240min | Page posts, Reels |
+| Bluesky | 300 | 4 | N/A | Auto-facet detection |
+| Mastodon | 500* | 4 | 40MB | Instance-variable |
+| Telegram | 4,096 | Unlimited | 2GB | Markdown/HTML support |
+
+*Varies by instance
 
 ---
 
