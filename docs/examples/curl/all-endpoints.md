@@ -257,7 +257,8 @@ curl -X POST https://api.publora.com/api/v1/get-upload-url \
   -d '{
     "fileName": "screenshot.png",
     "contentType": "image/png",
-    "postGroupId": "pg_abc123xyz"
+    "postGroupId": "pg_abc123xyz",
+    "type": "image"
   }'
 ```
 
@@ -340,7 +341,7 @@ curl -X POST https://api.publora.com/api/v1/linkedin-reactions \
   }'
 ```
 
-Reaction types: `LIKE`, `CELEBRATE`, `SUPPORT`, `LOVE`, `INSIGHTFUL`, `FUNNY`
+Reaction types: `LIKE`, `PRAISE`, `EMPATHY`, `INTEREST`, `APPRECIATION`, `ENTERTAINMENT`
 
 ### Remove Reaction
 

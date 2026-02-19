@@ -18,6 +18,8 @@ List posts with optional filters for status, platform, and date range.
 | `toDate` | string | No | End date (ISO 8601): `2026-02-28T23:59:59Z` |
 | `page` | number | No | Page number (default: 1) |
 | `limit` | number | No | Results per page (default: 20, max: 100) |
+| `sortBy` | string | No | Sort field: `createdAt`, `updatedAt`, `scheduledTime` (default: createdAt) |
+| `sortOrder` | string | No | Sort direction: `asc` or `desc` (default: desc) |
 
 **Example prompts:**
 
@@ -136,12 +138,12 @@ asyncio.run(schedule_post())
 | X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
 | Instagram | 2,200 | 10 | 90s | Reels supported |
 | Threads | 500 | 10 | 5min | Auto-threading |
-| TikTok | 2,200 | 35 carousel | 10min | Video-focused |
+| TikTok | 2,200 | N/A | 10min | Video-only platform |
 | YouTube | 5,000 desc | N/A | 12h | Shorts support |
 | Facebook | 63,206 | 10 | 240min | Page posts, Reels |
 | Bluesky | 300 | 4 | N/A | Auto-facet detection |
 | Mastodon | 500* | 4 | 40MB | Instance-variable |
-| Telegram | 4,096 | Unlimited | 2GB | Markdown/HTML support |
+| Telegram | 4,096 (1,024 captions) | Unlimited | 2GB | Markdown/HTML support |
 
 *Varies by instance
 
@@ -471,7 +473,7 @@ Get follower count or growth over time.
 |-----------|------|----------|-------------|
 | `platformId` | string | Yes | Platform connection ID |
 | `period` | string | No | `lifetime` or `daily` |
-| `dateRange` | object | No | For daily: `{start: "2026-02-01", end: "2026-02-28"}` |
+| `dateRange` | object | No | For daily period. Structure: `{start: {year, month, day}, end: {year, month, day}}` |
 
 **Example prompts:**
 
@@ -504,8 +506,8 @@ async def get_linkedin_followers():
                 "platformId": "linkedin-abc123",
                 "period": "daily",
                 "dateRange": {
-                    "start": "2026-02-01",
-                    "end": "2026-02-28"
+                    "start": {"year": 2026, "month": 2, "day": 1},
+                    "end": {"year": 2026, "month": 2, "day": 28}
                 }
             })
             print(result.content[0].text)
@@ -522,7 +524,7 @@ Get a combined profile overview with followers and stats.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `platformId` | string | Yes | Platform connection ID |
-| `dateRange` | object | No | Date range for stats |
+| `dateRange` | object | No | Date range for stats. Structure: `{start: {year, month, day}, end: {year, month, day}}` |
 
 **Example prompts:**
 

@@ -94,70 +94,56 @@ Complete Python implementation for autonomous social media management:
 ```python
 import asyncio
 from datetime import datetime, timedelta
+from contextlib import asynccontextmanager
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
-class PubloraAgent:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.session = None
+@asynccontextmanager
+async def publora_session(api_key: str):
+    """Context manager for Publora MCP connection."""
+    headers = {"Authorization": f"Bearer {api_key}"}
+    async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
 
-    async def connect(self):
-        """Initialize MCP connection."""
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        self.transport = streamablehttp_client(
-            "https://mcp.publora.com",
-            headers=headers
-        )
-        read, write, _ = await self.transport.__aenter__()
-        self.session = ClientSession(read, write)
-        await self.session.__aenter__()
-        await self.session.initialize()
-        return self
 
-    async def get_connections(self):
-        """Get all connected platforms."""
-        result = await self.session.call_tool("list_connections", {})
-        return result.content[0].text
+async def get_connections(session):
+    """Get all connected platforms."""
+    result = await session.call_tool("list_connections", {})
+    return result.content[0].text
 
-    async def schedule_post(self, content: str, platforms: list, scheduled_time: str):
-        """Schedule a post to specified platforms."""
-        result = await self.session.call_tool("create_post", {
-            "content": content,
-            "platforms": platforms,
-            "scheduledTime": scheduled_time
-        })
-        return result.content[0].text
 
-    async def get_scheduled_posts(self):
-        """List all scheduled posts."""
-        result = await self.session.call_tool("list_posts", {
-            "status": "scheduled"
-        })
-        return result.content[0].text
+async def schedule_post(session, content: str, platforms: list, scheduled_time: str):
+    """Schedule a post to specified platforms."""
+    result = await session.call_tool("create_post", {
+        "content": content,
+        "platforms": platforms,
+        "scheduledTime": scheduled_time
+    })
+    return result.content[0].text
 
-    async def get_linkedin_analytics(self, platform_id: str):
-        """Get LinkedIn profile analytics."""
-        result = await self.session.call_tool("linkedin_profile_summary", {
-            "platformId": platform_id
-        })
-        return result.content[0].text
 
-    async def close(self):
-        """Close the connection."""
-        if self.session:
-            await self.session.__aexit__(None, None, None)
-        if self.transport:
-            await self.transport.__aexit__(None, None, None)
+async def get_scheduled_posts(session):
+    """List all scheduled posts."""
+    result = await session.call_tool("list_posts", {
+        "status": "scheduled"
+    })
+    return result.content[0].text
+
+
+async def get_linkedin_analytics(session, platform_id: str):
+    """Get LinkedIn profile analytics."""
+    result = await session.call_tool("linkedin_profile_summary", {
+        "platformId": platform_id
+    })
+    return result.content[0].text
 
 
 async def main():
-    agent = PubloraAgent("sk_YOUR_API_KEY")
-    await agent.connect()
-
-    try:
+    async with publora_session("sk_YOUR_API_KEY") as session:
         # Get connected platforms
-        connections = await agent.get_connections()
+        connections = await get_connections(session)
         print("Connected platforms:", connections)
 
         # Schedule a post for next Monday at 2pm UTC
@@ -166,7 +152,8 @@ async def main():
             hour=14, minute=0, second=0, microsecond=0
         ).isoformat() + "Z"
 
-        result = await agent.schedule_post(
+        result = await schedule_post(
+            session,
             content="Automated post from OpenClaw agent!",
             platforms=["linkedin-YOUR_PLATFORM_ID"],
             scheduled_time=scheduled_time
@@ -174,11 +161,8 @@ async def main():
         print("Scheduled:", result)
 
         # Check scheduled posts
-        posts = await agent.get_scheduled_posts()
+        posts = await get_scheduled_posts(session)
         print("Upcoming posts:", posts)
-
-    finally:
-        await agent.close()
 
 
 asyncio.run(main())
@@ -296,12 +280,12 @@ response = requests.post(
 | X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
 | Instagram | 2,200 | 10 | 90s | Reels supported |
 | Threads | 500 | 10 | 5min | Auto-threading |
-| TikTok | 2,200 | 35 carousel | 10min | Video-focused |
+| TikTok | 2,200 | N/A | 10min | Video-only platform |
 | YouTube | 5,000 desc | N/A | 12h | Shorts support |
 | Facebook | 63,206 | 10 | 240min | Page posts, Reels |
 | Bluesky | 300 | 4 | N/A | Auto-facet detection |
 | Mastodon | 500* | 4 | 40MB | Instance-variable |
-| Telegram | 4,096 | Unlimited | 2GB | Markdown/HTML |
+| Telegram | 4,096 (1,024 captions) | Unlimited | 2GB | Markdown/HTML |
 
 *Varies by instance
 

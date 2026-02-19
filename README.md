@@ -65,6 +65,8 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](docs/endpoints/linkedin-statistics.md) |
 | `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](docs/endpoints/linkedin-reactions.md) |
 | `DELETE` | `/linkedin-reactions` | Remove a LinkedIn reaction | [View](docs/endpoints/linkedin-reactions.md) |
+| `POST` | `/linkedin-followers` | Get LinkedIn follower statistics | [View](docs/endpoints/linkedin-followers.md) |
+| `POST` | `/linkedin-profile-summary` | Get LinkedIn profile summary | [View](docs/endpoints/linkedin-profile-summary.md) |
 
 Base URL: `https://api.publora.com/api/v1`
 
@@ -135,6 +137,10 @@ All plans include full API access. [Start free trial](https://publora.com).
 - [LinkedIn Analytics](docs/guides/analytics.md) — post performance, account metrics
 - [Error Handling](docs/guides/error-handling.md) — status codes, retries
 - [Workspace / B2B API](docs/guides/workspace.md) — managed users, white-label
+
+### AI Integration
+- [MCP Server](docs/guides/mcp-server.md) — Claude Code, Claude Desktop, Cursor integration
+- [Cursor AI Guide](docs/guides/cursor-ai.md) — AI-assisted development with Publora
 
 ### Code Examples
 - [JavaScript Examples](docs/examples/javascript/) — fetch, axios, Node.js
