@@ -1,6 +1,23 @@
-# Mastodon
+# Mastodon API - Post to Fediverse via REST API
 
-Publora integrates with Mastodon for publishing text posts and media content to the fediverse. Posts are published to the mastodon.social instance.
+Post to Mastodon and the Fediverse programmatically using the Publora REST API. A simpler alternative to the official Mastodon API, Megalodon, or direct ActivityPub integration.
+
+## Mastodon API Overview
+
+Publora provides a unified REST API for publishing text posts and media content to Mastodon and the fediverse. Posts are published to the mastodon.social instance. No need to manage Mastodon OAuth flows, handle ActivityPub protocols, or set up your own Mastodon application.
+
+### Why Use Publora Instead of Mastodon API / Megalodon?
+
+| Feature | Publora API | Mastodon API |
+|---------|-------------|--------------|
+| Authentication | Single API key | OAuth 2.0 per instance |
+| Instance support | mastodon.social | Any instance |
+| Multi-platform | Post to 10 platforms | Mastodon/Fediverse only |
+| Setup time | 5 minutes | Varies by instance |
+| Media handling | Automatic | Manual upload |
+| Federation | Automatic | Automatic |
+
+### Keywords: Mastodon API, Mastodon posting API, Fediverse API, ActivityPub API, post to Mastodon programmatically, Mastodon REST API, Mastodon developer API, Mastodon bot API, Mastodon automation API, toot API, Mastodon status API, decentralized social API
 
 ## Platform ID Format
 

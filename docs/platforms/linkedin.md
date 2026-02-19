@@ -1,6 +1,23 @@
-# LinkedIn
+# LinkedIn API - Post to LinkedIn via REST API
 
-Publora integrates with LinkedIn for professional content publishing, including text posts, media attachments, analytics retrieval, and reaction management.
+Post to LinkedIn programmatically using the Publora REST API. A simpler alternative to the LinkedIn Marketing API, LinkedIn Share API, or LinkedIn Community Management API.
+
+## LinkedIn API Overview
+
+Publora provides a unified REST API for professional content publishing to LinkedIn, including text posts, media attachments (images and videos), analytics retrieval (impressions, reactions, comments), and reaction management. No need to manage LinkedIn OAuth flows, handle the LinkedIn API partner program requirements, or implement complex share creation endpoints.
+
+### Why Use Publora Instead of LinkedIn Marketing API?
+
+| Feature | Publora API | LinkedIn Marketing API |
+|---------|-------------|------------------------|
+| Authentication | Single API key | Complex OAuth 2.0 flow |
+| API access | Instant | LinkedIn partner approval |
+| Analytics | Built-in | Separate API calls |
+| Multi-platform | Post to 10 platforms | LinkedIn only |
+| Setup time | 5 minutes | Weeks (partner approval) |
+| Reactions | Full support | Full support |
+
+### Keywords: LinkedIn API, LinkedIn posting API, LinkedIn Share API, LinkedIn Marketing API, post to LinkedIn programmatically, LinkedIn REST API, LinkedIn developer API, LinkedIn automation API, LinkedIn content API, LinkedIn bot API, LinkedIn analytics API, LinkedIn UGC API
 
 ## Platform ID Format
 

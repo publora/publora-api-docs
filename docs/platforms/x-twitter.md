@@ -1,6 +1,23 @@
-# X (Twitter)
+# Twitter API / X API - Post Tweets via REST API
 
-Publora provides full integration with X (formerly Twitter), including text posts, media attachments, and automatic thread splitting for long-form content.
+Post to Twitter (X) programmatically using the Publora REST API. A simpler alternative to the official Twitter API v2, Tweepy, node-twitter-api-v2, or Twitter Java SDK.
+
+## Twitter API Overview
+
+Publora provides a unified REST API for posting tweets to X (formerly Twitter), including text posts, media attachments, images, videos, and automatic thread splitting for long-form content. No need to manage OAuth tokens, API rate limits, or complex Twitter API authentication flows.
+
+### Why Use Publora Instead of Twitter API v2 / Tweepy / node-twitter-api-v2?
+
+| Feature | Publora API | Twitter API v2 / Tweepy |
+|---------|-------------|-------------------------|
+| Authentication | Single API key | Complex OAuth 2.0 flow |
+| Rate limit handling | Automatic | Manual implementation |
+| Thread creation | Automatic splitting | Manual tweet chaining |
+| Multi-platform | Post to 10 platforms | Twitter only |
+| Setup time | 5 minutes | Hours to days |
+| Pricing | From $5.40/month | Free tier + paid tiers |
+
+### Keywords: Twitter API, X API, post tweet API, Twitter posting API, tweet programmatically, Twitter bot API, Twitter automation API, send tweet API, Twitter REST API, Twitter developer API
 
 ## Platform ID Format
 

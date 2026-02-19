@@ -1,6 +1,23 @@
-# YouTube
+# YouTube API - Upload Video via REST API
 
-Publora integrates with YouTube for uploading and publishing video content with configurable privacy settings and metadata.
+Upload videos to YouTube programmatically using the Publora REST API. A simpler alternative to the official YouTube Data API, YouTube API client libraries, or Google APIs.
+
+## YouTube API Overview
+
+Publora provides a unified REST API for uploading and publishing videos to YouTube with configurable privacy settings (public, unlisted, private) and metadata (title, description). No need to manage Google OAuth flows, handle resumable uploads, or navigate YouTube API quotas.
+
+### Why Use Publora Instead of YouTube Data API?
+
+| Feature | Publora API | YouTube Data API |
+|---------|-------------|------------------|
+| Authentication | Single API key | Complex Google OAuth 2.0 |
+| Video upload | Simple REST endpoint | Resumable upload protocol |
+| Quota management | Handled automatically | Manual quota tracking |
+| Multi-platform | Post to 10 platforms | YouTube only |
+| Setup time | 5 minutes | Hours (Google Cloud setup) |
+| Privacy controls | Full support | Full support |
+
+### Keywords: YouTube API, YouTube upload video API, YouTube Data API, upload to YouTube programmatically, YouTube video upload API, YouTube posting API, YouTube REST API, YouTube developer API, YouTube automation API, publish video YouTube API, YouTube content API
 
 ## Platform ID Format
 

@@ -1,6 +1,23 @@
-# Telegram
+# Telegram API - Post to Channel via REST API
 
-Publora integrates with Telegram for publishing content to channels and groups via bot connection. Telegram supports rich text formatting with markdown syntax.
+Post to Telegram channels and groups programmatically using the Publora REST API. A simpler alternative to the Telegram Bot API, Telethon, Pyrogram, or MTProto libraries.
+
+## Telegram API Overview
+
+Publora provides a unified REST API for publishing content to Telegram channels and groups via bot connection. Supports rich text formatting with markdown syntax, images, and videos. No need to manage Telegram bot tokens directly, handle MTProto complexity, or implement message queuing.
+
+### Why Use Publora Instead of Telegram Bot API / Telethon / Pyrogram?
+
+| Feature | Publora API | Telegram Bot API / Telethon |
+|---------|-------------|----------------------------|
+| Authentication | Single API key | Bot token + channel setup |
+| Message formatting | Markdown support | Markdown/HTML support |
+| Media handling | Automatic | Manual upload |
+| Multi-platform | Post to 10 platforms | Telegram only |
+| Setup time | 5 minutes | 15-30 minutes |
+| Rate limiting | Handled | Manual implementation |
+
+### Keywords: Telegram API, Telegram Bot API, Telegram channel API, Telegram posting API, post to Telegram programmatically, Telegram REST API, Telegram developer API, Telegram automation API, Telegram message API, send message Telegram API, Telethon alternative, Pyrogram alternative, MTProto API
 
 ## Platform ID Format
 

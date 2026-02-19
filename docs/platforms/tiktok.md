@@ -1,6 +1,23 @@
-# TikTok
+# TikTok API - Upload Video via REST API
 
-Publora integrates with TikTok for publishing video content with granular privacy and interaction controls.
+Upload videos to TikTok programmatically using the Publora REST API. A simpler alternative to the official TikTok Developer API, TikTok Business SDK, or TikAPI.
+
+## TikTok API Overview
+
+Publora provides a unified REST API for uploading and publishing videos to TikTok with granular privacy and interaction controls. No need to manage complex TikTok OAuth flows, handle video processing, or navigate TikTok's developer portal requirements.
+
+### Why Use Publora Instead of TikTok Developer API / TikTok Business SDK?
+
+| Feature | Publora API | TikTok Developer API |
+|---------|-------------|----------------------|
+| Authentication | Single API key | Complex OAuth 2.0 flow |
+| Video upload | Simple REST endpoint | Multi-step upload process |
+| App approval | Not required | TikTok app review required |
+| Multi-platform | Post to 10 platforms | TikTok only |
+| Setup time | 5 minutes | Weeks (app review) |
+| Privacy controls | Full support | Full support |
+
+### Keywords: TikTok API, TikTok upload video API, TikTok posting API, TikTok video API, upload to TikTok programmatically, TikTok bot API, TikTok automation API, TikTok REST API, TikTok developer API, TikTok content API, post video to TikTok API
 
 ## Platform ID Format
 

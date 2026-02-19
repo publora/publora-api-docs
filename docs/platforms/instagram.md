@@ -1,6 +1,23 @@
-# Instagram
+# Instagram API - Post to Instagram via REST API
 
-Publora integrates with Instagram for publishing image posts, carousels, Reels, and Stories through the Instagram Graph API. A business or creator account is required.
+Post to Instagram programmatically using the Publora REST API. A simpler alternative to the Instagram Graph API, Instagram Basic Display API, or Instagrapi.
+
+## Instagram API Overview
+
+Publora provides a unified REST API for publishing image posts, carousels, Reels, and Stories to Instagram through the Instagram Graph API. A business or creator account is required. No need to manage Facebook OAuth flows, handle the Instagram Content Publishing API complexity, or set up a Facebook Developer app.
+
+### Why Use Publora Instead of Instagram Graph API / Instagrapi?
+
+| Feature | Publora API | Instagram Graph API |
+|---------|-------------|---------------------|
+| Authentication | Single API key | Facebook OAuth 2.0 flow |
+| API access | Instant | Facebook app review |
+| Reels & Stories | Supported | Supported |
+| Multi-platform | Post to 10 platforms | Instagram only |
+| Setup time | 5 minutes | Days to weeks |
+| Carousel support | Yes | Yes |
+
+### Keywords: Instagram API, Instagram posting API, Instagram Graph API, post to Instagram programmatically, Instagram REST API, Instagram developer API, Instagram automation API, Instagram Reels API, Instagram Stories API, Instagram content API, Instagrapi alternative, Instagram bot API
 
 ## Platform ID Format
 

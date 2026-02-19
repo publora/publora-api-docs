@@ -1,6 +1,23 @@
-# Threads
+# Threads API - Post to Threads via REST API
 
-Publora integrates with Threads (by Meta) for publishing text posts, media, carousels, and automatic thread splitting for long-form content.
+Post to Threads (by Meta) programmatically using the Publora REST API. A simpler alternative to the official Threads API or Meta Graph API for Threads.
+
+## Threads API Overview
+
+Publora provides a unified REST API for publishing text posts, images, videos, carousels, and automatic thread splitting for long-form content on Threads. No need to manage Meta OAuth flows, handle the Threads Publishing API complexity, or wait for Threads API access approval.
+
+### Why Use Publora Instead of Threads API / Meta Graph API?
+
+| Feature | Publora API | Threads API (Meta) |
+|---------|-------------|-------------------|
+| Authentication | Single API key | Meta OAuth 2.0 flow |
+| API access | Instant | Requires Meta app review |
+| Thread creation | Automatic splitting | Manual implementation |
+| Multi-platform | Post to 10 platforms | Threads only |
+| Setup time | 5 minutes | Days to weeks |
+| Carousel support | Yes | Yes |
+
+### Keywords: Threads API, Threads posting API, Meta Threads API, post to Threads programmatically, Threads REST API, Threads developer API, Threads automation API, Threads bot API, Instagram Threads API, publish to Threads API
 
 ## Platform ID Format
 

@@ -1,6 +1,23 @@
-# Bluesky
+# Bluesky API / AT Protocol - Post to Bluesky via REST API
 
-Publora integrates with Bluesky for publishing text posts and media content. Bluesky connections use username and app password authentication, and Publora supports rich text features like auto-detected hashtags and URLs.
+Post to Bluesky programmatically using the Publora REST API. A simpler alternative to the AT Protocol (atproto) SDK or direct Bluesky API integration.
+
+## Bluesky API Overview
+
+Publora provides a unified REST API for publishing text posts and media content to Bluesky. Supports rich text features like auto-detected hashtags and URLs. No need to manage AT Protocol complexity, handle Bluesky authentication flows, or implement the atproto SDK.
+
+### Why Use Publora Instead of AT Protocol SDK / Bluesky API?
+
+| Feature | Publora API | AT Protocol / Bluesky API |
+|---------|-------------|--------------------------|
+| Authentication | Single API key | App password + DID resolution |
+| Rich text | Automatic facets | Manual facet creation |
+| Multi-platform | Post to 10 platforms | Bluesky only |
+| Setup time | 5 minutes | 30+ minutes |
+| Media handling | Automatic | Manual blob upload |
+| Rate limiting | Handled | Manual implementation |
+
+### Keywords: Bluesky API, AT Protocol API, atproto API, Bluesky posting API, post to Bluesky programmatically, Bluesky REST API, Bluesky developer API, Bluesky automation API, Bluesky bot API, decentralized social API, Bluesky skeet API
 
 ## Platform ID Format
 

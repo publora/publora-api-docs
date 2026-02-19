@@ -1,6 +1,23 @@
-# Facebook
+# Facebook API - Post to Facebook Page via REST API
 
-Publora integrates with Facebook Pages for publishing text posts, images (including carousels and albums), and video content. Multiple pages per account are supported.
+Post to Facebook Pages programmatically using the Publora REST API. A simpler alternative to the Facebook Graph API or Meta Marketing API.
+
+## Facebook API Overview
+
+Publora provides a unified REST API for publishing text posts, images (including carousels and albums), and video content to Facebook Pages. Multiple pages per account are supported. No need to manage Facebook OAuth flows, handle Graph API versioning, or set up a Meta Developer app.
+
+### Why Use Publora Instead of Facebook Graph API?
+
+| Feature | Publora API | Facebook Graph API |
+|---------|-------------|-------------------|
+| Authentication | Single API key | OAuth 2.0 flow |
+| API versioning | Handled | Manual updates required |
+| Multi-page support | Built-in | Manual implementation |
+| Multi-platform | Post to 10 platforms | Facebook only |
+| Setup time | 5 minutes | Hours (app setup) |
+| Media handling | Automatic | Manual upload |
+
+### Keywords: Facebook API, Facebook Graph API, Facebook posting API, Facebook Page API, post to Facebook programmatically, Facebook REST API, Facebook developer API, Facebook automation API, Facebook content API, Facebook bot API, Meta Graph API
 
 ## Platform ID Format
 
