@@ -20,7 +20,21 @@ This skill provides complete documentation for the Publora social media scheduli
 
 **Base URL:** `https://api.publora.com/api/v1`
 
-**Authentication:** Header `x-publora-key: sk_your_api_key`
+## Authentication
+
+Publora uses **API keys** (not OAuth tokens). Keys never expire and don't require refresh.
+
+**Get your key:** publora.com → Settings → API Keys
+
+**Header:** `x-publora-key: sk_your_api_key`
+
+```javascript
+const response = await fetch('https://api.publora.com/api/v1/platform-connections', {
+  headers: { 'x-publora-key': 'sk_your_api_key' }
+});
+```
+
+**Note:** The MCP server uses `Authorization: Bearer sk_...` instead. Same key, different header format.
 
 ## Quick Reference
 
