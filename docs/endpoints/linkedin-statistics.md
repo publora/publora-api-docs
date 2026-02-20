@@ -246,6 +246,158 @@ print(f"Total impressions: {stats['metrics']['IMPRESSION']}")
 print(f"Total engagement: {stats['metrics']['REACTION'] + stats['metrics']['COMMENT']}")
 ```
 
+### Node.js (axios)
+
+```javascript
+const axios = require('axios');
+
+const client = axios.create({
+  baseURL: 'https://api.publora.com/api/v1',
+  headers: { 'x-publora-key': process.env.PUBLORA_API_KEY }
+});
+
+// Get post statistics
+async function getPostStats(postedId, platformId) {
+  const { data } = await client.post('/linkedin-post-statistics', {
+    postedId,
+    platformId,
+    queryTypes: 'ALL'
+  });
+  return data.metrics;
+}
+
+// Get account statistics
+async function getAccountStats(platformId) {
+  const { data } = await client.post('/linkedin-account-statistics', {
+    platformId,
+    queryTypes: 'ALL',
+    aggregation: 'TOTAL'
+  });
+  return data.metrics;
+}
+
+// Usage
+const postMetrics = await getPostStats('urn:li:share:123', 'linkedin-ABC');
+const accountMetrics = await getAccountStats('linkedin-ABC');
+console.log(`Post impressions: ${postMetrics.IMPRESSION}`);
+console.log(`Account total impressions: ${accountMetrics.IMPRESSION}`);
+```
+
+### With Error Handling
+
+```javascript
+async function getLinkedInStats(platformId, postedId = null) {
+  try {
+    const endpoint = postedId
+      ? '/linkedin-post-statistics'
+      : '/linkedin-account-statistics';
+
+    const payload = {
+      platformId,
+      queryTypes: 'ALL',
+      ...(postedId && { postedId }),
+      ...(!postedId && { aggregation: 'TOTAL' })
+    };
+
+    const response = await fetch(`https://api.publora.com/api/v1${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-publora-key': process.env.PUBLORA_API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      switch (response.status) {
+        case 400:
+          throw new Error(`Invalid request: ${data.error}`);
+        case 404:
+          throw new Error('LinkedIn account not found. Check your platformId.');
+        default:
+          throw new Error(data.error || `HTTP ${response.status}`);
+      }
+    }
+
+    return {
+      metrics: data.metrics,
+      cached: data.cached,
+      engagementRate: calculateEngagementRate(data.metrics)
+    };
+  } catch (error) {
+    console.error('Failed to fetch LinkedIn stats:', error.message);
+    throw error;
+  }
+}
+
+function calculateEngagementRate(metrics) {
+  const engagement = metrics.REACTION + metrics.COMMENT + metrics.RESHARE;
+  const reach = metrics.MEMBERS_REACHED || metrics.IMPRESSION;
+  return reach > 0 ? ((engagement / reach) * 100).toFixed(2) + '%' : '0%';
+}
+```
+
+```python
+import os
+import requests
+
+def get_linkedin_stats(platform_id, posted_id=None):
+    """Get LinkedIn statistics with error handling."""
+    endpoint = 'linkedin-post-statistics' if posted_id else 'linkedin-account-statistics'
+    url = f'https://api.publora.com/api/v1/{endpoint}'
+
+    payload = {
+        'platformId': platform_id,
+        'queryTypes': 'ALL'
+    }
+    if posted_id:
+        payload['postedId'] = posted_id
+    else:
+        payload['aggregation'] = 'TOTAL'
+
+    try:
+        response = requests.post(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'x-publora-key': os.environ['PUBLORA_API_KEY']
+            },
+            json=payload
+        )
+
+        data = response.json()
+
+        if response.status_code == 400:
+            raise ValueError(f"Invalid request: {data.get('error')}")
+        if response.status_code == 404:
+            raise ValueError('LinkedIn account not found. Check your platformId.')
+
+        response.raise_for_status()
+
+        metrics = data['metrics']
+        engagement = metrics['REACTION'] + metrics['COMMENT'] + metrics['RESHARE']
+        reach = metrics.get('MEMBERS_REACHED', metrics['IMPRESSION'])
+        engagement_rate = (engagement / reach * 100) if reach > 0 else 0
+
+        return {
+            'metrics': metrics,
+            'cached': data['cached'],
+            'engagement_rate': f"{engagement_rate:.2f}%"
+        }
+
+    except requests.RequestException as e:
+        print(f'Failed to fetch LinkedIn stats: {e}')
+        raise
+
+
+# Usage
+stats = get_linkedin_stats('linkedin-Tz9W5i6ZYG')
+print(f"Total impressions: {stats['metrics']['IMPRESSION']}")
+print(f"Engagement rate: {stats['engagement_rate']}")
+```
+
 ## Errors
 
 ### Post Statistics Errors

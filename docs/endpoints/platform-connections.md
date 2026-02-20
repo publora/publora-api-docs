@@ -147,6 +147,89 @@ console.log(platforms);
 // { twitter: ["twitter-123"], linkedin: ["linkedin-ABC"], ... }
 ```
 
+### With Error Handling
+
+```javascript
+async function getConnections() {
+  try {
+    const response = await fetch('https://api.publora.com/api/v1/platform-connections', {
+      headers: { 'x-publora-key': process.env.PUBLORA_API_KEY }
+    });
+
+    if (response.status === 401) {
+      throw new Error('Invalid API key. Check your PUBLORA_API_KEY.');
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Check for expiring tokens
+    const now = new Date();
+    for (const conn of data.connections) {
+      if (conn.accessTokenExpiresAt) {
+        const expires = new Date(conn.accessTokenExpiresAt);
+        const daysUntilExpiry = Math.floor((expires - now) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry <= 7) {
+          console.warn(`⚠️  ${conn.platformId} token expires in ${daysUntilExpiry} days`);
+        }
+      }
+    }
+
+    return data.connections;
+  } catch (error) {
+    console.error('Failed to fetch connections:', error.message);
+    throw error;
+  }
+}
+```
+
+```python
+import os
+import requests
+from datetime import datetime, timezone
+
+def get_connections():
+    """Get all connected platforms with error handling and token expiry check."""
+    try:
+        response = requests.get(
+            'https://api.publora.com/api/v1/platform-connections',
+            headers={'x-publora-key': os.environ['PUBLORA_API_KEY']}
+        )
+
+        if response.status_code == 401:
+            raise ValueError('Invalid API key. Check your PUBLORA_API_KEY.')
+
+        response.raise_for_status()
+        data = response.json()
+
+        # Check for expiring tokens
+        now = datetime.now(timezone.utc)
+        for conn in data['connections']:
+            if conn.get('accessTokenExpiresAt'):
+                expires = datetime.fromisoformat(
+                    conn['accessTokenExpiresAt'].replace('Z', '+00:00')
+                )
+                days_until_expiry = (expires - now).days
+                if days_until_expiry <= 7:
+                    print(f"⚠️  {conn['platformId']} token expires in {days_until_expiry} days")
+
+        return data['connections']
+
+    except requests.RequestException as e:
+        print(f'Failed to fetch connections: {e}')
+        raise
+
+
+# Usage
+connections = get_connections()
+platform_ids = [c['platformId'] for c in connections]
+print(f"Connected to {len(platform_ids)} platforms: {platform_ids}")
+```
+
 ## Errors
 
 | Status | Error | Cause |
