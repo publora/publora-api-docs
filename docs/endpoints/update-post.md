@@ -56,9 +56,9 @@ March 15, 2026              ✗ Not ISO 8601
 
 ### Timing Constraints
 
-- **Minimum:** Must be at least 1 minute in the future
-- **Maximum:** No hard limit, but platform tokens may expire for far-future posts
-- **Timezone:** Always use UTC (Z suffix). Local times will be rejected.
+- **Minimum:** Must be in the future (not in the past)
+- **Maximum:** Recommended within 2 months for best reliability
+- **Timezone:** Always use UTC (Z suffix or +00:00 offset)
 
 ### Helper Functions
 

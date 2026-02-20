@@ -380,7 +380,7 @@ Get engagement metrics for a specific LinkedIn post.
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123456`) |
 | `platformId` | string | Yes | Platform connection ID |
-| `queryTypes` | string[] | No | Metrics to fetch: `IMPRESSION`, `REACTION`, `COMMENT`, `SHARE` |
+| `queryTypes` | string[] | No | Metrics to fetch: `IMPRESSION`, `MEMBERS_REACHED`, `RESHARE`, `REACTION`, `COMMENT` |
 
 **Example prompts:**
 
@@ -404,7 +404,7 @@ async def get_linkedin_post_stats():
             result = await session.call_tool("linkedin_post_stats", {
                 "postedId": "urn:li:share:7123456789",
                 "platformId": "linkedin-abc123",
-                "queryTypes": ["IMPRESSION", "REACTION", "COMMENT", "SHARE"]
+                "queryTypes": ["IMPRESSION", "MEMBERS_REACHED", "RESHARE", "REACTION", "COMMENT"]
             })
             print(result.content[0].text)
 ```
