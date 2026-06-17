@@ -105,7 +105,7 @@ See [Authentication Guide](docs/authentication.md) for details.
 
 | Plan | Price | Posts/Month | Accounts | Platforms | Video |
 |------|-------|-------------|----------|-----------|-------|
-| **Starter** | Free | 15 | 1 | LinkedIn & Bluesky | 50 MB |
+| **Starter** | Free | 15 | 3 | All 10 | 50 MB |
 | **Pro** | $2.99/account | 100/account | Unlimited | All 10 | 100 MB |
 | **Premium** | $5.99/account | 500/account | Unlimited | All 10 | 250 MB |
 
