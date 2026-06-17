@@ -143,7 +143,7 @@ Video restrictions through APIs are often significantly more restrictive than na
 | Reels duration | 3 minutes (180s) | 15-20 minutes |
 | Image format | JPEG only | PNG, GIF also supported |
 | Carousel items | 10 | 20 |
-| Account type | Business accounts only | Creator accounts supported |
+| Account type | Business (recommended) or Creator; personal not supported | Full account support |
 | Features | No shopping tags, branded content, filters, or music | Full feature set |
 
 #### TikTok API
