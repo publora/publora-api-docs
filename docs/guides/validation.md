@@ -79,7 +79,7 @@ Some platforms require media, while others support text-only posts.
 | Platform | Supported Image Formats | Supported Video Formats |
 |---|---|---|
 | **Twitter/X** | JPEG, PNG, GIF, WebP | MP4, MOV |
-| **Instagram** | **JPEG only (API)** | MP4, MOV |
+| **Instagram** | JPEG, PNG, WebP (WebP auto-converted) | MP4, MOV |
 | **Threads** | JPEG, PNG | MP4, MOV |
 | **TikTok** | - | MP4, MOV, WebM |
 | **LinkedIn** | JPEG, PNG, GIF | MP4 |
@@ -90,7 +90,7 @@ Some platforms require media, while others support text-only posts.
 | **Telegram** | JPEG, PNG, GIF, WebP, BMP | MP4, MOV, AVI, MKV, WebM |
 | **Pinterest** | JPEG, PNG, TIFF, BMP, GIF, WebP | MP4, MOV |
 
-> **Critical:** Instagram API only accepts JPEG images. PNG and GIF will fail validation.
+> **Note:** Instagram accepts JPEG, PNG, and WebP images (WebP is auto-converted to JPEG before publishing). Animated GIF, BMP, and TIFF will fail validation.
 
 ### Video Duration Limits
 
@@ -354,7 +354,7 @@ When content exceeds Twitter's 280 character limit:
 
 ### Validation Error: Image Format Not Supported
 
-When uploading a PNG to Instagram (JPEG only via API):
+When uploading an animated GIF to Instagram (only JPEG, PNG, and WebP are supported):
 
 **Response (400):**
 
@@ -367,7 +367,7 @@ When uploading a PNG to Instagram (JPEG only via API):
       {
         "platform": "instagram",
         "code": "MEDIA_TYPE_NOT_SUPPORTED",
-        "message": "Image format \"image/png\" is not supported on Instagram",
+        "message": "Image format \"image/gif\" is not supported on Instagram",
         "field": "imageFormat",
         "severity": "error"
       }
@@ -464,7 +464,7 @@ When a single post has issues on multiple platforms:
       {
         "platform": "instagram",
         "code": "MEDIA_TYPE_NOT_SUPPORTED",
-        "message": "Image format \"image/png\" is not supported on Instagram",
+        "message": "Image format \"image/gif\" is not supported on Instagram",
         "field": "imageFormat",
         "severity": "error"
       },

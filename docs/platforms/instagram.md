@@ -50,7 +50,7 @@ These are critical limits specific to the Instagram Graph API (different from na
 |-------|-------|
 | Max file size | 8 MB |
 | Max count (carousel) | 10 images (native app allows 20) |
-| **Formats** | **JPEG recommended** via API (PNG may work in practice) |
+| **Formats** | JPEG, PNG, WebP (WebP is auto-converted to JPEG before publishing) |
 
 > **Warning:** You cannot mix images and videos in the same carousel via the API.
 
@@ -83,7 +83,7 @@ The following features are **not available** via the Instagram Graph API:
 | Type | Supported | Limits |
 |------|-----------|--------|
 | Text only | No | Instagram requires at least one image or video |
-| Images | Yes | JPEG recommended via API (PNG may work in practice), max 8 MB, 10 per carousel |
+| Images | Yes | JPEG, PNG, WebP (WebP auto-converted to JPEG), max 8 MB, 10 per carousel |
 | Videos (Reels) | Yes | MP4/MOV, max 3 minutes (180 seconds), max 300 MB |
 | Videos (Stories) | Yes | MP4/MOV, requires `videoType: "STORIES"` setting |
 | Carousels | Yes | 2-10 items (API limit; native app allows 20) |

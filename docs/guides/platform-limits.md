@@ -30,7 +30,7 @@ The following table highlights the most significant differences between API and 
 | Platform | API Restriction | Native App Allows | Impact |
 |----------|-----------------|-------------------|--------|
 | **Twitter/X** | 2 min video max | 2:20 (140s) video | Videos over 2 min will fail |
-| **Instagram** | 3 min Reels, 10 carousel items, JPEG only | 15-20 min Reels, 20 items, PNG/GIF | PNG images will be rejected |
+| **Instagram** | 3 min Reels, 10 carousel items, no animated GIF/BMP/TIFF | 15-20 min Reels, 20 items, more formats | Animated GIF/BMP/TIFF rejected; use JPEG, PNG, or WebP |
 | **TikTok** | 10 min video, 2,200 char captions | 60 min video, 4,000 chars | Long captions truncated or rejected |
 | **Facebook** | 45 min video, 2 GB files | 240 min video, 4 GB files | Large files will fail |
 | **LinkedIn** | 500 MB video | 5 GB video | Videos over 500 MB will fail |
@@ -73,7 +73,7 @@ Image requirements vary significantly across platforms. Pay particular attention
 | Platform | Max Size | Max Count | Supported Formats |
 |----------|----------|-----------|-------------------|
 | **Twitter/X** | 5 MB | 4 | JPEG, PNG, GIF, WebP |
-| **Instagram** | 8 MB | 10 (API carousel) | **JPEG only (API)** |
+| **Instagram** | 8 MB | 10 (API carousel) | **JPEG, PNG, WebP** (WebP auto-converted) |
 | **Threads** | 8 MB | 10 | JPEG, PNG |
 | **TikTok** | - | 0 | Video only platform |
 | **LinkedIn** | 5 MB | 10 (multi-image) | JPEG, PNG, GIF |
@@ -88,7 +88,7 @@ Image requirements vary significantly across platforms. Pay particular attention
 
 | Issue | Platform | Details |
 |-------|----------|---------|
-| **JPEG Only** | Instagram | The Instagram API only accepts JPEG format. PNG and GIF uploads will fail with an error. |
+| **Image formats** | Instagram | JPEG, PNG, and WebP are accepted (WebP is auto-converted to JPEG before publishing). Animated GIF, BMP, and TIFF are not supported. |
 | **Carousel Limit** | Instagram | API carousels are limited to 10 items (native app allows 20). |
 | **No Mixed Media** | Instagram | Cannot mix images and videos in the same carousel via API. |
 | **Strict Size Limit** | Bluesky | Hard 1 MB limit. Compress images to 80-85% JPEG quality before uploading. |
@@ -141,7 +141,7 @@ Video restrictions through APIs are often significantly more restrictive than na
 | Restriction | API Limit | Native App Limit |
 |-------------|-----------|------------------|
 | Reels duration | 3 minutes (180s) | 15-20 minutes |
-| Image format | JPEG only | PNG, GIF also supported |
+| Image format | JPEG, PNG, WebP | GIF, BMP, TIFF also supported |
 | Carousel items | 10 | 20 |
 | Account type | Business (recommended) or Creator; personal not supported | Full account support |
 | Features | No shopping tags, branded content, filters, or music | Full feature set |

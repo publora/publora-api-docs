@@ -253,7 +253,7 @@ print('Image uploaded and attached to post:', post_group_id)
 |----------|------------|--------|-------|------------------|
 | LinkedIn | 3,000 | 20 | 30 min / 500 MB | Documents (≤100 MB), multi-image, @mentions |
 | X/Twitter | 280 (25K premium) | 4 | 2 min / 512 MB | Auto-threading |
-| Instagram | 2,200 | 10 | Reels 15 min / 300 MB, 60s carousel | Reels & Stories, JPEG only via API |
+| Instagram | 2,200 | 10 | Reels 3 min / 300 MB, 60s carousel | Reels & Stories, JPEG/PNG/WebP via API |
 | Threads | 500 (10K with text attachment) | 20 | 5 min / 1 GB | Auto-threading |
 | TikTok | 2,200 | N/A | up to 10 min (creator-dependent) | Video-only platform |
 | YouTube | 100 title / 5,000 desc | N/A | 12 h | Shorts support |
