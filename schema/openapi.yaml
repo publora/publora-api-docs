@@ -256,7 +256,13 @@ paths:
       summary: Create and schedule a social media post
       description: |
         Create a post to be published across one or more social media platforms.
-        Supports text, images (up to 4), and video (1 per post).
+        Supports text, images, and video (1 video per post).
+        The image count per post is platform-specific: Twitter/X, Bluesky, and
+        Mastodon allow up to 4; Instagram, Threads, LinkedIn, Facebook, and
+        Telegram allow up to 10. There is no separate "carousel" field — a
+        carousel is formed implicitly by attaching multiple images to one
+        postGroupId (Instagram: 2-10 images = carousel, 1 image = single photo),
+        in upload order. See the Media Uploads guide for the full matrix.
         If scheduledTime is provided, the post will be published at that time.
         If omitted, the post is saved as a draft.
       operationId: createPost
@@ -546,7 +552,10 @@ paths:
       description: |
         Get a pre-signed S3 URL to upload images or videos.
         Upload the file directly to S3 via HTTP PUT, then create a post.
-        Upload URLs expire in 1 hour. Max 4 images or 1 video per post.
+        Upload URLs expire in 1 hour. The image count per post is
+        platform-specific (up to 4 for Twitter/X, Bluesky, Mastodon; up to 10
+        for Instagram, Threads, LinkedIn, Facebook, Telegram), or 1 video per
+        post. Attach multiple images to the same postGroupId to form a carousel.
       operationId: getUploadUrl
       tags:
         - Media
