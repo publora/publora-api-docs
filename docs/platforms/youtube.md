@@ -4,7 +4,7 @@ Upload videos to YouTube programmatically using the Publora REST API. A simpler 
 
 ## YouTube API Overview
 
-Publora provides a unified REST API for uploading and publishing videos to YouTube with configurable privacy settings (public, unlisted, private) and metadata (title, description). No need to manage Google OAuth flows, handle resumable uploads, or navigate YouTube API quotas.
+Publora provides a unified REST API for uploading and publishing videos to YouTube with configurable privacy (public, unlisted, private), metadata (title, description, tags, category, made-for-kids), and a custom thumbnail. No need to manage Google OAuth flows, handle resumable uploads, or navigate YouTube API quotas.
 
 ### Why Use Publora Instead of YouTube Data API?
 
@@ -47,14 +47,18 @@ Where `{channelId}` is your YouTube channel ID assigned during account connectio
 
 ## Platform-Specific Settings
 
-YouTube supports a `platformSettings` object to control video privacy and title:
+YouTube supports a `platformSettings` object for video metadata and a custom thumbnail:
 
 ```json
 {
   "platformSettings": {
     "youtube": {
       "privacy": "public",
-      "title": "My Video Title"
+      "title": "My Video Title",
+      "tags": ["api", "tutorial", "publora"],
+      "categoryId": "28",
+      "madeForKids": false,
+      "thumbnailUrl": "https://media.publora.com/your-thumbnail.jpg"
     }
   }
 }
@@ -63,9 +67,34 @@ YouTube supports a `platformSettings` object to control video privacy and title:
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
 | `privacy` | `"private"`, `"public"`, `"unlisted"` | `"public"` | Video visibility on YouTube |
-| `title` | string | `""` (empty string) | Title displayed on the video page. The publisher service may derive a title from the first 70 characters of the post content at publish time, but the API stores an empty string by default at post creation. |
+| `title` | string | `""` (empty string) | Title displayed on the video page. If empty, the publisher derives a title from the first 70 characters of the post content at publish time. |
+| `tags` | string[] (or comma-separated string) | — | Video tags (`snippet.tags`). YouTube caps the **combined** length at 500 characters (tags containing whitespace are quote-wrapped, costing +2 chars each); the API trims the list to fit, so an oversized list can't fail the upload. Omitted entirely when empty. |
+| `categoryId` | string | — | YouTube video category ID (e.g. `"22"` People & Blogs, `"28"` Science & Technology). When omitted, YouTube applies the channel's default. An invalid id will fail the upload — see [Category IDs](#category-ids). |
+| `madeForKids` | boolean | `false` | Sets `status.selfDeclaredMadeForKids` — YouTube's required "made for kids" (COPPA) audience declaration. **Always sent** on every upload; defaults to `false` (not made for kids). |
+| `thumbnailUrl` | string | — | URL of a custom thumbnail image (JPEG/PNG, ≤2 MB, 1280×720 recommended). See [Custom Thumbnail](#custom-thumbnail) for the upload flow and constraints. |
 
-> **Note:** If no title is specified, the API defaults the title to an empty string `""` at post creation. The publisher service may derive a title from the first 70 characters of the post content at publish time. To set a custom title, pass it explicitly via `platformSettings` in the `create-post` request body. The API merges user-provided settings with defaults per platform.
+> **Note:** The full `content` is used as the video description. Pass `platformSettings` directly in the `create-post` request body — the API merges your values with the per-platform defaults.
+
+### Tags
+
+Pass `tags` as an array of strings (`["api", "tutorial"]`) or a comma-separated string (`"api, tutorial"`). The API trims blanks and enforces YouTube's 500-character combined cap by keeping tags until the budget is exhausted, so an over-long list is truncated rather than rejected.
+
+### Made for kids
+
+`madeForKids` maps to YouTube's required `selfDeclaredMadeForKids` audience declaration and is sent on **every** upload (defaulting to `false`). Set it to `true` if your content is directed at children, per YouTube/COPPA rules.
+
+### Category IDs
+
+`categoryId` accepts a YouTube category ID string. Common values: `"22"` (People & Blogs), `"28"` (Science & Technology), `"24"` (Entertainment), `"27"` (Education), `"10"` (Music). An invalid or region-disallowed id causes YouTube to reject the whole upload, so leave it unset to fall back to the channel default if unsure.
+
+### Custom Thumbnail
+
+`thumbnailUrl` sets a custom video thumbnail via the YouTube `thumbnails.set` API **after** the video is published.
+
+- **Source must be Publora-hosted.** Only URLs on `media.publora.com` (or the `brandcraft-media` S3 bucket) are accepted — upload your thumbnail image through the [media upload flow](../guides/media-uploads.md) and use the returned URL. Arbitrary external URLs are rejected (not fetched).
+- **Format & size:** JPEG or PNG, ≤ 2 MB, 1280×720 (16:9) recommended.
+- **Requires a verified channel.** YouTube only allows custom thumbnails on channels that have completed verification.
+- **Best-effort:** the thumbnail is applied after the video publishes. If it fails (unverified channel, oversized/invalid image), **the video still publishes** — only the thumbnail is skipped.
 
 ### Privacy Settings
 
