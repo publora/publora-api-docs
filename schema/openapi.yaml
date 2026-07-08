@@ -2237,13 +2237,118 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "409":
-          description: User already exists
+          description: |
+            An account with this email already exists. The response includes
+            `userId` and membership fields (`attachable`, `requiresConsent`,
+            `reason`, `alreadyInWorkspace`, `managedByAnotherWorkspace`). When
+            `attachable: true`, attach the user via POST /workspace/users/attach.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "User with this email already exists"
+                code: "email_exists"
+                userId: "6626a1f5e4b0c91a2d3f4567"
+                alreadyInWorkspace: false
+                managedByAnotherWorkspace: false
+                reason: "standalone_user_exists"
+                attachable: true
+                requiresConsent: true
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /workspace/users/attach:
+    post:
+      summary: Attach an existing user
+      description: |
+        Attach an existing standalone Publora user to your workspace as a managed
+        user. Because the target account already exists, this requires the target
+        user's consent: a valid access token belonging to that user (the
+        `accessToken` returned when they sign in), passed as `userAccessToken`.
+        Re-attaching a user who is already in your workspace is idempotent and
+        does not require a consent token.
+
+        **Requires Workspace access - contact serge@publora.com to enable.**
+      operationId: attachManagedUser
+      tags:
+        - Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: "The existing user's email. Provide either email or userId (also accepted as `username`)."
+                  example: "user@example.com"
+                userId:
+                  type: string
+                  description: "The existing user's ObjectId. Provide either email or userId."
+                  example: "6626a1f5e4b0c91a2d3f4567"
+                userAccessToken:
+                  type: string
+                  description: "The target user's access token, proving consent. Required unless the user is already in your workspace. Also accepted as `attachToken` in the body or via the `x-publora-user-token` header."
+              example:
+                email: "user@example.com"
+                userAccessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        "200":
+          description: User attached (or already in your workspace)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/ManagedUser"
+                  alreadyInWorkspace:
+                    type: boolean
+                    description: "true if the user was already managed by your workspace (idempotent re-attach)"
+                    example: false
+        "400":
+          description: Missing/invalid identifier, mismatched email vs userId, or the owner's own account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Email or userId is required"
+                code: "missing_identifier"
+        "403":
+          description: Workspace access not enabled, the target user's consent token is missing/invalid/mismatched, or attaching would exceed the plan's connection limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Target user consent token is required"
+                code: "attach_consent_required"
+        "404":
+          description: No active user matches the identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "User not found"
+                code: "user_not_found"
+        "409":
+          description: The target user is inactive, a workspace owner, in another workspace, or has an active subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Cannot attach a user with an active subscription"
+                code: "user_has_active_subscription"
         "500":
           description: Server error
           content:

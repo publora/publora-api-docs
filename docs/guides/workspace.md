@@ -14,6 +14,7 @@ The Workspace API lets you create **managed users** under your workspace. Each m
 - **Managed User:** A user created under your workspace. They have their own social connections and posts, but you control them via the API. User IDs are MongoDB ObjectIds (24-character hex strings, e.g., `6626a1f5e4b0c91a2d3f4567`). The API returns user IDs as `_id` in response bodies (the MongoDB `_id` field).
 - **Connection URL:** A temporary OAuth link you generate and send to a managed user so they can connect their social media accounts.
 - **Per-User API Key:** An optional API key generated for a specific managed user, allowing direct API access scoped to that user.
+- **Attaching an Existing User:** A person who already has their own Publora account can be pulled into your workspace as a managed user — but only with their **consent**, proven by a valid access token belonging to that user. See [Attach an Existing User](#attach-an-existing-user).
 
 ### Authentication Headers
 
@@ -32,6 +33,7 @@ Each managed user has a `dailyPostsLeft` field (default: 100) returned in the us
 |---|---|---|
 | `GET` | `/api/v1/workspace/users` | List all managed users |
 | `POST` | `/api/v1/workspace/users` | Create a new managed user |
+| `POST` | `/api/v1/workspace/users/attach` | Attach an **existing** Publora user to your workspace (requires the target user's consent token) |
 | `DELETE` | `/api/v1/workspace/users/:userId` | Detach a managed user (preserves user record, removes workspace association) |
 | `POST` | `/api/v1/workspace/users/:userId/api-key` | Generate a per-user API key |
 | `POST` | `/api/v1/workspace/users/:userId/connection-url` | Generate an OAuth connection link |
@@ -126,6 +128,174 @@ console.log('Managed user created:', user._id);
 console.log('Username:', user.username);
 console.log('Display name:', user.displayName);
 ```
+
+---
+
+### Attach an Existing User
+
+Use this when the person you want to manage **already has their own Publora account**. Calling [Create a Managed User](#create-a-managed-user) with an email that already exists returns `409` with `code: "email_exists"` and a set of fields describing whether — and how — that user can be attached:
+
+| Field | Type | Description |
+|---|---|---|
+| `userId` | `string` | The existing user's ObjectId |
+| `reason` | `string` | Why the email conflicts (see table below) |
+| `attachable` | `boolean` | `true` if the user can be attached to your workspace |
+| `requiresConsent` | `boolean` | `true` if attaching requires the target user's consent token |
+| `alreadyInWorkspace` | `boolean` | `true` if the user is already managed by **your** workspace |
+| `managedByAnotherWorkspace` | `boolean` | `true` if the user is managed by a **different** workspace |
+
+Example `409` response for a standalone user who can be attached:
+
+```json
+{
+  "error": "User with this email already exists",
+  "code": "email_exists",
+  "userId": "6626a1f5e4b0c91a2d3f4567",
+  "alreadyInWorkspace": false,
+  "managedByAnotherWorkspace": false,
+  "reason": "standalone_user_exists",
+  "attachable": true,
+  "requiresConsent": true
+}
+```
+
+`reason` values:
+
+| `reason` | Meaning | Attachable? |
+|---|---|---|
+| `standalone_user_exists` | Independent Publora account, not in any workspace | Yes — with the user's consent |
+| `already_in_workspace` | Already managed by **your** workspace | No action needed (already yours) |
+| `managed_by_another_workspace` | Managed by a **different** workspace | No |
+| `workspace_owner` | The user is itself a workspace owner | No |
+| `inactive_user` | The account is deactivated | No |
+
+When `attachable: true` and `requiresConsent: true`, attach the user with **their consent**. The consent proof is a valid **access token belonging to that user**: the user signs in to Publora (`POST https://api.publora.com/auth/signin` with their email and password) and the response's `accessToken` is passed as `userAccessToken`. The token must belong to the exact user being attached, or the request is rejected.
+
+**Endpoint:** `POST /api/v1/workspace/users/attach`
+
+**Body parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `email` | `string` | One of `email` / `userId` | The existing user's email (also accepted as `username`) |
+| `userId` | `string` | One of `email` / `userId` | The existing user's ObjectId (e.g. taken from the `email_exists` response) |
+| `userAccessToken` | `string` | Yes (for a new attach) | The target user's access token, proving their consent. Also accepted as `attachToken` in the body, or via the `x-publora-user-token` header. Not required when re-attaching a user who is already in your workspace. |
+
+> If you pass both `email` and `userId`, they must refer to the same user (otherwise `400 identifier_mismatch`).
+
+**JavaScript (fetch)**
+
+```javascript
+const response = await fetch(
+  'https://api.publora.com/api/v1/workspace/users/attach',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-publora-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      email: 'user@example.com',                 // or userId: '6626a1f5e4b0c91a2d3f4567'
+      userAccessToken: 'THE_USERS_ACCESS_TOKEN'  // the target user's access token (their consent)
+    })
+  }
+);
+
+const { user, alreadyInWorkspace } = await response.json();
+console.log('Attached user:', user._id, '| alreadyInWorkspace:', alreadyInWorkspace);
+```
+
+**Python (requests)**
+
+```python
+import requests
+
+response = requests.post(
+    'https://api.publora.com/api/v1/workspace/users/attach',
+    headers={
+        'Content-Type': 'application/json',
+        'x-publora-key': 'YOUR_API_KEY'
+    },
+    json={
+        'email': 'user@example.com',                  # or 'userId': '6626a1f5e4b0c91a2d3f4567'
+        'userAccessToken': 'THE_USERS_ACCESS_TOKEN'   # the target user's access token (their consent)
+    }
+)
+
+data = response.json()
+print(f"Attached user: {data['user']['_id']} | alreadyInWorkspace: {data['alreadyInWorkspace']}")
+```
+
+**cURL**
+
+```bash
+curl -X POST https://api.publora.com/api/v1/workspace/users/attach \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -d '{
+    "email": "user@example.com",
+    "userAccessToken": "THE_USERS_ACCESS_TOKEN"
+  }'
+```
+
+**Node.js (axios)**
+
+```javascript
+const axios = require('axios');
+
+const { data } = await axios.post(
+  'https://api.publora.com/api/v1/workspace/users/attach',
+  {
+    email: 'user@example.com',                 // or userId: '6626a1f5e4b0c91a2d3f4567'
+    userAccessToken: 'THE_USERS_ACCESS_TOKEN'  // the target user's access token (their consent)
+  },
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      'x-publora-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+console.log('Attached user:', data.user._id, '| alreadyInWorkspace:', data.alreadyInWorkspace);
+```
+
+**Success response (`200`):**
+
+```json
+{
+  "user": {
+    "_id": "6626a1f5e4b0c91a2d3f4567",
+    "username": "user@example.com",
+    "displayName": "John Doe",
+    "role": "managed",
+    "dailyPostsLeft": 100,
+    "isActive": true
+  },
+  "alreadyInWorkspace": false
+}
+```
+
+`alreadyInWorkspace` is `true` when the user was already managed by your workspace — the call is idempotent, so re-attaching is safe and does not require a consent token.
+
+**Attach errors:**
+
+| Status | `code` | Meaning |
+|---|---|---|
+| `400` | `missing_identifier` | Neither `email` nor `userId` was provided |
+| `400` | `invalid_email` | `email` is not a valid email address |
+| `400` | `invalid_user_id` | `userId` is not a valid ObjectId |
+| `400` | `identifier_mismatch` | `email` and `userId` refer to different users |
+| `400` | `cannot_attach_self` | The identifier is the workspace owner's own account |
+| `403` | `attach_consent_required` | `userAccessToken` was missing |
+| `403` | `invalid_attach_consent` | The consent token is invalid, expired, or revoked |
+| `403` | `attach_consent_mismatch` | The consent token belongs to a different user than the target |
+| `404` | `user_not_found` | No active user matches the identifier |
+| `409` | `user_inactive` | The target account is deactivated |
+| `409` | `user_is_workspace_owner` | The target is itself a workspace owner and cannot be managed |
+| `409` | `user_in_another_workspace` | The target already belongs to a different workspace |
+| `409` | `user_has_active_subscription` | The target has an active paid subscription; it must be cancelled before attaching |
+| `403` | `CHANNEL_LIMIT_REACHED` | Attaching the user's existing social connections would exceed your plan's connection limit |
 
 ---
 
@@ -729,7 +899,10 @@ client = onboard_client('acme-corp', 'Acme Corp')
 | Problem | Cause | Solution |
 |---|---|---|
 | `400` "Email is required" | The `username` field is missing or empty in the create-user request body | Include a non-empty `username` field in the request body |
-| `409` "User with this email already exists" | A managed user with the same `username` (email) already exists in the workspace | Use a different email or retrieve the existing user via `GET /api/v1/workspace/users` |
+| `409` "User with this email already exists" (`code: "email_exists"`) | An account with that email already exists. Inspect `attachable` / `reason` in the response: it may be your own managed user, another workspace's user, or a standalone account you can attach | If `attachable: true`, attach it via [Attach an Existing User](#attach-an-existing-user); if `alreadyInWorkspace: true`, no action is needed; otherwise use a different email |
+| `403` `attach_consent_required` on attach | The `userAccessToken` (target user's consent token) was missing | Have the target user sign in (`POST /auth/signin`) and pass the returned `accessToken` as `userAccessToken` |
+| `409` `user_has_active_subscription` on attach | The target user has their own active paid subscription | The user must cancel their subscription before they can be attached as a managed user |
+| `409` `user_in_another_workspace` on attach | The target user is already managed by a different workspace | They must be detached from that workspace first |
 | `403` "Workspace access is not enabled for this key" | Workspace feature not enabled for your account | Contact serge@publora.com to enable Workspace API access |
 | `401` when using workspace endpoints | Invalid workspace API key | Verify the `x-publora-key` value is your workspace-level API key |
 | `403` `"User is not managed by key"` when posting on behalf of a user | The `x-publora-user-id` refers to a user whose `parentUser` is not set to your user ID | Ensure the managed user has `parentUser` set to your user ID (i.e., they belong to your workspace) |

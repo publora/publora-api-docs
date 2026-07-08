@@ -103,9 +103,10 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/workspace-users` | GET | List team members |
-| `/workspace-users` | POST | Add team member |
-| `/workspace-users/:userId` | DELETE | Remove team member |
+| `/workspace/users` | GET | List team members |
+| `/workspace/users` | POST | Add team member |
+| `/workspace/users/attach` | POST | Attach an existing Publora user (needs the user's consent token) |
+| `/workspace/users/:userId` | DELETE | Remove team member |
 
 ## Common Patterns
 
