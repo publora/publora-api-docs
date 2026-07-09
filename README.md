@@ -63,6 +63,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `PUT` | `/update-post/:postGroupId` | Update post timing or status | [View](docs/endpoints/update-post.md) |
 | `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](docs/endpoints/delete-post.md) |
 | `POST` | `/get-upload-url` | Get pre-signed URL for media upload | [View](docs/endpoints/upload-media.md) |
+| `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](docs/endpoints/upload-instagram-cover.md) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](docs/endpoints/webhooks.md) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](docs/endpoints/linkedin-statistics.md) |
 | `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](docs/endpoints/linkedin-statistics.md) |
@@ -129,6 +130,7 @@ All plans include full API access. Pro/Premium use per-account pricing — add a
 - [Test Connection](docs/endpoints/test-connection.md) — validate a connection before posting
 - [Webhooks](docs/endpoints/webhooks.md) — real-time notifications for post events
 - [Upload Media](docs/endpoints/upload-media.md) — images and video uploads
+- [Upload Instagram Cover](docs/endpoints/upload-instagram-cover.md) — custom cover image for Reels
 - [LinkedIn Statistics](docs/endpoints/linkedin-statistics.md) — post and account analytics
 - [LinkedIn Reactions](docs/endpoints/linkedin-reactions.md) — add/remove reactions
 - [LinkedIn Reshare](docs/endpoints/linkedin-reshare.md) — repost an existing LinkedIn post

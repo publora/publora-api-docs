@@ -703,6 +703,123 @@ paths:
                 serverError:
                   value: { "error": "Server error" }
 
+  /upload-instagram-cover:
+    post:
+      summary: Upload a custom Instagram Reel cover image
+      description: |
+        Upload a cover image for an Instagram Reel. The image is stored as a
+        JPEG (PNG/WebP are transcoded server-side; transparency is flattened
+        onto white) and a public URL is returned. Set that URL as
+        platformSettings.instagram.coverUrl via update-post to use it as the
+        Reel cover. The target post group must be an editable (draft or
+        scheduled) post you own and not currently publishing.
+        Covers apply to Reels only and are ignored for Stories and images.
+      operationId: uploadInstagramCover
+      tags:
+        - Media
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [cover, postGroupId]
+              properties:
+                cover:
+                  type: string
+                  format: binary
+                  description: "Cover image (JPEG, PNG, or WebP; 8 MB max). PNG/WebP are converted to JPEG."
+                postGroupId:
+                  type: string
+                  description: "Editable post group (draft or scheduled) to attach the cover to"
+                  example: "507f1f77bcf86cd799439011"
+      responses:
+        "200":
+          description: Cover uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  cover:
+                    type: object
+                    properties:
+                      mediaId:
+                        type: string
+                        description: "Cover media record ID"
+                        example: "665f8a1b2c3d4e5f6a7b8c9d"
+                      url:
+                        type: string
+                        format: uri
+                        description: "Public JPEG URL — set as platformSettings.instagram.coverUrl via update-post"
+                        example: "https://media.publora.com/images/665f...-reel-cover.jpg"
+                  message:
+                    type: string
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPostGroupId:
+                  value: { "error": "postGroupId is required" }
+                invalidPostGroupId:
+                  value: { "error": "Invalid postGroupId" }
+                missingFile:
+                  value: { "error": "cover file is required" }
+                badType:
+                  value: { "error": "Instagram covers must be JPEG, PNG, or WebP images" }
+                tooLarge:
+                  value: { "error": "Instagram covers must be 8 MB or smaller" }
+                tooLargeAfterTranscode:
+                  value:
+                    {
+                      "error": "Instagram cover exceeds 8 MB after JPEG conversion; use a smaller image",
+                    }
+                nonEditable:
+                  value: { "error": "Cannot upload Instagram cover for a non-editable post" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Post group not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group not found"
+        "409":
+          description: Post group is currently publishing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group is currently being published; cannot upload Instagram cover. Retry once publishing completes."
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to upload Instagram cover"
+
   /linkedin-post-statistics:
     post:
       summary: Get LinkedIn post analytics

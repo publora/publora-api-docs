@@ -285,6 +285,24 @@ curl -X PUT "https://s3.amazonaws.com/bucket/path?signature=..." \
 
 Media files uploaded with a `postGroupId` are automatically attached to that post group. No additional step is needed to link media to a post.
 
+## Upload Instagram Cover
+
+Upload a custom cover image for a Reel, then attach it via `coverUrl` (two-step flow).
+
+```bash
+# 1. Upload the cover (JPEG/PNG/WebP, 8 MB max; converted to JPEG)
+COVER_URL=$(curl -s -X POST https://api.publora.com/api/v1/upload-instagram-cover \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -F "cover=@./reel-cover.png" \
+  -F "postGroupId=507f1f77bcf86cd799439011" | jq -r '.cover.url')
+
+# 2. Attach it to the Reel
+curl -X PUT https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011 \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"platformSettings\":{\"instagram\":{\"coverUrl\":\"$COVER_URL\"}}}"
+```
+
 ## LinkedIn Statistics
 
 ### Get Post Statistics
