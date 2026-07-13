@@ -339,7 +339,7 @@ If you have Context7 MCP server configured in Cursor:
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": ["-y", "@anthropic/context7-mcp"]
+      "args": ["-y", "@upstash/context7-mcp"]
     }
   }
 }

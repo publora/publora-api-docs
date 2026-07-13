@@ -16,7 +16,7 @@ Control Publora directly from AI assistants like Claude Code, Claude Desktop, Cu
 
 > "Show my connected social accounts"
 > "Schedule a post to LinkedIn for tomorrow at 9am"
-> "Get my LinkedIn analytics for the past week"
+> "Delete my scheduled post for tomorrow"
 > "Post this announcement to all my accounts"
 
 ## Quick Start
@@ -47,7 +47,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, you'll have access to 18 Publora tools. Try asking:
+After restarting, you'll have access to 13 Publora tools. Try asking:
 
 > "List my connected social media accounts"
 
@@ -123,18 +123,25 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (18)
+## Available Tools (13)
 
 ### Posts
 
 | Tool | Description |
 |------|-------------|
-| `list_posts` | List posts with filters (status, platform, dates, pagination) |
-| `create_post` | Schedule a post to one or more platforms |
+| `list_posts` | List posts with filters (status, platform, dates, pagination; `responseFormat: concise` for token-lean previews) |
+| `create_post` | Create a draft or schedule a post; accepts `mediaUrls` (fast media path) and `platformSettings` |
 | `get_post` | Get post group details |
-| `update_post` | Change status (draft/scheduled) or reschedule |
+| `update_post` | Change status/schedule, append `mediaUrls`, or merge `platformSettings` |
 | `delete_post` | Delete a post group and all platform posts |
-| `get_upload_url` | Get presigned S3 URL for media upload |
+
+### Media
+
+| Tool | Description |
+|------|-------------|
+| `get_upload_url` | Get a presigned S3 URL for media upload |
+| `complete_media` | Finalize a file uploaded via `get_upload_url` |
+| `delete_media` | Remove a media slot from a post |
 
 ### Platform Connections
 
@@ -142,30 +149,22 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 |------|-------------|
 | `list_connections` | List all connected social media accounts |
 
-### LinkedIn Analytics & Engagement
+### LinkedIn Engagement
 
 | Tool | Description |
 |------|-------------|
-| `linkedin_post_stats` | Post engagement metrics (impressions, reactions, etc.) |
-| `linkedin_account_stats` | Aggregated account statistics |
-| `linkedin_followers` | Follower count or daily growth |
-| `linkedin_profile_summary` | Combined profile overview (followers + stats) |
 | `linkedin_create_reaction` | React to a post (LIKE, PRAISE, EMPATHY, etc.) |
 | `linkedin_delete_reaction` | Remove a reaction |
 | `linkedin_create_comment` | Post a comment on a LinkedIn post |
 | `linkedin_delete_comment` | Delete a comment from a LinkedIn post |
 
-### Workspace (B2B)
-
-| Tool | Description |
-|------|-------------|
-| `list_workspace_users` | List managed team members |
-| `create_workspace_user` | Add a new managed user |
-| `workspace_detach_user` | Remove a user from workspace |
+> LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST API](../endpoints/). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
 ## Example Conversations
+
+> **Note:** Analytics examples below illustrate REST-API capabilities. MCP itself exposes engagement *actions* (reactions/comments), not analytics reads — pull metrics via the [REST API](../endpoints/).
 
 ### Schedule a Post
 
@@ -334,7 +333,7 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 18 MCP tools | Full API access |
+| **Tools** | 13 MCP tools | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.

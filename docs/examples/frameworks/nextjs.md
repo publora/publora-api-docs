@@ -14,7 +14,7 @@ No additional dependencies needed - uses native `fetch`.
 
 ```bash
 # .env.local
-PUBLORA_API_KEY=sk_your_api_key_here
+PUBLORA_API_KEY=sk_YOUR_API_KEY
 ```
 
 ## API Route Handler (App Router)

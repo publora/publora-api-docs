@@ -109,7 +109,21 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 11 active Publora tools (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+Claude should list the 13 active Publora tools (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+
+---
+
+## Claude.ai (web) — Custom Connector
+
+The Publora MCP server supports the claude.ai **custom connector** via **OAuth 2.1** (Dynamic Client Registration + PKCE) — no config file, no manual API-key header.
+
+1. In claude.ai go to **Settings → Connectors → Add custom connector**.
+2. Set the URL to `https://mcp.publora.com` and add it.
+3. Click **Connect**. Claude runs the OAuth flow and opens a **"Connect Publora to Claude"** page.
+4. Paste your Publora API key (`sk_...`) on that page and click **Authorize**. That key becomes the connector's credential — Publora stores no separate OAuth password.
+5. The 13 Publora tools appear in the connector. Reconnect the same way if you rotate your key.
+
+> Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for Claude Code, Cursor, and other clients — OAuth is only needed for the claude.ai web/desktop connector UI, which requires it.
 
 ---
 
@@ -541,6 +555,6 @@ Some clients support environment variable interpolation:
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 11 active tools with parameters
+- [Tools Reference](./tools-reference.md) — All 13 active tools with parameters
 - [Examples](./examples.md) — Real-world conversation examples
 - [Troubleshooting](./troubleshooting.md) — Common issues and solutions

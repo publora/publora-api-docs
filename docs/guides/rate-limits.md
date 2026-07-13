@@ -20,7 +20,7 @@ pip install requests
 
 ```bash
 # Set your API key (get it from publora.com → API in sidebar)
-export PUBLORA_API_KEY="sk_your_api_key_here"
+export PUBLORA_API_KEY="sk_YOUR_API_KEY"
 ```
 
 ### Minimal Working Example
@@ -29,7 +29,7 @@ export PUBLORA_API_KEY="sk_your_api_key_here"
 
 ```javascript
 // high-volume-scheduler.js
-// Run: PUBLORA_API_KEY=sk_xxx node high-volume-scheduler.js
+// Run: PUBLORA_API_KEY=sk_YOUR_API_KEY node high-volume-scheduler.js
 
 const axios = require('axios');
 
@@ -90,7 +90,7 @@ main().catch(console.error);
 ```python
 #!/usr/bin/env python3
 # high_volume_scheduler.py
-# Run: PUBLORA_API_KEY=sk_xxx python high_volume_scheduler.py
+# Run: PUBLORA_API_KEY=sk_YOUR_API_KEY python high_volume_scheduler.py
 
 import os
 import requests
@@ -209,7 +209,7 @@ The scheduler examples use these Publora API endpoints:
 ```http
 POST https://api.publora.com/api/v1/create-post
 Content-Type: application/json
-x-publora-key: sk_your_api_key
+x-publora-key: sk_YOUR_API_KEY
 
 {
   "content": "Your post content",
@@ -231,7 +231,7 @@ x-publora-key: sk_your_api_key
 
 ```http
 GET https://api.publora.com/api/v1/get-post/{postGroupId}
-x-publora-key: sk_your_api_key
+x-publora-key: sk_YOUR_API_KEY
 ```
 
 **Response:**
@@ -266,7 +266,7 @@ x-publora-key: sk_your_api_key
 
 ```http
 GET https://api.publora.com/api/v1/platform-connections
-x-publora-key: sk_your_api_key
+x-publora-key: sk_YOUR_API_KEY
 ```
 
 **Response:**

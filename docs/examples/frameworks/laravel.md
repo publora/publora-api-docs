@@ -23,7 +23,7 @@ return [
 
 ```bash
 # .env
-PUBLORA_API_KEY=sk_your_api_key_here
+PUBLORA_API_KEY=sk_YOUR_API_KEY
 ```
 
 ## Publora Service Class

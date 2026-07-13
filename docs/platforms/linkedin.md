@@ -236,6 +236,8 @@ console.log(data);
 
 > **Note:** The create reaction endpoint returns HTTP **201** (not 200). The response may include an `urnTranslated` field when the provided URN needed to be translated to a different format for the LinkedIn API.
 
+> **Note:** POSTing a reaction that already exists returns **409** `REACTION_ALREADY_EXISTS`. Reactions are keyed by `(account, post)`, so delete the existing reaction before applying a different type.
+
 **cURL**
 ```bash
 curl -X POST https://api.publora.com/api/v1/linkedin-reactions \

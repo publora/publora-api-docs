@@ -205,19 +205,17 @@ curl -v -X POST https://mcp.publora.com \
 
 ---
 
-### "oauth_not_supported" (404) on `/register` or `.well-known/oauth-*`
+### OAuth / claude.ai connector
 
-**Cause:** Your MCP client tried to perform OAuth Dynamic Client Registration. Publora MCP uses static API keys, not OAuth, so these paths return:
+**`mcp.publora.com` supports OAuth 2.1** (Dynamic Client Registration + PKCE) in addition to static API keys. The claude.ai **custom connector** uses it automatically:
 
-```json
-{
-  "error": "oauth_not_supported",
-  "error_description": "Publora MCP uses static API keys, not OAuth. Send 'Authorization: Bearer sk_<your_key>' or 'x-publora-key: sk_<your_key>'.",
-  "docs": "https://docs.publora.com/mcp/openclaw"
-}
-```
+1. claude.ai → **Settings → Connectors → Add custom connector** → URL `https://mcp.publora.com`.
+2. Click **Connect** → a **"Connect Publora to Claude"** consent page opens.
+3. Paste your `sk_...` API key and **Authorize**. (Your API key *is* the credential — the OAuth access token wraps it; Publora stores no extra secret.)
 
-**Solution:** Disable OAuth in your client's MCP configuration and supply a static API key header instead. If the client offers no static-key option, see [Client Setup](./client-setup.md) for known-working clients.
+**If you instead see** `{"error":"oauth_not_supported"}` **(404) on `/register` or `/.well-known/oauth-*`:** you are hitting a deployment running in **static-key-only mode** (OAuth disabled). The public `mcp.publora.com` has OAuth enabled; a self-hosted/older instance without the OAuth signing secret does not. On such an instance, disable OAuth in your client and send a static key header (`Authorization: Bearer sk_...` or `x-publora-key: sk_...`).
+
+**Headless CLIs (mcporter, custom agents):** the consent step is an interactive web page, so non-interactive clients can't complete it — use a static API-key header instead of the OAuth flow.
 
 ---
 
@@ -438,7 +436,7 @@ If `mcporter list` still reports `auth required` even with the Bearer header in 
 mcporter list --config config/mcporter.json --verbose
 ```
 
-> **Do not run `mcporter auth publora`.** Publora MCP uses static API keys, not OAuth. The `auth` command performs OAuth Dynamic Client Registration against `/register`, which the server does not implement — it will fail with a 404.
+> **Don't run `mcporter auth publora`.** `mcp.publora.com` *does* support OAuth 2.1 (DCR + PKCE), but its consent step is an **interactive** "paste your API key" web page that a headless CLI can't complete — so authenticate mcporter with a static key header (`Authorization: Bearer sk_...` or `x-publora-key`) instead. (The OAuth flow is for the claude.ai web connector.)
 
 **Solution 2: Check mcporter version**
 

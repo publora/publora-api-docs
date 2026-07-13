@@ -42,11 +42,11 @@ This skill provides complete documentation for the Publora social media scheduli
 
 Publora uses **API keys** (not OAuth tokens). Keys never expire and don't require refresh.
 
-**Header:** `x-publora-key: sk_your_api_key`
+**Header:** `x-publora-key: sk_YOUR_API_KEY`
 
 ```javascript
 const response = await fetch('https://api.publora.com/api/v1/platform-connections', {
-  headers: { 'x-publora-key': 'sk_your_api_key' }
+  headers: { 'x-publora-key': 'sk_YOUR_API_KEY' }
 });
 ```
 
@@ -65,6 +65,8 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | `/delete-post/:postGroupId` | DELETE | Delete a post |
 | `/get-upload-url` | POST | Get presigned URL for media |
 | `/upload-instagram-cover` | POST | Upload a custom Instagram Reel cover (multipart) |
+| `/upload-youtube-thumbnail` | POST | Upload a custom YouTube thumbnail (multipart) |
+| `/platform-limits` | GET | Get live per-platform limits (no params) |
 | `/post-logs/:postGroupId` | GET | Get publishing logs for a post |
 
 ### Connections
@@ -118,7 +120,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-publora-key': 'sk_your_api_key'
+    'x-publora-key': 'sk_YOUR_API_KEY'
   },
   body: JSON.stringify({
     content: 'Hello world!',
@@ -132,7 +134,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ```javascript
 const response = await fetch('https://api.publora.com/api/v1/platform-connections', {
-  headers: { 'x-publora-key': 'sk_your_api_key' }
+  headers: { 'x-publora-key': 'sk_YOUR_API_KEY' }
 });
 const { connections } = await response.json();
 // Use connections[].platformId for posting
@@ -145,7 +147,7 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-post-stati
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-publora-key': 'sk_your_api_key'
+    'x-publora-key': 'sk_YOUR_API_KEY'
   },
   body: JSON.stringify({
     postedId: 'urn:li:share:7123456789',
@@ -162,7 +164,7 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-comments',
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-publora-key': 'sk_your_api_key'
+    'x-publora-key': 'sk_YOUR_API_KEY'
   },
   body: JSON.stringify({
     postedId: 'urn:li:ugcPost:7123456789',
@@ -179,7 +181,7 @@ const response = await fetch('https://api.publora.com/api/v1/webhooks', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-publora-key': 'sk_your_api_key'
+    'x-publora-key': 'sk_YOUR_API_KEY'
   },
   body: JSON.stringify({
     url: 'https://your-server.com/webhook',
@@ -248,6 +250,8 @@ Common errors:
 - 404: Resource not found
 
 ## Resources
+
+<!-- Maintainers: the backend /api/v1/x-bookmarks and /auth/x-bookmarks routes are internal (dashboard X-bookmark sync, gated by requireXBookmarksAccess) — intentionally undocumented, do not add to public API docs. -->
 
 See the `docs/` directory for:
 - `docs/endpoints/` - Detailed endpoint documentation

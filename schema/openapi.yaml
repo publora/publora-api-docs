@@ -303,6 +303,59 @@ paths:
               example:
                 error: "Failed to fetch platform connections"
 
+  /platform-limits:
+    get:
+      summary: Get live per-platform posting limits
+      description: |
+        Return Publora's per-platform limits (characters, images, videos,
+        documents, GIFs, thumbnails, and requirements) as live JSON, sourced
+        from the shared @publora/platform-limits package. These are the
+        API-specific limits Publora validates against before scheduling — use
+        them to drive client-side validation instead of hard-coding values.
+        No parameters.
+      operationId: getPlatformLimits
+      tags:
+        - Posts
+      responses:
+        "200":
+          description: Per-platform limits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  schemaVersion:
+                    type: integer
+                    example: 1
+                  source:
+                    type: string
+                    example: "@publora/platform-limits"
+                  packageVersion:
+                    type: string
+                    example: "1.0.0"
+                  limitsLastUpdated:
+                    type: string
+                    example: "2026-03-11"
+                  supportedPlatforms:
+                    type: array
+                    items:
+                      type: string
+                    example: ["twitter", "instagram", "threads", "tiktok", "linkedin", "youtube", "facebook", "mastodon", "bluesky", "telegram", "pinterest"]
+                  platforms:
+                    type: object
+                    description: "Keyed by platform. Each value carries platform, displayName, characters, images, videos, requirements, plus documents, gifs, and thumbnails (null when the platform has no distinct spec)."
+                    additionalProperties:
+                      type: object
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /create-post:
     post:
       summary: Create and schedule a social media post
@@ -819,6 +872,117 @@ paths:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "Failed to upload Instagram cover"
+
+  /upload-youtube-thumbnail:
+    post:
+      summary: Upload a custom YouTube video thumbnail
+      description: |
+        Upload a custom thumbnail for a YouTube video post. The image is stored
+        as Publora-tracked media and a mediaId + url are returned; attach them
+        via platformSettings.youtube.thumbnail on update-post. A thumbnail
+        cannot be set on create-post — the upload requires an existing
+        postGroupId (draft or scheduled) that is not currently publishing.
+        JPEG or PNG, 2 MB max, minimum 640x360 px (1280x720 recommended).
+      operationId: uploadYouTubeThumbnail
+      tags:
+        - Media
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [thumbnail, postGroupId]
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+                  description: "Thumbnail image (JPEG or PNG; 2 MB max; min 640x360 px, 1280x720 recommended)."
+                postGroupId:
+                  type: string
+                  description: "Editable post group (draft or scheduled) to attach the thumbnail to"
+                  example: "507f1f77bcf86cd799439011"
+      responses:
+        "200":
+          description: Thumbnail uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  thumbnail:
+                    type: object
+                    properties:
+                      mediaId:
+                        type: string
+                        description: "Thumbnail media record ID — set as platformSettings.youtube.thumbnail.mediaId via update-post"
+                        example: "665f8a1b2c3d4e5f6a7b8c9d"
+                      url:
+                        type: string
+                        format: uri
+                        description: "Public thumbnail URL — set as platformSettings.youtube.thumbnail.url via update-post"
+                        example: "https://media.publora.com/images/665f...-thumb.jpg"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPostGroupId:
+                  value: { "error": "postGroupId is required" }
+                invalidPostGroupId:
+                  value: { "error": "Invalid postGroupId" }
+                missingFile:
+                  value: { "error": "thumbnail file is required" }
+                badType:
+                  value: { "error": "YouTube thumbnails must be JPEG or PNG images" }
+                tooLarge:
+                  value: { "error": "YouTube thumbnails must be 2 MB or smaller" }
+                tooSmall:
+                  value: { "error": "YouTube thumbnails must be at least 640x360 pixels" }
+                nonEditable:
+                  value: { "error": "Cannot upload YouTube thumbnail for a non-editable post" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Post group not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group not found"
+        "409":
+          description: Post group is currently publishing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group is currently being published; cannot upload YouTube thumbnail. Retry once publishing completes."
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to upload YouTube thumbnail"
 
   /linkedin-post-statistics:
     post:

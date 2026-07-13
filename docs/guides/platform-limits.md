@@ -4,6 +4,8 @@ This comprehensive guide documents the limits for all 10 social media platforms 
 
 **Last Updated:** March 2026
 
+> **Fetch these live:** the same limits are available as JSON from [`GET /platform-limits`](../endpoints/platform-limits.md) — call it to drive validation instead of hard-coding the tables below.
+
 ## Overview
 
 When building applications with the Publora API, it is critical to understand that **API limits often differ from native app limits**. Social media platforms impose different restrictions depending on whether content is posted through their official apps, web interfaces, or third-party APIs.

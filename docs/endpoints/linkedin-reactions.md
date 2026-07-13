@@ -210,9 +210,12 @@ curl -X DELETE "https://api.publora.com/api/v1/linkedin-reactions?postedId=urn:l
 | 401 | `"Invalid API key owner"` | API key owner user not found in database |
 | 403 | `"API access is not enabled for this account"` | Account does not have API access enabled |
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
+| 409 | `"REACTION_ALREADY_EXISTS"` | A reaction by this account already exists on the post (any type). LinkedIn keys reactions by `(actor, entity)`, so delete the existing reaction before applying a different one. |
 | 500 | `"Failed to create LinkedIn reaction"` | Server error while adding reaction |
 
 > **Note:** The 500 error response includes `details` and `status` fields: `{ "error": "Failed to create LinkedIn reaction", "details": { ... }, "status": <HTTP status> }`. The `details` field contains the full LinkedIn API error response object, whose structure depends on what LinkedIn returns (e.g., it may include `message`, `status`, `serviceErrorCode`, etc.). The `status` field reflects the HTTP status code returned by the LinkedIn API.
+
+> **Note:** POSTing a reaction that already exists returns **409** with body `{ "error": "REACTION_ALREADY_EXISTS", "message": "A reaction already exists on this post. Delete it before applying '<TYPE>'.", "requestedReactionType": "<TYPE>" }`. Publora cannot read your existing reaction type back (LinkedIn scope limitation), so the conflict is surfaced rather than silently overwritten. To change reaction type, [remove the reaction](#remove-reaction) first, then POST the new one.
 
 > **Note:** Error status codes from the LinkedIn API may be forwarded directly (e.g., 403, 429), so you may receive error codes other than those listed above.
 

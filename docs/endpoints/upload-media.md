@@ -80,6 +80,8 @@ The dashboard uses a different endpoint (`/media/generate-upload-url`) with diff
 
 If you create a post with `scheduledTime` set immediately, the scheduler may attempt to publish before your media upload completes — resulting in a failed post or missing media.
 
+> **⚠ Attaching media demotes a scheduled post to draft.** If you call `get-upload-url` against a post that is already `scheduled`, the post is automatically demoted back to `draft` so the new media set gets re-validated. The response carries `postGroupDemoted: true` and a `message`. **You must re-schedule** it afterward with `PUT /update-post/:postGroupId` (`status: "scheduled"` + `scheduledTime`). Skipping the re-schedule is the most common cause of media that "uploaded fine" but never published — the post silently sits in `draft`. The same demote happens when you remove media with `DELETE /media/:mediaId`.
+
 ### Quick workflow (text-only posts):
 
 ```
@@ -393,10 +395,30 @@ The `sessionId` is returned for future use, but the SSE progress endpoint (`/pro
 
 If a `POST /get-upload-url` call succeeds but the subsequent `PUT` to the presigned S3 URL is cancelled or fails, the MediaFile record is persisted to the post group. An abandoned upload would otherwise leave a broken reference that blocks re-scheduling with `MEDIA_DIMENSIONS_UNVERIFIED`.
 
-There is no public REST endpoint to delete a single media file by API key. To clean up an abandoned upload:
+Two REST endpoints handle this by API key:
 
-- **Delete the parent post group** via `DELETE /api/v1/delete-post/:postGroupId` — this removes the post group and all attached media. Works while the post is in `draft` or `scheduled` status.
-- **Or use the Publora dashboard** to remove the specific media file from the post group.
+- **`DELETE /api/v1/media/:mediaId`** — delete a single media file. Detaches it from its post group and hard-deletes the row + S3 object. Returns `{ "success": true }`. If the parent post was `scheduled`, the response also includes `postGroupDemoted: true` and the group is demoted to `draft` (re-schedule with `update-post`). Errors: `400 "Invalid mediaId"` (malformed), `404 "Media file not found"`, `409` if the group is mid-publish, `400` if the group is already `published`/`failed`.
+- **`DELETE /api/v1/delete-post/:postGroupId`** — removes the whole post group and all attached media (works in `draft` or `scheduled`).
+- Or use the Publora dashboard.
+
+## Finalizing an Upload (optional)
+
+```
+POST https://api.publora.com/api/v1/complete-media/:mediaFileId
+```
+
+After you `PUT` the bytes to the presigned URL, you *may* call `complete-media` to probe the file server-side immediately: it extracts authoritative metadata and advances the media from `uploading` → `ready` (or `failed`), giving you fast "is my media valid?" feedback. It is **optional** — the `update-post` scheduling gate probes any still-`uploading` media lazily when you schedule. Auth is the same `x-publora-key`.
+
+Response:
+
+```json
+{
+  "success": true,
+  "mediaFile": { "_id": "...", "type": "image", "mimeType": "image/jpeg", "fileName": "images/...", "url": "https://...", "status": "ready", "metadata": { } }
+}
+```
+
+> Note: `complete-media` only probes an already-attached file — it does **not** attach media and does **not** demote a scheduled post. Only `get-upload-url` (attach) and `DELETE /media` (detach) trigger the demote-to-draft behavior.
 
 ## File URLs
 

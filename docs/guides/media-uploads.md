@@ -18,6 +18,10 @@ Media is automatically attached to the post group via the `postGroupId` you prov
 
 > **Note:** Pre-signed upload URLs expire after **1 hour**. If you do not complete the upload within that time, request a new URL via `POST /api/v1/get-upload-url`.
 
+> **⚠ Attach/remove media on a *scheduled* post = demoted to draft.** Requesting an upload URL (`get-upload-url`) or deleting media (`DELETE /api/v1/media/:mediaId`) for a post that is already `scheduled` demotes it back to `draft` so the changed media set is re-validated. The response carries `postGroupDemoted: true`. **Re-schedule** with `update-post` (`status: "scheduled"`) afterward, or the post never publishes. Build media on a **draft** first to avoid this entirely.
+
+> **One-shot alternative:** `create-post` (and `update-post`) accept an optional `mediaUrls` array of public **https** URLs (up to 10). Publora downloads them server-side and attaches them before validation, so you can attach media and schedule in a single call — no `get-upload-url`/`PUT`/`complete-media` round-trip. Rate-limited to 60 URLs/hour.
+
 ### Supported Formats
 
 | Type | Formats |
@@ -28,7 +32,7 @@ Media is automatically attached to the post group via the `postGroupId` you prov
 ### Limits
 
 - **Maximum file size:** 512 MB per file. All uploads go through a 512 MB multer limit on the Publora server regardless of platform. While some platforms natively support larger files (e.g., YouTube 256 GB, Facebook 2 GB, Telegram 2 GB), Publora caps all uploads at 512 MB. Note: this limit is not enforced server-side via a `ContentLengthRange` condition on the presigned URL. The 512 MB multer middleware limit applies to the dashboard's `/media/process-video` route, not to the external API `GET /api/v1/get-upload-url` endpoint (which uses JSON body parsing, not multer).
-- **Per post:** The maximum number of images varies by platform: Twitter/X, Bluesky, and Mastodon allow up to **4 images**; Instagram and Threads allow up to **10 images** (carousels); LinkedIn allows up to **10 images**; Facebook and Telegram allow up to **10 images**. Video posts are limited to **1 video** per post. Note: per-post media limits are validated at scheduling time (when the post moves to `scheduled` status), not at upload time. This validation only applies to the dashboard flow; the external API `update-post` endpoint does not perform media validation.
+- **Per post:** The maximum number of images varies by platform: Twitter/X, Bluesky, and Mastodon allow up to **4 images**; Instagram and Threads allow up to **10 images** (carousels); LinkedIn allows up to **10 images**; Facebook and Telegram allow up to **10 images**. Video posts are limited to **1 video** per post. Note: per-post media limits are validated at scheduling time (when the post moves to `scheduled` status), not at upload time. The external API `update-post` endpoint **does** validate media — at the scheduling gate. When a post moves to `scheduled`, `update-post` first finalizes/probes each attached media file and **refuses to schedule while any media is still in `uploading` status** (returns 400 with a not-ready payload), then runs full post validation (per-platform media counts, media-required platforms, etc.) and returns 400 `{ "error": "Validation failed", "validation": {…} }` on failure.
 - **Instagram restriction:** Instagram does not allow mixing images and videos in the same post. A post must contain either all images or a single video. This is validated at scheduling time.
 - **Threads carousels:** Up to **10 images** (video items in carousels are not currently supported by Publora; standalone video posts work normally)
 

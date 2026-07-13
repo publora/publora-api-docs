@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 11 active Publora MCP tools with parameters, examples, and code snippets. Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST API](../endpoints/), not MCP.
+Complete reference for the 13 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST API](../endpoints/), not MCP.
 
 > **Note:** Most tools return the full `{ success, ... }` backend API response as shown in the examples below. `list_connections` returns a different response shape (an array without the `success` wrapper) because the underlying API endpoint uses a different response format. The MCP server does not do any post-processing on responses. The response examples below reflect the actual format returned by each tool.
 
@@ -22,6 +22,7 @@ List posts with optional filters for status, platform, and date range.
 | `limit` | number | No | Results per page (default: 20, max: 100) |
 | `sortBy` | string | No | Sort field: `createdAt`, `updatedAt`, `scheduledTime` (default: createdAt) |
 | `sortOrder` | string | No | Sort direction: `asc` or `desc` (default: desc) |
+| `responseFormat` | string | No | `detailed` (default) returns full post content; `concise` truncates each post's content to a preview to save tokens |
 
 **Example prompts:**
 
@@ -103,40 +104,41 @@ Create and schedule a post to one or more platforms.
 |-----------|------|----------|-------------|
 | `content` | string | Yes | Post text content |
 | `platforms` | string[] | Yes | Array of platform connection IDs (from `list_connections`) |
-| `scheduledTime` | string | Yes | When to publish (ISO 8601): `2026-03-01T14:00:00Z` |
+| `scheduledTime` | string | No | When to publish (ISO 8601): `2026-03-01T14:00:00Z`. Omit to create a **draft**. |
+| `mediaUrls` | string[] | No | Up to 10 public **https** image/video URLs, downloaded server-side and attached before validation. Pass together with `scheduledTime` to attach **and** schedule in one call. |
+| `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
 
-> **MCP vs REST difference:** `scheduledTime` is required in the MCP schema to ensure AI agents always specify a publish time. In the REST API, this field is optional — omitting it creates a draft post instead.
+> **MCP vs REST difference:** `scheduledTime` is optional in the MCP schema — omit it to create a **draft**. Media-required platforms (Instagram, TikTok, YouTube, Pinterest) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached.
 
-> **MCP limitation:** `platformSettings` is NOT available via MCP. To configure platform-specific settings (TikTok privacy level, YouTube title, Instagram videoType, Threads replyControl), use the REST API directly.
->
-> **`platformSettings` schema reference** — only these 4 platforms support settings; settings for other platforms are silently ignored:
+> **Media-required platforms (Instagram, TikTok, YouTube, Pinterest):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`.
+
+> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. Only these five platforms accept settings:
 >
 > ```json
 > {
 >   "platformSettings": {
->     "tiktok": {
->       "viewerSetting": "string",
->       "commercialContent": "boolean",
->       "brandOrganic": "boolean",
->       "brandedContent": "boolean",
->       "allowComments": "boolean",
->       "allowDuet": "boolean",
->       "allowStitch": "boolean"
->     },
 >     "instagram": {
->       "videoType": "REELS | STORIES",  // default: "REELS"
->       "coverUrl": "string"  // optional: public http(s) URL to a JPEG used as the Reels cover
+>       "videoType": "REELS | STORIES",
+>       "shareToFeed": true,
+>       "coverUrl": "https://.../cover.jpg"
+>     },
+>     "tiktok": {
+>       "viewerSetting": "PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY",
+>       "allowComments": true, "allowDuet": true, "allowStitch": true,
+>       "commercialContent": false, "brandOrganic": false, "brandedContent": false
 >     },
 >     "youtube": {
->       "privacy": "public | unlisted | private",  // default: "public"
->       "title": "string"  // default: ""
+>       "privacy": "public | unlisted | private",
+>       "title": "string", "madeForKids": false,
+>       "tags": ["string"], "categoryId": "string",
+>       "playlist": { "id": "string", "platformId": "string" }
 >     },
->     "threads": {
->       "replyControl": "string"  // default: ""
->     }
+>     "threads": { "replyControl": "everyone | accounts_you_follow | mentioned_only" },
+>     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false }
 >   }
 > }
 > ```
+> YouTube custom thumbnails are **not** settable here (they need the separate multipart thumbnail endpoint, which MCP does not expose).
 
 **Example prompts:**
 
@@ -295,8 +297,10 @@ Reschedule or change post status.
 | `postGroupId` | string | Yes | Post group ID |
 | `status` | string | No | New status: `draft` or `scheduled` |
 | `scheduledTime` | string | No | New scheduled time (ISO 8601) |
+| `mediaUrls` | string[] | No | Public https URLs (≤10) to download and **append** to the post's media. |
+| `platformSettings` | object | No | Per-platform options to merge (same strict schema as `create_post`). |
 
-> **Note:** At least one of `status` or `scheduledTime` must be provided, otherwise the backend returns a 400 error.
+> **Note:** Provide at least one of `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent** — repeating a call with `mediaUrls` appends the media again.
 
 **Example prompts:**
 
@@ -408,6 +412,8 @@ Get a presigned URL to upload media files.
 | Images | JPEG, PNG, GIF, WebP |
 | Videos | MP4, MOV, AVI, WebM |
 
+> **⚠ Attaching media demotes a scheduled post to draft.** Calling `get_upload_url` on an already-`scheduled` post demotes it back to `draft` (`postGroupDemoted: true` in the response). Attach media on a **draft**, then schedule with `update_post`. Companion media tools: **`complete_media`** (finalize/validate an uploaded `mediaId` — optional, the scheduling gate probes lazily) and **`delete_media`** (remove one attached media file; also demotes a scheduled post). Media attached via `mediaUrls` needs neither.
+
 **Python example:**
 
 ```python
@@ -439,6 +445,30 @@ async def upload_image_to_post():
                 with open("product-photo.jpg", "rb") as f:
                     await http.put(upload_url, data=f.read())
 ```
+
+### complete_media
+
+Finalize a file uploaded via `get_upload_url` (probes the object, persists type/metadata). Call it after the presigned `PUT` succeeds. *(Optional — scheduling also finalizes pending media — but calling it early surfaces format/probe errors before publish.)* Not needed for media attached via `mediaUrls`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mediaId` | string | Yes | The `mediaId` returned by `get_upload_url`. |
+
+### delete_media
+
+Remove a media slot from a post (detaches and deletes the underlying file). Deleting media from a **scheduled** post demotes it to `draft` — re-schedule with `update_post` afterward.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mediaId` | string | Yes | The `mediaId` of the slot to remove (see the `media` array in `get_post`). |
+
+> **Two ways to attach media:**
+> 1. **Fast path** — pass `mediaUrls` (public https URLs) to `create_post`/`update_post`; the server downloads them. No upload steps.
+> 2. **Upload dance** — `get_upload_url` → `PUT` the bytes to the presigned URL → `complete_media`. Use `delete_media` to drop a slot.
 
 ---
 
@@ -911,7 +941,7 @@ async def get_post_reactions():
 
 ## Error Handling
 
-When a tool encounters an error, it throws an exception that the MCP client will receive. Common error messages include:
+Every successful tool result carries both a text block and a machine-readable `structuredContent` object (MCP spec). On failure the tool surfaces the backend's full structured payload — `code`, `platform`, and `suggestions` where available — not just a bare message. Common errors include:
 
 | Error Message | Cause |
 |---------------|-------|

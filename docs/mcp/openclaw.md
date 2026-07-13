@@ -50,7 +50,7 @@ mcporter list --config config/mcporter.json
 
 > **Troubleshooting:**
 > - If `mcporter list` reports *auth required* even with a Bearer header in this config, mcporter likely merged a different config source (`~/.claude.json`, `~/.mcporter/…`). Re-run with `--verbose` to see which file supplied the `publora` entry.
-> - Do **not** run `mcporter auth publora`. The Publora MCP server uses static API keys (`Authorization: Bearer …` or `x-publora-key`), not OAuth. mcporter's `auth` command performs OAuth Dynamic Client Registration against `/register`, which does not exist on the server and will fail with an HTML 404.
+> - Don't run `mcporter auth publora`. `mcp.publora.com` *does* support OAuth 2.1 (DCR + PKCE), but its consent step is an **interactive** "paste your API key" web page — a headless CLI can't complete it. For OpenClaw/mcporter, authenticate with a static key header (`Authorization: Bearer sk_…` or `x-publora-key`) instead. (The OAuth flow is meant for the claude.ai web connector.)
 
 ## Using with OpenClaw
 
@@ -204,20 +204,24 @@ response = requests.post(
 print('Post scheduled:', response.json())
 ```
 
-### Media Upload (3-step process)
+### Media Upload
+
+> **Fastest (one call):** pass `mediaUrls` (public https URLs) to `create-post` together with `scheduledTime` — Publora downloads and attaches the media server-side, then schedules. No upload round-trip.
+>
+> **Local files (draft → upload → schedule):** attaching media via `get-upload-url` to an *already-scheduled* post **demotes it back to `draft`** (`postGroupDemoted: true`). So create a **draft** (no `scheduledTime`), attach, then schedule with `update-post`. The step-by-step example below uses this flow.
 
 ```python
 import requests
 from datetime import datetime, timedelta
 
-# Step 1: Create a post first to get postGroupId
+# Step 1: Create a DRAFT (omit scheduledTime) so media can attach without a demote
 post_response = requests.post(
     'https://api.publora.com/api/v1/create-post',
     headers={'x-publora-key': 'sk_YOUR_API_KEY'},
     json={
         'content': 'Check out this image!',
         'platforms': ['linkedin-connection-id'],
-        'scheduledTime': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+        # No scheduledTime = draft
     }
 )
 post_data = post_response.json()
@@ -244,7 +248,26 @@ with open('image.jpg', 'rb') as f:
         headers={'Content-Type': 'image/jpeg'}
     )
 
-print('Image uploaded and attached to post:', post_group_id)
+# Step 4 (optional): finalize/validate the upload early
+requests.post(
+    f'https://api.publora.com/api/v1/complete-media/{upload_data["mediaId"]}',
+    headers={'x-publora-key': 'sk_YOUR_API_KEY'},
+)
+
+# Step 5: Schedule the now-media-bearing draft
+requests.put(
+    f'https://api.publora.com/api/v1/update-post/{post_group_id}',
+    headers={'x-publora-key': 'sk_YOUR_API_KEY'},
+    json={'status': 'scheduled', 'scheduledTime': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z'},
+)
+print('Image attached and post scheduled:', post_group_id)
+
+# --- One-shot alternative: skip steps 2-5 entirely ---
+# requests.post('https://api.publora.com/api/v1/create-post',
+#     headers={'x-publora-key': 'sk_YOUR_API_KEY'},
+#     json={'content': 'Check out this image!', 'platforms': ['linkedin-connection-id'],
+#           'scheduledTime': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+#           'mediaUrls': ['https://example.com/photo.jpg']})
 ```
 
 ## Platform Capabilities
@@ -341,6 +364,6 @@ async def safe_schedule_post(agent, content, platforms, scheduled_time):
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 11 MCP tools
+- [Tools Reference](./tools-reference.md) — All 13 MCP tools
 - [Client Setup](./client-setup.md) — Other MCP clients
 - [Examples](./examples.md) — More conversation examples

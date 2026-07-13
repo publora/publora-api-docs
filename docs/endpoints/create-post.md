@@ -27,6 +27,7 @@ POST https://api.publora.com/api/v1/create-post
 | `platforms` | string[] | Yes | Array of platform connection IDs matching `/^[a-z]+-[a-zA-Z0-9_-]+$/` (e.g., `twitter-123456789`, `linkedin-ABC123`) |
 | `scheduledTime` | string | No | ISO 8601 UTC datetime. If omitted, the post is created as a `draft`. If the scheduled time is in the past, it is silently set to the current time |
 | `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. Only `tiktok`, `instagram`, `youtube`, `threads`, and `telegram` keys are accepted — any other platform keys are silently dropped. Each platform key must map to a plain object; non-object values are skipped. See [Default Platform Settings](#default-platform-settings) below for the full list of defaults and merge behavior. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
+| `mediaUrls` | string[] | No | Up to **10** public **https** image/video URLs. Publora downloads them server-side and attaches them to the post **before** validation, so you can attach media *and* schedule in one call (pass together with `scheduledTime`). This is the one-shot alternative to the draft → `get-upload-url` → schedule flow. Ingestion is rate-limited to 60 URLs/hour. See [Posts with Media](#posts-with-media). |
 
 ## Response
 
@@ -43,16 +44,27 @@ Use the `postGroupId` to track, update, or delete the post.
 
 ## Posts with Media
 
-> **Media-only platforms:** **Instagram, TikTok, and YouTube require media on every post** — a text-only post to these platforms cannot be published. `create-post` does **not** validate this (it only checks basic field presence), so a text-only post to these platforms is accepted here and then **fails when it is published** (Instagram, for example, errors with *"Instagram posts require at least one media item"*). When validation does run — the dashboard, or the validated update flow — it is rejected up front with the `MEDIA_REQUIRED` code instead. Always attach media via the draft → upload → schedule flow below so the post goes out cleanly. See [Validation](../guides/validation.md) for the per-platform media matrix.
+> **Media-required platforms (Instagram, TikTok, YouTube, Pinterest):** these platforms require media on every post. `create-post` **validates this at the scheduling gate**: if `scheduledTime` is set (so the post is created as `scheduled`) and one of these platforms has no media, the call is **rejected up front with HTTP 400 `MEDIA_REQUIRED`** — the validator runs with an empty media list. It is *not* accepted-then-failed-at-publish. Two ways to satisfy it: (1) pass `mediaUrls` (public https URLs) in the **same** `create-post` call to attach and schedule in one shot, or (2) create a **draft** (omit `scheduledTime`), attach media, then schedule via [Update Post](update-post.md). Creating a draft with no media is always allowed (drafts skip validation). See [Validation](../guides/validation.md) for the per-platform media matrix.
 
-> **Important:** When attaching images or videos, create the post as a **draft** (omit `scheduledTime`), upload media, then schedule via [Update Post](update-post.md).
+> **Two supported media flows:**
+>
+> **A. One-shot with `mediaUrls`** (public https URLs — best for agents):
+
+```
+POST /create-post   → content + platforms + scheduledTime + mediaUrls[]  (attached + scheduled in one call)
+```
+
+> **B. Draft → upload → schedule** (for local files):
 
 ```
 1. POST /create-post              → Omit scheduledTime (creates draft)
 2. POST /get-upload-url           → Get pre-signed URL for media
 3. PUT {uploadUrl}                → Upload file to S3
-4. PUT /update-post/:postGroupId  → Set scheduledTime to schedule
+4. POST /complete-media/:mediaId  → (optional) finalize/validate the upload early
+5. PUT /update-post/:postGroupId  → Set status="scheduled" + scheduledTime
 ```
+
+> **Do not** attach media via `get-upload-url` to an *already-scheduled* post: attaching media demotes the post back to `draft` (`postGroupDemoted: true`) and you must re-schedule. See [Upload Media](upload-media.md).
 
 This ensures media is fully uploaded before the scheduler processes your post. See [Upload Media](upload-media.md) for details.
 
@@ -175,7 +187,7 @@ console.log(data.postGroupId);
 
 ### Post to all 10 platforms at once
 
-> **Note:** This example shows the platform-ID format and fan-out only. As written it is **text-only**, so the **Instagram, TikTok, and YouTube** targets would fail at publish time — those platforms require media. To publish to them, create this as a draft (omit `scheduledTime`), [upload media](upload-media.md), then schedule.
+> **Note:** This example shows the platform-ID format and fan-out only. As written it is **text-only** with `scheduledTime` set, so it is **rejected with HTTP 400 `MEDIA_REQUIRED`** — the **Instagram, TikTok, YouTube, and Pinterest** targets require media. To include them, either pass `mediaUrls` in this same call, or create as a draft (omit `scheduledTime`), [upload media](upload-media.md), then schedule.
 
 ```javascript
 const response = await fetch('https://api.publora.com/api/v1/create-post', {
@@ -225,6 +237,10 @@ response = requests.post(
 | 400 | `"Invalid platform ID format: <id>"` | Platform ID does not match `/^[a-z]+-[a-zA-Z0-9_-]+$/` |
 | 400 | `"Invalid scheduled time format"` | `scheduledTime` is not a valid ISO 8601 datetime |
 | 400 | `"Invalid platformSettings JSON"` | `platformSettings` was provided as a string that could not be parsed as valid JSON |
+| 400 | `"mediaUrls must be an array of public https URLs"` | `mediaUrls` is present but not an array |
+| 400 | `"mediaUrls supports at most 10 URLs per request"` | More than 10 URLs supplied (also: `"mediaUrls must contain at least one URL when provided"`, `"Every mediaUrls entry must be a non-empty string"`) |
+| 400 | `"Media ingestion failed"` | One or more `mediaUrls` could not be downloaded/probed; per-URL detail in the `mediaResults` array |
+| 429 | `"Media URL ingestion rate limit reached (60 URLs/hour)…"` | `code: "MEDIA_URL_RATE_LIMITED"`, `retryAfterSec` + `Retry-After` header |
 | 400 | `"platformSettings must be an object"` | `platformSettings` is provided but is not a plain object (e.g., array, null, or primitive after JSON parsing) |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
@@ -237,7 +253,32 @@ response = requests.post(
 | 403 | LimitExceededError (structured) | Plan limit reached (see below) |
 | 500 | `"Failed to create post group"` | Unexpected server error |
 
-> **Media-requiring platforms (Instagram, TikTok, YouTube):** `create-post` does not validate media presence, so a text-only post to these platforms is **not** rejected here — it fails later when published (e.g. Instagram: *"Instagram posts require at least one media item"*). The validated flow returns the `MEDIA_REQUIRED` code instead. See [Posts with Media](#posts-with-media) and [Validation](../guides/validation.md).
+> **Media-required platforms (Instagram, TikTok, YouTube, Pinterest):** when `scheduledTime` is set, `create-post` validates media presence and **rejects a media-less post with HTTP 400 `MEDIA_REQUIRED`** (the validator runs with an empty media list). Attach media first — pass `mediaUrls`, or use the draft flow. See [Posts with Media](#posts-with-media) and [Validation](../guides/validation.md). The 400 body shape:
+>
+> ```json
+> {
+>   "error": "Validation failed",
+>   "validation": {
+>     "valid": false,
+>     "errors": [
+>       {
+>         "code": "MEDIA_REQUIRED",
+>         "message": "Instagram posts require media",
+>         "platform": "instagram",
+>         "field": "media",
+>         "suggestions": [
+>           "Upload an image or video for this platform",
+>           "This platform requires media. One-shot fix: POST /api/v1/create-post with mediaUrls (array of public https URLs) plus scheduledTime. Manual flow: create a draft (no scheduledTime), POST /api/v1/get-upload-url once per file, PUT the bytes with the same Content-Type, POST /api/v1/complete-media/:mediaId, then PUT /api/v1/update-post/:postGroupId with status='scheduled'."
+>         ],
+>         "severity": "error"
+>       }
+>     ],
+>     "warnings": [],
+>     "summary": { "errorCount": 1, "warningCount": 0, "affectedPlatforms": ["instagram"] }
+>   }
+> }
+> ```
+> (The second `suggestions` entry is the channel-aware recovery hint — MCP callers get the `create_post`/`get_upload_url` tool-name variant.)
 
 ### LimitExceededError (403)
 

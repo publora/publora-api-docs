@@ -168,7 +168,7 @@ A custom thumbnail is a **Publora-tracked media asset**, referenced by the `thum
 **Flow:**
 
 1. Create a draft post (`create-post`).
-2. Upload the thumbnail image through the dedicated YouTube thumbnail upload endpoint — it requires the `postGroupId`.
+2. Upload the thumbnail image through the [dedicated YouTube thumbnail upload endpoint](../endpoints/upload-youtube-thumbnail.md) — it requires the `postGroupId`.
 3. Use the returned `mediaId` and `url`.
 4. Update the post with `platformSettings.youtube.thumbnail` (`update-post`).
 5. Schedule the post.
