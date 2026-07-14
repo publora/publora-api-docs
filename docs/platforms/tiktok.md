@@ -31,14 +31,14 @@ Where `{openId}` is the TikTok `open_id` assigned during account connection via 
 
 - A TikTok account connected via OAuth through the Publora dashboard
 - API key from Publora
-- Video content is **required** (TikTok is a video-only platform)
+- Media is **required** — either a video or a photo carousel of up to 35 images (TikTok has no text-only posts)
 
 ## Supported Content
 
 | Type | Supported | Limits |
 |------|-----------|--------|
-| Text only | No | TikTok requires a video |
-| Images | No | Not supported as standalone posts |
+| Text only | No | TikTok requires media (a video or photo) |
+| Images | Yes | Photo carousel, up to 35 images (JPEG, PNG, WebP) |
 | Videos | Yes | MP4, MOV, WebM, AVI, MKV formats (Publora upload layer); TikTok's API may reject formats other than MP4/MOV/WebM, minimum 23 FPS |
 
 ## Platform-Specific Settings
@@ -63,7 +63,9 @@ TikTok has extensive publishing settings that you can control through the `platf
 
 ### Viewer Settings
 
-> **Effectively required.** While the schema default for `viewerSetting` is `""` (empty string), the validation service rejects posts without a non-empty value with the error: *"TikTok requires selecting who can view your post"* The API route automatically sets the default to `"PUBLIC_TO_EVERYONE"` when using the REST API, but posts created through the dashboard without explicitly selecting a viewer setting will fail validation. Always include `viewerSetting` in your `platformSettings.tiktok` object.
+> **Default: `PUBLIC_TO_EVERYONE`.** When you create a post via the REST API without specifying `viewerSetting`, Publora applies `PUBLIC_TO_EVERYONE`. A value is effectively required — an empty string is rejected with *"TikTok requires selecting who can view your post"* — so always set `viewerSetting` explicitly in your `platformSettings.tiktok` object.
+>
+> The viewer settings an account can actually use are determined by TikTok from that account's own configuration. Public accounts support all four levels below. If the connected account is private, TikTok limits it to `SELF_ONLY` and rejects other values for that account — switch the account to public in the TikTok app to unlock the full range.
 
 | Value | Description |
 |-------|-------------|
@@ -74,20 +76,15 @@ TikTok has extensive publishing settings that you can control through the `platf
 
 ### Interaction Settings
 
-> **WARNING: Boolean inversion bug.** Due to a known issue in the current code, the `allowComments`, `allowDuet`, and `allowStitch` settings are inverted when sent to the TikTok API. Publora maps `allowDuet: true` to `disable_duet: true` in the TikTok request, which **disables** duets instead of enabling them. The same inversion applies to `allowComments` (mapped to `disable_comment`) and `allowStitch` (mapped to `disable_stitch`).
+> Each flag is direct: `true` allows the interaction, `false` blocks it.
 >
-> **Workaround:** Set these values to the **opposite** of your intended behavior:
-> - Want duets **enabled**? Set `allowDuet: false`
-> - Want comments **disabled**? Set `allowComments: true`
-> - Want stitch **enabled**? Set `allowStitch: false`
->
-> **Verification note:** This bug's current status cannot be independently verified from the API source alone — the boolean-to-`disable_*` mapping happens in the publisher/scheduler service, which is a separate codebase. We recommend testing with a `SELF_ONLY` draft post to confirm whether the inversion is still present before relying on the workaround.
+> **Note:** Duet and Stitch apply to video posts only. TikTok also honors the account's own permissions — if a creator has disabled Duet, Stitch, or comments at the account level, that takes precedence over the request.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `allowComments` | boolean | `true` | Whether viewers can comment (**currently inverted** — see warning above) |
-| `allowDuet` | boolean | `false` | Whether viewers can create Duets (**currently inverted** — see warning above) |
-| `allowStitch` | boolean | `false` | Whether viewers can Stitch your video (**currently inverted** — see warning above) |
+| `allowComments` | boolean | `true` | Allow viewers to comment |
+| `allowDuet` | boolean | `false` | Allow viewers to create Duets |
+| `allowStitch` | boolean | `false` | Allow viewers to Stitch your video |
 
 ### Commercial Content Settings
 
@@ -221,7 +218,7 @@ console.log(response.data);
 // Response: { "success": true, "postGroupId": "abc123..." }
 ```
 
-> **Note:** TikTok requires a video. First create the post, then upload the video using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
+> **Note:** TikTok requires media — a video or a photo carousel. First create the post, then upload your media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
 
 ### Post a Private Video with Restricted Interactions
 
@@ -405,13 +402,11 @@ These limits apply specifically to the TikTok Content Posting API and may differ
 | Posts per day | 15-20 posts |
 | Videos per minute | Max 2 videos |
 
-### Important API Restrictions
+### Publishing Notes
 
-> **Critical:** Unaudited apps can only post **PRIVATE** videos. Your app must pass TikTok's review process to post public videos. Until then, all posts will be restricted to `SELF_ONLY` visibility regardless of your `viewerSetting` value.
-
-- **Video-only platform**: Images are NOT supported via the API. TikTok only accepts video content.
-- **App audit required for public posting**: Without TikTok's app approval, you cannot post publicly visible content.
-- **Rate limiting**: Exceeding daily or per-minute limits will result in rejected posts.
+- **Video or photo**: TikTok accepts a single video (MP4, MOV, WebM), or a photo carousel of up to 35 images (JPEG, PNG, WebP). Other image formats are transcoded automatically where possible.
+- **Privacy is account-dependent**: The viewer settings available to an account are set by TikTok from that account's configuration (see [Viewer Settings](#viewer-settings)). Public accounts can post at any level, including `PUBLIC_TO_EVERYONE`.
+- **Rate limits**: 15–20 posts per day and up to 2 videos per minute per account. Exceeding them returns `spam_risk_too_many_posts`.
 
 ### Common Error Messages
 
@@ -419,8 +414,7 @@ These limits apply specifically to the TikTok Content Posting API and may differ
 |------------|-------------|----------|
 | `spam_risk_too_many_posts` | Daily post limit reached | Wait 24 hours before posting again |
 | `duration_check_failed` | Video duration out of range | Ensure video is between 3 seconds and your account's max duration (default 10 minutes) |
-| `file_format_check_failed` | Unsupported video format | The error message may reference '.mp4' only, but the system actually accepts MP4, MOV, and WebM formats. Verify your file is a valid video in one of these formats. |
-| `unaudited_client_can_only_post_to_private_accounts` | App not approved for public posting | Submit your app for TikTok review or use `SELF_ONLY` viewer setting |
+| `file_format_check_failed` | Unsupported media format | Use MP4, MOV, or WebM for video, or JPEG, PNG, or WebP for photos. (The message may reference '.mp4' only, but these formats are all accepted.) |
 
 ---
 
