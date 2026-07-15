@@ -91,7 +91,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ### Automatic Splitting
 
-Content over 280 characters is automatically split:
+Content over the connected account's applicable limit (280 standard / 25,000 Premium or PremiumPlus) is automatically split:
 - At paragraph breaks (`\n\n`) first
 - At sentence endings (`. `, `! `, `? `) second
 - At word boundaries as fallback

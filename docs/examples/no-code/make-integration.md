@@ -293,7 +293,7 @@ Convert `"twitter-123;linkedin-456"` to array:
 
 ### Truncate for Twitter
 
-Keep content under 280 characters:
+For compatibility with standard X accounts, keep content under 280 characters:
 ```
 {{if(length(1.content) > 250; substring(1.content; 0; 247) + "..."; 1.content)}}
 ```

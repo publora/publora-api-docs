@@ -8,7 +8,7 @@ Detailed setup instructions for connecting Publora MCP to different AI clients.
 2. **API key** — Get from **API** in sidebar (starts with `sk_`)
 3. **Connected social account** — At least one platform connected
 
-> **Auth headers:** `x-publora-key: sk_...` is the required header for direct REST API calls to `api.publora.com`. The `Authorization: Bearer sk_...` format is only supported through the MCP proxy server, which translates it to `x-publora-key` internally. When making direct REST API calls, always use `x-publora-key`. The examples below use `Authorization: Bearer` for MCP client configurations, where it is the standard format.
+> **Auth headers:** Direct REST API calls to `api.publora.com` require `x-publora-key: sk_...`. MCP accepts `Authorization: Bearer sk_...` (recommended for MCP clients) and also `x-publora-key: sk_...`. The examples below use the recommended Bearer format.
 
 > **MCP client header:** The MCP server automatically sends an `x-publora-client: "mcp"` header on internal API calls. This identifies MCP traffic server-side. Your account must have `mcpAccess` enabled. All standard plans — including the free Starter plan — have MCP access; only custom accounts with `mcpAccess` disabled will receive a `403` error.
 
@@ -109,7 +109,7 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 13 active Publora tools (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+Claude should list the 14 active Publora tools, including `linkedin_create_reshare` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
 
 ---
 
@@ -121,7 +121,7 @@ The Publora MCP server supports the claude.ai **custom connector** via **OAuth 2
 2. Set the URL to `https://mcp.publora.com` and add it.
 3. Click **Connect**. Claude runs the OAuth flow and opens a **"Connect Publora to Claude"** page.
 4. Paste your Publora API key (`sk_...`) on that page and click **Authorize**. That key becomes the connector's credential — Publora stores no separate OAuth password.
-5. The 13 Publora tools appear in the connector. Reconnect the same way if you rotate your key.
+5. The 14 Publora tools appear in the connector. Reconnect the same way if you rotate your key.
 
 > Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for Claude Code, Cursor, and other clients — OAuth is only needed for the claude.ai web/desktop connector UI, which requires it.
 
@@ -543,7 +543,7 @@ Some clients support environment variable interpolation:
 2. **Check key format** — Should start with `sk_`
 3. **Generate new key** — At publora.com → **API** in sidebar
 
-> **Note:** `x-publora-key: sk_...` is the required header for direct REST API calls to `api.publora.com`. The `Authorization: Bearer sk_...` format is only supported through the MCP proxy server, which translates it to `x-publora-key` internally. For MCP client configurations, use the `Authorization: Bearer` format.
+> **Note:** Direct REST API calls to `api.publora.com` require `x-publora-key: sk_...`. MCP accepts both headers; use `Authorization: Bearer sk_...` for MCP client configurations unless your client or proxy requires the `x-publora-key` fallback.
 
 ### Connection refused
 
@@ -555,6 +555,6 @@ Some clients support environment variable interpolation:
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 13 active tools with parameters
+- [Tools Reference](./tools-reference.md) — All 14 active tools with parameters
 - [Examples](./examples.md) — Real-world conversation examples
 - [Troubleshooting](./troubleshooting.md) — Common issues and solutions

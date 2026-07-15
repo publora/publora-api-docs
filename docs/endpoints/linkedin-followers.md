@@ -209,7 +209,7 @@ curl -X POST https://api.publora.com/api/v1/linkedin-followers \
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that platformId |
 | 500 | `"Failed to fetch LinkedIn followers statistics"` | LinkedIn API error or internal server error |
 
-> **Note:** The "Invalid platformId" error only triggers for empty or unrecognized string values. Non-string values are caught earlier by the `"platformId must be a string"` check. Any non-empty string passes validation — the format is not checked against a strict pattern (unlike `create-post`, which uses a regex). This applies to followers, reactions, comments, and profile summary endpoints — but **not** statistics endpoints, which use inline extraction and never return this error.
+> **Note:** The "Invalid platformId" error only triggers for empty or unrecognized string values. Non-string values are caught earlier by the `"platformId must be a string"` check. Any non-empty string passes validation here. By contrast, `create-post` parses a compound key at the first `-`: its prefix must be lowercase letters, and its non-empty ID rejects whitespace, `/`, `?`, and `#` (colons are allowed). This applies to followers, reactions, comments, and profile summary endpoints — but **not** statistics endpoints, which use inline extraction and never return this error.
 
 > **Note:** Error status codes from the LinkedIn API may be forwarded directly (e.g., 403, 429), so you may receive error codes other than those listed above.
 

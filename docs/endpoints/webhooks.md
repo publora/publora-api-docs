@@ -306,10 +306,10 @@ Verify webhook authenticity using HMAC-SHA256:
 ```javascript
 const crypto = require('crypto');
 
-function verifyWebhookSignature(payload, signature, secret) {
+function verifyWebhookSignature(rawBody, signature, secret) {
   const expectedSignature = crypto
     .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
+    .update(rawBody)
     .digest('hex');
 
   return crypto.timingSafeEqual(
@@ -319,7 +319,7 @@ function verifyWebhookSignature(payload, signature, secret) {
 }
 
 // Express middleware
-app.post('/webhooks/publora', express.json(), (req, res) => {
+app.post('/webhooks/publora', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-publora-signature'];
   const event = req.headers['x-publora-event'];
 
@@ -327,7 +327,9 @@ app.post('/webhooks/publora', express.json(), (req, res) => {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  console.log(`Received ${event}:`, req.body.data);
+  const payload = JSON.parse(req.body.toString('utf8'));
+
+  console.log(`Received ${event}:`, payload.data);
 
   // Handle the event
   switch (event) {
@@ -352,16 +354,15 @@ app.post('/webhooks/publora', express.json(), (req, res) => {
 import os
 import hmac
 import hashlib
-import json
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 WEBHOOK_SECRET = os.environ['PUBLORA_WEBHOOK_SECRET']
 
-def verify_signature(payload, signature, secret):
+def verify_signature(raw_body, signature, secret):
     expected = hmac.new(
         secret.encode(),
-        json.dumps(payload, separators=(',', ':')).encode(),
+        raw_body,
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(signature, expected)
@@ -370,10 +371,12 @@ def verify_signature(payload, signature, secret):
 def handle_webhook():
     signature = request.headers.get('X-Publora-Signature')
     event = request.headers.get('X-Publora-Event')
-    payload = request.json
+    raw_body = request.get_data()
 
-    if not verify_signature(payload, signature, WEBHOOK_SECRET):
+    if not verify_signature(raw_body, signature, WEBHOOK_SECRET):
         return jsonify({'error': 'Invalid signature'}), 401
+
+    payload = request.get_json()
 
     print(f"Received {event}: {payload['data']}")
 
@@ -389,10 +392,13 @@ def handle_webhook():
 ## Webhook Reliability
 
 - Webhooks timeout after 10 seconds
-- Failed webhooks are retried (up to 5 consecutive failures)
+- Each event gets one delivery attempt; failed deliveries are not retried automatically
 - After 5 consecutive failures, the webhook is automatically disabled
+- A successful delivery resets `failureCount`; in a concurrent in-flight race it may also restore `isActive`. An already-disabled webhook receives no further deliveries and must be re-enabled explicitly with an update request.
 - Re-enable a disabled webhook by updating `isActive: true`
 - **Note:** Re-enabling a webhook via the API does **not** reset `failureCount`. The counter persists, meaning the webhook may be disabled again after fewer new failures. However, re-enabling a webhook via the **dashboard** does reset `failureCount` to 0. If you need to reset the counter through the API, delete and recreate the webhook.
+
+> **Signature verification:** Compute the HMAC-SHA256 over the exact raw request body bytes. Capture and verify the raw body before parsing JSON; parsing and re-serializing can change the signed bytes.
 
 ## Limits
 

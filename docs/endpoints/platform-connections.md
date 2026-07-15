@@ -111,8 +111,6 @@ The `platformId` follows the pattern `platform-id`:
 | Mastodon | `mastodon-109876543210` |
 | Telegram | `telegram--1001234567890` |
 
-> **Note:** Bluesky platform IDs containing colons (e.g., `bluesky-did:plc:abc123`) are returned by this endpoint but cannot be used directly with `create-post`, which validates against a stricter regex that does not allow colons. Use the `test-connection` endpoint instead, which accepts these IDs.
-
 ## Examples
 
 ### JavaScript (fetch)

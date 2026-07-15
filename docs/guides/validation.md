@@ -6,7 +6,7 @@ This guide covers how Publora validates posts before scheduling to prevent publi
 
 Posts are validated before scheduling to catch issues that would cause publishing failures on target platforms. Each social media platform has unique requirements for content length, media types, file sizes, and video durations. Publora validates your posts against these platform-specific limits and returns detailed error information so you can fix issues before scheduling.
 
-Validation runs when you change a post's status to `scheduled` in the Publora dashboard. The REST API `create-post` endpoint does **not** trigger full validation -- it only performs basic field presence checks. See the "When Validation Occurs" section below for details.
+Full validation runs at the scheduling gate. A REST `create-post` request is fully validated when it creates a scheduled post; a draft is validated when `update-post` changes it to `scheduled`.
 
 ## When Validation Occurs
 
@@ -15,8 +15,10 @@ Validation runs automatically on these API calls:
 | Endpoint | Trigger |
 |---|---|
 | Dashboard update to `scheduled` status | When changing a post's status to `scheduled` in the dashboard |
+| `POST /api/v1/create-post` | When `scheduledTime` makes the new post scheduled |
+| `PUT /api/v1/update-post/:id` | When scheduling the post; media URLs are finalized before validation |
 
-> **Note:** The `POST /api/v1/create-post` API endpoint does **not** run post validation (`postValidationService.validatePostGroup`). It only performs basic field presence checks (content, platforms, scheduledTime format). Full validation only runs in the dashboard flow when updating a post to `scheduled` status. The `PUT /api/v1/update-post/:id` endpoint also does **not** invoke the validation service -- it only accepts `status` and `scheduledTime` fields (for rescheduling or changing draft/scheduled status).
+> **Note:** `PUT /api/v1/update-post/:id` accepts `status`, `scheduledTime`, `platformSettings`, and `mediaUrls`; it also supports the `Idempotency-Key` header. Scheduling re-runs validation and media finalization.
 
 If validation fails with blocking errors, the API returns a `400` status code with details about what needs to be fixed. Warnings are returned but do not block the operation.
 
@@ -112,7 +114,7 @@ Some platforms require media, while others support text-only posts.
 
 ## Validation Response Format
 
-> **Note:** The structured validation response below (with `validation.errors[]`, `validation.warnings[]`, and `validation.summary`) is returned by the **dashboard validation endpoint** only. The REST API `create-post` endpoint does not run the full validation service and will not return this format (it only performs basic field presence checks). The REST API `update-post` endpoint and MCP `update_post` tool also do not invoke the validator.
+> **Note:** Scheduled `create-post` and scheduling `update-post` requests run the validation service and may return the structured response below. Draft creation does not pass through the scheduling gate.
 
 When validation errors occur, the API returns a `400` status code with a structured response:
 
@@ -191,13 +193,8 @@ When validation errors occur, the API returns a `400` status code with a structu
 |---|---|---|
 | `CONTENT_TOO_LONG` | Content exceeds the platform's character limit | Shorten the content or use threading where supported. **Note:** On threading-capable platforms (Twitter, Threads) with threading enabled, this is a **warning** (content will be auto-threaded). On other platforms or when threading is disabled, it is an **error**. |
 | `CONTENT_TOO_SHORT` | Content is below the minimum required length | Add more content |
-
-*Reserved -- not currently emitted by the validation service.*
-
-| `CONTENT_REQUIRED` | Text content is required but missing | Add text content to the post |
-
-*Reserved -- not currently emitted by the validation service.*
-| `CONTENT_OR_MEDIA_REQUIRED` | Either text or media is needed | Add content or attach media |
+| `CONTENT_REQUIRED` *(reserved — not currently emitted)* | Text content is required but missing | Add text content to the post |
+| `CONTENT_OR_MEDIA_REQUIRED` *(reserved — not currently emitted)* | Either text or media is needed | Add content or attach media |
 | `THREAD_PART_TOO_LONG` | A single thread part exceeds the platform's per-part character limit | Break the thread part into smaller segments. (This code is defined in the `@publora/platform-limits` package. Threading validation may occur in a separate service.) |
 | `INVALID_PLATFORM_CONTENT` | Content contains elements not supported by the platform | Remove unsupported content elements. (This error code is defined in the codebase but not currently emitted by the validation service.) |
 
@@ -210,9 +207,7 @@ When validation errors occur, the API returns a `400` status code with a structu
 | `MEDIA_COUNT_EXCEEDED` | Too many media files attached | Reduce the number of files |
 | `MEDIA_TYPE_NOT_SUPPORTED` | File format not supported by the platform | Convert to a supported format |
 | `MEDIA_DIMENSIONS_INVALID` | Image dimensions outside allowed range | Resize the image |
-| `IMAGES_NOT_SUPPORTED` | Platform is video-only (TikTok, YouTube) | Use a video instead |
-
-*Reserved -- not currently emitted by the validation service.*
+| `IMAGES_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform is video-only (TikTok, YouTube) | Use a video instead |
 
 ### Video Errors
 
@@ -221,9 +216,7 @@ When validation errors occur, the API returns a `400` status code with a structu
 | `VIDEO_REQUIRED` | Platform requires a video (TikTok, YouTube) | Attach a video file |
 | `VIDEO_DURATION_EXCEEDED` | Video is longer than the platform allows | Trim the video to meet the limit |
 | `VIDEO_DURATION_TOO_SHORT` | Video is shorter than the minimum required | Use a longer video (min 3s for TikTok/FB Reels) |
-| `VIDEO_NOT_SUPPORTED` | Platform does not support video | Remove the video or change target platforms |
-
-*Reserved -- not currently emitted by the validation service.*
+| `VIDEO_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform does not support video | Remove the video or change target platforms |
 
 ### Platform Errors
 
@@ -524,7 +517,7 @@ When a single post has issues on multiple platforms:
 | Instagram post fails with `MEDIA_TYPE_NOT_SUPPORTED` | Using an unsupported image format, such as GIF | Use JPEG, PNG, or WebP images |
 | TikTok post fails with `VIDEO_REQUIRED` | Posting images to a video-only platform | Use a video file instead |
 | Bluesky post fails with `MEDIA_SIZE_EXCEEDED` | Image over 1 MB | Compress to 80-85% JPEG quality |
-| Twitter post fails with `CONTENT_TOO_LONG` | Content over 280 characters | Shorten content or use threading |
+| Twitter post fails with `CONTENT_TOO_LONG` | Content exceeds the connected account's applicable limit | Shorten content or use threading |
 | Instagram Reels fails with `VIDEO_DURATION_EXCEEDED` | Video over 3 minutes | Trim video to under 3 minutes (180s) |
 | Multiple platforms fail with different errors | Content not optimized for all targets | Create platform-specific posts or fix each error |
 | Validation passes but publish fails | Platform-side issues (rate limits, account restrictions) | Check platform-specific error messages in the post status |

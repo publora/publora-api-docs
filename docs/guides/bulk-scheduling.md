@@ -621,8 +621,13 @@ async function scheduleWithRetry(post, maxRetries = 3) {
 
       const error = await response.json();
 
-      // Do not retry client errors (4xx) -- they will not succeed on retry
-      // Note: rate limit errors use 403 with a LimitExceededError format, not 429
+      // Most client errors should not be retried unchanged.
+      // mediaUrls ingestion can return 429 MEDIA_URL_RATE_LIMITED with Retry-After.
+      if (response.status === 429 && error.code === 'MEDIA_URL_RATE_LIMITED') {
+        const retryAfter = Number(response.headers.get('Retry-After') || 60);
+        await new Promise(r => setTimeout(r, retryAfter * 1000));
+        continue;
+      }
       if (response.status >= 400 && response.status < 500) {
         return { success: false, error: error.error || error.message };
       }

@@ -393,7 +393,10 @@ class CreateSocialPostRequest extends FormRequest
         return [
             'content' => 'required|string|max:10000',
             'platforms' => 'required|array|min:1',
-            'platforms.*' => 'string|regex:/^[a-z]+-[A-Za-z0-9]+$/',
+            // Use IDs returned by /platform-connections. Do not duplicate the
+            // backend parser here: valid IDs such as bluesky-did:plc:abc123
+            // contain colons.
+            'platforms.*' => 'string',
             'scheduled_time' => 'nullable|date|after:now',
             'platform_settings' => 'nullable|array',
         ];
@@ -402,7 +405,6 @@ class CreateSocialPostRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'platforms.*.regex' => 'Platform ID must be in format: platform-id (e.g., twitter-123456)',
             'scheduled_time.after' => 'Scheduled time must be in the future',
         ];
     }

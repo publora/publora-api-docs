@@ -188,7 +188,7 @@ If the platform has no test-connection validator implemented (e.g., Pinterest), 
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"Invalid platformId format"` | `platformId` doesn't contain a dash or is malformed. **Note:** This endpoint uses a simple dash-split validation (not the stricter `PLATFORM_ID_REGEX` used by the create-post endpoint), so it may accept platform IDs with uppercase platform prefixes that create-post would reject. |
+| 400 | `"Invalid platformId format"` | `platformId` doesn't contain a dash or is malformed. **Note:** This endpoint uses a simple dash-split validation. `create-post` instead parses at the first dash, requires a lowercase-letter prefix, and rejects whitespace, `/`, `?`, or `#` in the non-empty ID; colons are allowed. |
 | 400 | `"Invalid x-publora-user-id"` | `x-publora-user-id` header contains an invalid ObjectId |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is not a valid key |

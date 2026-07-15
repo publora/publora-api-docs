@@ -211,14 +211,14 @@ if not is_valid_publora_key(api_key):
     raise ValueError('Invalid PUBLORA_API_KEY format. Key must start with sk_')
 ```
 
-## Two Ways to Authenticate
+## Authentication by Interface
 
-Publora provides two interfaces that use the **same API key** with **different header formats**:
+Publora provides two interfaces that use the **same API key**. REST requires its custom header; MCP recommends Bearer authentication and also accepts the REST-style header:
 
 | Interface | Header Format | Use Case |
 |-----------|---------------|----------|
 | REST API | `x-publora-key: sk_...` | Direct HTTP requests |
-| MCP Server | `Authorization: Bearer sk_...` | AI assistants (Claude, Cursor) |
+| MCP Server | `Authorization: Bearer sk_...` (recommended) or `x-publora-key: sk_...` | AI assistants (Claude, Cursor) |
 
 ### REST API Authentication
 
@@ -262,7 +262,7 @@ For MCP clients connecting to `mcp.publora.com`:
 }
 ```
 
-**Why different headers?** The REST API uses a custom header (`x-publora-key`) for simplicity. The MCP server uses the standard `Authorization: Bearer` header because MCP clients expect OAuth-style headers.
+**Why recommend Bearer for MCP?** MCP clients commonly expect the standard `Authorization: Bearer` format. The MCP server also accepts `x-publora-key` as a fallback. Direct REST requests accept only `x-publora-key`.
 
 ### MCP Client Identification
 
@@ -631,7 +631,7 @@ You can generate multiple API keys — useful for different environments or appl
 | REST API Base URL | `https://api.publora.com/api/v1` |
 | MCP Server URL | `https://mcp.publora.com` |
 | REST API Header | `x-publora-key: sk_...` |
-| MCP Header | `Authorization: Bearer sk_...` |
+| MCP Header | `Authorization: Bearer sk_...` (recommended) or `x-publora-key: sk_...` |
 | Key Format | `sk_<timestamp_base36>_<random_hex>.<random_hex>` (~70 chars) |
 | Key Expiration | Never (until revoked) |
 | Max Keys | 10 active keys per user |

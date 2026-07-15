@@ -15,7 +15,7 @@ Publora provides a unified REST API for posting tweets to X (formerly Twitter), 
 | Thread creation | Automatic splitting | Manual tweet chaining |
 | Multi-platform | Post to 10 platforms | Twitter only |
 | Setup time | 5 minutes | Hours to days |
-| Pricing | Free tier available; paid plan required for X | Free tier + paid tiers |
+| Pricing | API access is included on the free Starter plan | Free tier + paid tiers |
 
 ### Keywords: Twitter API, X API, post tweet API, Twitter posting API, tweet programmatically, Twitter bot API, Twitter automation API, send tweet API, Twitter REST API, Twitter developer API
 
@@ -37,7 +37,7 @@ Where `{userId}` is your X/Twitter numeric user ID assigned during account conne
 
 | Type | Supported | Limits |
 |------|-----------|--------|
-| Text | Yes | 280 characters |
+| Text | Yes | 280 characters (standard) / 25,000 characters (Premium and PremiumPlus) |
 | Images | Yes | Up to 4 per post, auto-converted to PNG (max 1000px width) |
 | Videos | Yes | MP4, MOV format |
 | Threads | Yes | Auto-split with `(1/N)` markers |
@@ -66,7 +66,7 @@ Publora uses the official X API v2 `reply.in_reply_to_tweet_id` parameter to cha
 
 ### Automatic Splitting
 
-When content exceeds the 280-character limit, Publora automatically:
+When content exceeds the applicable account limit, Publora automatically:
 
 - Splits at paragraph breaks (`\n\n`) when possible
 - Falls back to sentence boundaries (`. `, `! `, `? `)
@@ -363,7 +363,7 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 ## Platform Quirks
 
-- **Emoji character counting**: Each emoji counts as 2 characters toward the 280-character limit. Publora accounts for this automatically.
+- **Emoji character counting**: Each emoji counts as 2 characters toward the applicable account limit. Publora accounts for this automatically.
 - **PNG preferred for images**: While JPEG works, PNG images tend to render with higher quality on X due to their compression algorithm.
 - **Thread numbering**: Publora adds `(1/N)` markers at the end of each tweet in a thread. This is appended after the content, so it reduces available character space by 10 characters per tweet.
 - **Image auto-conversion**: Publora automatically converts all images to PNG format and resizes them to a maximum width of 1000px before uploading.
@@ -375,8 +375,10 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 ### Character Limit
 
-- **All accounts:** 280 characters (Publora always uses the 280-character limit)
-- **Threading:** Supported - content over 280 characters will be split into a thread
+- **Standard accounts:** 280 characters
+- **Premium and PremiumPlus accounts:** 25,000 characters
+- **Detection:** Publora selects the limit automatically from the connected X account's subscription type
+- **Threading:** Supported when content exceeds the applicable account limit
 
 ### Image Limits
 
@@ -404,8 +406,9 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 | Account Type | Limit |
 |-------------|-------|
-| All accounts | 280 characters |
-| Thread tweet (each part) | 280 characters, minus `(X/N)` marker space (10 chars) |
+| Standard | 280 characters |
+| Premium and PremiumPlus | 25,000 characters |
+| Thread tweet (each part) | Applicable account limit, minus `(X/N)` marker space (10 chars) |
 
 ## Rate Limits
 

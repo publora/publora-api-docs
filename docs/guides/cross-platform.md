@@ -63,15 +63,16 @@ When your content exceeds a platform's character limit, Publora adapts it automa
 
 `platformSettings` can be passed directly in the `create-post` request body. The API merges user-provided settings with defaults per platform.
 >
-> **⚠️ Supported platforms for `platformSettings`:** The API only merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, and **Telegram**. Settings passed for other platforms (Twitter, LinkedIn, Facebook, Bluesky, Mastodon) are silently ignored.
+> **⚠️ Supported platforms for `platformSettings`:** The API merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, **Telegram**, and **LinkedIn**. Unknown top-level platforms or nested fields are rejected with `400 PLATFORM_SETTING_UNKNOWN`; they are not silently ignored. See the canonical [create-post platformSettings allowlist](../endpoints/create-post.md#unknown-platformsettings-paths).
 >
-> **⚠️ Important limitation:** The external API `update-post` endpoint only accepts `status`, `scheduledTime`, and `platformSettings` (merged per-platform — see [update-post](../endpoints/update-post.md)). It does **not** accept `content` or `platforms`. To change the text or target platforms after creation, use the Publora dashboard or create a new post.
+> **⚠️ Important limitation:** The external API `update-post` endpoint accepts `status`, `scheduledTime`, `platformSettings` (merged per-platform), and `mediaUrls`. `mediaUrls` has **append semantics**: newly ingested media is added to existing media rather than replacing it, and ingestion is limited to 60 URLs/hour. It does **not** accept `content` or `platforms`. See [update-post](../endpoints/update-post.md). To change the text or target platforms after creation, use the Publora dashboard or create a new post.
 
 Publora applies sensible defaults for platform-specific settings:
 
 - **TikTok:** Default privacy and interaction settings are applied automatically.
 - **Instagram:** Video posts are published as **Reels** by default. Set `videoType: "STORIES"` to post as a Story instead. An optional `coverUrl` (public JPEG URL) sets a custom Reels cover.
 - **YouTube:** Videos are set to **public** visibility by default.
+- **LinkedIn:** Repost settings can specify the parent post URN and `PUBLIC` or `CONNECTIONS` visibility.
 
 ### Response Status Code
 
@@ -230,7 +231,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const post = await response.json();
 console.log('Post created:', post.postGroupId);
-// On Twitter, if the text exceeds 280 characters, it becomes a thread automatically.
+// On Twitter, text above the connected account's applicable limit becomes a thread automatically.
 // On LinkedIn (3000 char limit) and Instagram (2200 char limit), the full text is posted as-is.
 ```
 
@@ -308,7 +309,7 @@ console.log('Post created:', post.postGroupId);
 
 ### Handle Long Content Across Platforms
 
-When posting long-form content, Publora automatically adapts it for each platform. Here is an example with text that exceeds Twitter's 280-character limit.
+When posting long-form content, Publora automatically adapts it for each platform. Here is an example with text that exceeds a standard Twitter account's 280-character limit.
 
 **JavaScript (fetch)**
 
@@ -338,7 +339,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: longContent,
     platforms: [
-      'twitter-123456',   // Will become a thread (exceeds 280 chars)
+      'twitter-123456',   // Becomes a thread on a standard account (exceeds 280 chars)
       'linkedin-ABCDEF',  // Full text posted (under 3000 chars)
       'threads-111213',    // Will become a thread (exceeds 500 chars)
       'telegram-141516',   // Handled within Telegram limits
@@ -523,7 +524,7 @@ if (status.posts) {
 | Problem | Cause | Solution |
 |---|---|---|
 | Post succeeds on some platforms but not others | Different requirements per platform (e.g., Instagram needs media) | Check which platforms need media and ensure your post includes it, or create separate post groups |
-| Twitter post appears as a thread | Text exceeds 280 characters | This is expected behavior -- Publora auto-threads long Twitter content |
+| Twitter post appears as a thread | Text exceeds the connected account's applicable limit | This is expected behavior -- Publora auto-threads long Twitter content |
 | `400` error with invalid platform ID | Platform ID does not match the `{platform}-{id}` format, or account is not connected | Verify the format and check `GET /api/v1/platform-connections` for valid IDs |
 | Content rejected on some platforms | Platform character limit is lower than your text length and platform does not support threading | Shorten content to fit within the platform's limit, or post to those platforms separately with shorter text |
 | Video post fails on Instagram | Instagram requires specific video formats for Reels | Ensure your video is MP4, meets Instagram's aspect ratio requirements, and is within duration limits |

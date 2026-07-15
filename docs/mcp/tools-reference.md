@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 13 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST API](../endpoints/), not MCP.
+Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST API](../endpoints/), not MCP.
 
 > **Note:** Most tools return the full `{ success, ... }` backend API response as shown in the examples below. `list_connections` returns a different response shape (an array without the `success` wrapper) because the underlying API endpoint uses a different response format. The MCP server does not do any post-processing on responses. The response examples below reflect the actual format returned by each tool.
 
@@ -109,15 +109,15 @@ Create and schedule a post to one or more platforms.
 | `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
 | `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request replays the original response without creating another post. |
 
-> **MCP vs REST difference:** `scheduledTime` is optional in the MCP schema — omit it to create a **draft**. Media-required platforms (Instagram, TikTok, YouTube, Pinterest) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached.
+> **MCP vs REST difference:** `scheduledTime` is optional in the MCP schema — omit it to create a **draft**. Publishable media-required platforms (Instagram, TikTok, YouTube) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached. Pinterest is connect-only: passing media may satisfy registry validation, but it cannot be published because scheduler dispatch is not implemented.
 
 > **Use `idempotencyKey` whenever a retry is possible.** An agent that retries after a network timeout has no way to know whether the first `create_post` landed — without a key it creates a **second post**. Pass a fresh unique key (e.g. a UUID) per distinct post; on retry, resend the *same* key with the *same* arguments and Publora replays the original result instead of posting again. Reusing a key with different arguments returns `422` `IDEMPOTENCY_KEY_CONFLICT`; retrying while the first call is still running returns `409` `IDEMPOTENCY_IN_FLIGHT` (wait and retry the identical call — do not switch keys).
 
 > **A `scheduledTime` in the past is not taken literally.** Under 5 minutes late it is always clamped to server time and the response carries a `SCHEDULED_TIME_COERCED` warning — that tolerance is permanent. From 5 minutes late it is clamped and warned until the strict sunset (`2026-08-25`), and rejected with `400` `SCHEDULED_TIME_IN_PAST` (plus a `serverTime` field) after it. Always send a future time. See [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
 
-> **Media-required platforms (Instagram, TikTok, YouTube, Pinterest):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`.
+> **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
-> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. Only these five platforms accept settings:
+> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These six platforms accept settings:
 >
 > ```json
 > {
@@ -139,7 +139,12 @@ Create and schedule a post to one or more platforms.
 >       "playlist": { "id": "string", "platformId": "string" }
 >     },
 >     "threads": { "replyControl": "everyone | accounts_you_follow | mentioned_only" },
->     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false }
+>     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false },
+>     "linkedin": {
+>       "repostEnabled": true,
+>       "repostParentUrn": "urn:li:share:123456",
+>       "repostVisibility": "PUBLIC | CONNECTIONS"
+>     }
 >   }
 > }
 > ```
@@ -730,6 +735,29 @@ async def delete_comment():
                 "platformId": "linkedin-abc123"
             })
             print(result.content[0].text)
+```
+
+---
+
+## LinkedIn Reshare Tool
+
+### linkedin_create_reshare
+
+Reshare an existing LinkedIn post to your feed, optionally with commentary.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platformId` | string | Yes | LinkedIn platform connection ID |
+| `parent` | string | Yes | Post URN to reshare, such as `urn:li:share:123456` or `urn:li:ugcPost:123456` |
+| `commentary` | string | No | Commentary shown above the reshare (maximum 3,000 characters) |
+| `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (default: `PUBLIC`; `CONNECTIONS` is for personal accounts) |
+
+**Example prompt:**
+
+```text
+"Reshare urn:li:share:123456 on linkedin-abc123 with the commentary 'Worth reading'"
 ```
 
 ---

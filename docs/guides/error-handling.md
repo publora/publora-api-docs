@@ -140,7 +140,7 @@ The `code` field is the contract — branch on it, not on the message text.
 
 | Status | Error Message | Cause | Resolution |
 |---|---|---|---|
-| `400` | `"Either status or scheduledTime must be provided"` | An update-post request was sent without specifying `status` or `scheduledTime` | Include at least one of `status` or `scheduledTime` in the request body |
+| `400` | `"At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"` | An update-post request omitted all four accepted fields | Include at least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` in the request body |
 | `400` | `"Status must be either 'draft' or 'scheduled'"` | The `status` field in an update-post request contains an invalid value | Set `status` to either `"draft"` or `"scheduled"` |
 | `422` / `409` / `400` | Idempotency errors | An `Idempotency-Key` was reused with a different body, is still in flight, or the body is too deeply nested | See [Idempotency Errors](#idempotency-errors) |
 
@@ -866,7 +866,7 @@ if result['failed']:
 
 1. **Always check the HTTP status code.** Do not assume every response is successful. Parse the error body for details.
 
-2. **Only retry on 5xx errors and network failures.** Client errors (4xx) indicate a problem with your request that retrying will not fix.
+2. **Do not retry most 4xx responses unchanged.** They usually indicate a problem with the request. The exception is `429 MEDIA_URL_RATE_LIMITED` from `mediaUrls` ingestion: wait the number of seconds in `Retry-After` (also returned as `retryAfterSec`), then retry with the same `Idempotency-Key` described in item 4.
 
 3. **Use exponential backoff for retries.** Start at 1 second and double with each attempt. Cap at 3-5 retries to avoid infinite loops.
 
