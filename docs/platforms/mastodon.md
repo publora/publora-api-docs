@@ -323,6 +323,10 @@ console.log(response.data);
 - Unlike X/Twitter and Threads, Mastodon does not support auto-threading
 - Max image count (4) and video count (1) limits are enforced by Publora at scheduling time via `postValidationService.js`
 
+## What you can't do through the REST API
+
+- **Set media descriptions (alt text):** The Mastodon publisher forwards `file.description` when present, but the API media model has no persisted `description` field. The current REST upload flows therefore cannot supply it.
+
 ---
 
 *[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

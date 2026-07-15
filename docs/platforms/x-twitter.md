@@ -416,6 +416,10 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 X-side pricing and posting quotas change independently of Publora and are not a Publora contract. Consult X's current developer documentation; Publora surfaces platform rate-limit errors when X rejects a request.
 
+## What you can't do
+
+- **Preserve animated GIFs:** The X publish path sends every non-video media item through `sharp(...).png()` before upload. A GIF is accepted as input, but animation is lost and X receives a static PNG.
+
 
 ---
 

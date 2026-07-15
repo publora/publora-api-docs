@@ -528,6 +528,10 @@ Threads-side posting quotas are advisory, account-dependent, and may change with
 - Multi-part threading is disabled; numbering and splitting semantics are not a public contract until re-enabled.
 - Platform-side rate-limit failures are surfaced; do not assume automatic retry or redistribution.
 
+## What you can't do
+
+- **Publish multi-part Threads threads:** Publora currently treats Threads as a single-post target. Manual `---` parts and automatic splitting are disabled because the shared capability flag is `supportsThreading: false`.
+
 ---
 
 *[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

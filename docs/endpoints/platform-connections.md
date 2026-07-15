@@ -285,6 +285,10 @@ Social accounts are connected via the Publora dashboard (OAuth flow). The API do
 
 For workspace users, generate a connection URL via the [Workspace API](../guides/workspace.md).
 
+### Pinterest connection limitation
+
+Pinterest can be connected through OAuth, but it is connect-only. The scheduler has no Pinterest dispatch branch, so do not target a Pinterest connection in create/update scheduling requests.
+
 
 ---
 

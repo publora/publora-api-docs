@@ -309,7 +309,7 @@ console.log(response.data);
 - **Up to 4 images**: A maximum of 4 images can be attached to a single post.
 - **Rich text auto-detection**: Publora automatically detects hashtags (`#tag`) and URLs in your content and creates the correct Bluesky facets with proper byte offsets. You do not need to do any special formatting.
 - **Byte offset precision**: Bluesky facets use byte offsets, not character offsets. This means multi-byte characters (emojis, CJK characters, etc.) are handled correctly by Publora, but if you are debugging, be aware of this distinction.
-- **Alt text mapping**: The `altTexts` array maps positionally to the media files uploaded via the [media upload workflow](../guides/media-uploads.md). The first alt text corresponds to the first uploaded image, and so on. If you provide fewer alt texts than images, the remaining images will have no alt text. **Note:** The `altTexts` parameter is not currently processed by the `create-post` API endpoint and will be silently ignored. Alt text support is available through the dashboard.
+- **Alt text mapping**: The Bluesky publisher reads an `alt` property from media objects, but the API media model does not persist that property. An `altTexts` value sent to `create-post` is not processed.
 - **DID-based platform ID**: Unlike other platforms that use numeric IDs, Bluesky uses a DID (Decentralized Identifier) format like `did:plc:abc123xyz`.
 - **`test-connection` may report missing credentials**: The platform connection validator checks for both `accessToken` and `username` fields, but Bluesky connections store a `password` (app password) instead of `accessToken`. As a result, calling `test-connection` for a Bluesky account will always report that the connection lacks credentials. This is a known limitation -- the connection will still work for posting.
 
@@ -345,6 +345,10 @@ console.log(response.data);
 
 **Rate Limits:**
 - 25 videos per day (sourced from `@publora/platform-limits`)
+
+## What you can't do through the REST API
+
+- **Set image alt text:** Neither the presigned-upload flow nor `mediaUrls` stores the `alt` property read by the Bluesky publisher. Do not send `altTexts` expecting it to persist.
 
 ---
 

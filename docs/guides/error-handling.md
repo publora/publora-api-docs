@@ -2,6 +2,8 @@
 
 This guide covers how to handle errors from the Publora API, including HTTP status codes, error response formats, retry strategies, and dealing with partial failures.
 
+For a code-by-code lookup covering top-level, validation, media-ingestion, and workspace errors, see the [API Error Code Catalog](./error-codes.md).
+
 ## How It Works
 
 The Publora API uses standard HTTP status codes to indicate success or failure. When an error occurs, the response body contains a JSON object with details about what went wrong.
