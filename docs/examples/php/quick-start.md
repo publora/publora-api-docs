@@ -1,711 +1,104 @@
 # PHP Quick Start
 
-Integrate Publora API with PHP using cURL and modern PHP practices.
+PHP syntax for the five [Core Workflows](../curl/all-endpoints.md). That page is the semantic source of truth.
 
-## Requirements
-
-- PHP 7.4+ (8.0+ recommended)
-- cURL extension enabled
-
-## Basic Client Class
+## Client helper
 
 ```php
 <?php
-// src/PubloraClient.php
 
-class PubloraException extends Exception
-{
-    public int $statusCode;
-    public array $body;
-
-    public function __construct(int $statusCode, string $message, array $body = [])
-    {
-        parent::__construct($message);
-        $this->statusCode = $statusCode;
-        $this->body = $body;
-    }
-}
-
-class PubloraClient
-{
-    private const BASE_URL = 'https://api.publora.com/api/v1';
-
-    private string $apiKey;
-    private ?string $userId;
-
-    public function __construct(string $apiKey, ?string $userId = null)
-    {
-        $this->apiKey = $apiKey;
-        $this->userId = $userId;
-    }
-
-    private function request(string $method, string $endpoint, ?array $data = null): array
-    {
-        $url = self::BASE_URL . $endpoint;
-
-        $headers = [
-            'Content-Type: application/json',
-            'x-publora-key: ' . $this->apiKey,
-        ];
-
-        if ($this->userId) {
-            $headers[] = 'x-publora-user-id: ' . $this->userId;
-        }
-
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_TIMEOUT => 30,
-        ]);
-
-        if ($data !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        }
-
-        $response = curl_exec($ch);
-        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error) {
-            throw new PubloraException(0, 'cURL error: ' . $error);
-        }
-
-        $body = json_decode($response, true) ?? [];
-
-        if ($statusCode >= 400) {
-            $message = $body['error'] ?? $body['message'] ?? 'Unknown API error';
-            throw new PubloraException($statusCode, $message, $body);
-        }
-
-        return $body;
-    }
-
-    public function getConnections(): array
-    {
-        $result = $this->request('GET', '/platform-connections');
-        return $result['connections'] ?? [];
-    }
-
-    public function createPost(array $data): array
-    {
-        return $this->request('POST', '/create-post', $data);
-    }
-
-    public function getPost(string $postGroupId): array
-    {
-        return $this->request('GET', '/get-post/' . $postGroupId);
-    }
-
-    public function updatePost(string $postGroupId, array $updates): array
-    {
-        return $this->request('PUT', '/update-post/' . $postGroupId, $updates);
-    }
-
-    public function deletePost(string $postGroupId): array
-    {
-        return $this->request('DELETE', '/delete-post/' . $postGroupId);
-    }
-
-    public function getUploadUrl(string $fileName, string $contentType, string $postGroupId): array
-    {
-        return $this->request('POST', '/get-upload-url', [
-            'fileName' => $fileName,
-            'contentType' => $contentType,
-            'postGroupId' => $postGroupId,
-        ]);
-    }
-
-    public function getLinkedInPostStats(string $platformId, string $postedId): array
-    {
-        return $this->request('POST', '/linkedin-post-statistics', [
-            'platformId' => $platformId,
-            'postedId' => $postedId,
-            'queryTypes' => 'ALL',
-        ]);
-    }
-
-    public function getLinkedInAccountStats(string $platformId): array
-    {
-        return $this->request('POST', '/linkedin-account-statistics', [
-            'platformId' => $platformId,
-        ]);
-    }
-}
-```
-
-## Usage Examples
-
-### Initialize Client
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-```
-
-### List Platform Connections
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-try {
-    $connections = $client->getConnections();
-
-    echo "Found " . count($connections) . " connected accounts:\n";
-    foreach ($connections as $conn) {
-        echo "  - {$conn['platform']}: {$conn['username']} ({$conn['platformId']})\n";
-    }
-} catch (PubloraException $e) {
-    echo "Error: " . $e->getMessage() . "\n";
-}
-```
-
-### Create a Simple Post
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-try {
-    $response = $client->createPost([
-        'content' => 'Hello from PHP! Posting with Publora API.',
-        'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-    ]);
-
-    echo "Post created: {$response['postGroupId']}\n";
-    foreach ($response['posts'] as $post) {
-        echo "  - {$post['platform']}: {$post['status']}\n";
-    }
-} catch (PubloraException $e) {
-    echo "Failed to create post: " . $e->getMessage() . "\n";
-}
-```
-
-### Schedule a Post
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-// Schedule for tomorrow at 10 AM UTC
-$scheduledTime = (new DateTime('+1 day'))
-    ->setTime(10, 0, 0)
-    ->format(DateTime::ATOM);
-
-try {
-    $response = $client->createPost([
-        'content' => 'This post will go live tomorrow at 10 AM UTC!',
-        'platforms' => ['twitter-123456789'],
-        'scheduledTime' => $scheduledTime,
-    ]);
-
-    echo "Post scheduled: {$response['postGroupId']}\n";
-    echo "Will publish at: $scheduledTime\n";
-} catch (PubloraException $e) {
-    echo "Failed to schedule: " . $e->getMessage() . "\n";
-}
-```
-
-### Schedule Multiple Posts (Week of Content)
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-$posts = [
-    ['content' => 'Monday motivation: Start your week with purpose!', 'dayOffset' => 0],
-    ['content' => 'Tech tip Tuesday: Always version your APIs.', 'dayOffset' => 1],
-    ['content' => 'Wednesday wisdom: Ship fast, iterate faster.', 'dayOffset' => 2],
-    ['content' => 'Throwback Thursday: How we grew to 10K users.', 'dayOffset' => 3],
-    ['content' => 'Feature Friday: Check out our new dashboard!', 'dayOffset' => 4],
-];
-
-$baseTime = new DateTime('tomorrow 09:00:00', new DateTimeZone('UTC'));
-
-foreach ($posts as $post) {
-    $scheduledTime = (clone $baseTime)
-        ->modify("+{$post['dayOffset']} days")
-        ->format(DateTime::ATOM);
-
-    try {
-        $response = $client->createPost([
-            'content' => $post['content'],
-            'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-            'scheduledTime' => $scheduledTime,
-        ]);
-
-        echo "Scheduled: " . substr($post['content'], 0, 30) . "... -> {$response['postGroupId']}\n";
-        usleep(200000); // 200ms rate limiting
-    } catch (PubloraException $e) {
-        echo "Failed: " . $e->getMessage() . "\n";
-    }
-}
-```
-
-### Create a Post (Media Auto-Attaches via postGroupId)
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-try {
-    $response = $client->createPost([
-        'content' => 'Check out this amazing screenshot!',
-        'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-    ]);
-
-    echo "Post created: {$response['postGroupId']}\n";
-} catch (PubloraException $e) {
-    echo "Failed: " . $e->getMessage() . "\n";
-}
-```
-
-### Post with Platform-Specific Settings
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-// Instagram Reel (upload media first, it auto-attaches via postGroupId)
-try {
-    $response = $client->createPost([
-        'content' => 'Behind the scenes! #buildinpublic',
-        'platforms' => ['instagram-789012345'],
-        'platformSettings' => [
-            'instagram' => [
-                'videoType' => 'REELS',
-            ],
-        ],
-    ]);
-
-    echo "Instagram Reel draft created: {$response['postGroupId']} (attach a video, then schedule it)\n";
-} catch (PubloraException $e) {
-    echo "Failed: " . $e->getMessage() . "\n";
-}
-
-// Telegram with Markdown
-try {
-    $response = $client->createPost([
-        'content' => '*Bold* and _italic_ text with [link](https://example.com)',
-        'platforms' => ['telegram-1001234567890'],
-        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
-        'platformSettings' => [
-            'telegram' => [
-                'disableWebPagePreview' => false,
-            ],
-        ],
-    ]);
-
-    echo "Telegram message scheduled: {$response['postGroupId']}\n";
-} catch (PubloraException $e) {
-    echo "Failed: " . $e->getMessage() . "\n";
-}
-```
-
-### Upload Media and Post
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-function getMimeType(string $filename): string
-{
-    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-    $mimeTypes = [
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'png' => 'image/png',
-        'gif' => 'image/gif',
-        'mp4' => 'video/mp4',
-        'webp' => 'image/webp',
-    ];
-    return $mimeTypes[$ext] ?? 'application/octet-stream';
-}
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-$filePath = './screenshot.png';
-
-try {
-    // Step 1: Create post first to get postGroupId
-    $response = $client->createPost([
-        'content' => 'Check out this screenshot!',
-        'platforms' => ['twitter-123456789', 'linkedin-ABC123DEF'],
-    ]);
-
-    $postGroupId = $response['postGroupId'];
-    echo "Post created: $postGroupId\n";
-
-    // Step 2: Get upload URL (media auto-attaches via postGroupId)
-    $fileName = basename($filePath);
-    $contentType = getMimeType($fileName);
-
-    $uploadResult = $client->getUploadUrl($fileName, $contentType, $postGroupId);
-
-    // Step 3: Upload file to S3
-    $fileContent = file_get_contents($filePath);
-
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $uploadResult['uploadUrl'],
-        CURLOPT_CUSTOMREQUEST => 'PUT',
-        CURLOPT_POSTFIELDS => $fileContent,
+$baseUrl = 'https://api.publora.com/api/v1';
+$apiKey = getenv('PUBLORA_API_KEY');
+$platformId = getenv('PUBLORA_PLATFORM_ID');
+
+function publora(string $method, string $path, ?array $body = null, ?string $key = null): array {
+    global $baseUrl, $apiKey;
+    $headers = ['Content-Type: application/json', "x-publora-key: {$apiKey}"];
+    if ($key !== null) $headers[] = "Idempotency-Key: {$key}";
+    $curl = curl_init("{$baseUrl}/{$path}");
+    curl_setopt_array($curl, [
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => $body === null ? null : json_encode($body, JSON_THROW_ON_ERROR),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: ' . $contentType,
-        ],
+        CURLOPT_TIMEOUT => 30,
     ]);
-
-    $uploadResponse = curl_exec($ch);
-    $uploadStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($uploadStatus >= 400) {
-        throw new Exception("Upload failed with status $uploadStatus");
+    $raw = curl_exec($curl);
+    $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    if ($raw === false || $status < 200 || $status >= 300) {
+        throw new RuntimeException("Publora request failed with HTTP {$status}");
     }
-
-    echo "Media uploaded: {$uploadResult['mediaId']}\n";
-    echo "File URL: {$uploadResult['fileUrl']}\n";
-    $client->updatePost($postGroupId, [
-        'status' => 'scheduled',
-        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
-    ]);
-    echo "Post with uploaded media scheduled: $postGroupId\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+    return json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 }
 ```
 
-### Error Handling
+## 1. Draft
+
+```php
+$draft = publora('POST', 'create-post', [
+    'content' => 'Draft from PHP',
+    'platforms' => [$platformId],
+]);
+```
+
+No `scheduledTime` means draft.
+
+## 2. One-shot schedule
+
+```php
+$scheduled = publora('POST', 'create-post', [
+    'content' => 'Scheduled from PHP',
+    'platforms' => [$platformId],
+    'scheduledTime' => (new DateTimeImmutable('+5 minutes'))->format(DateTimeInterface::ATOM),
+], bin2hex(random_bytes(16)));
+```
+
+## 3. Upload and schedule
+
+Follow the [canonical presigned sequence](../curl/all-endpoints.md#3-upload-and-schedule). Upload the bytes to the returned storage URL, then finalize and schedule:
+
+```php
+$upload = curl_init($uploadUrl);
+curl_setopt_array($upload, [
+    CURLOPT_CUSTOMREQUEST => 'PUT',
+    CURLOPT_HTTPHEADER => ['Content-Type: image/jpeg'],
+    CURLOPT_POSTFIELDS => file_get_contents('photo.jpg'),
+    CURLOPT_RETURNTRANSFER => true,
+]);
+curl_exec($upload);
+if (curl_getinfo($upload, CURLINFO_RESPONSE_CODE) >= 300) {
+    throw new RuntimeException('Storage upload failed');
+}
+
+publora('POST', "complete-media/{$mediaFileId}");
+publora('PUT', "update-post/{$postGroupId}", [
+    'status' => 'scheduled',
+    'scheduledTime' => (new DateTimeImmutable('+5 minutes'))->format(DateTimeInterface::ATOM),
+], "schedule-{$postGroupId}");
+```
+
+## 4. Update
+
+```php
+publora('PUT', "update-post/{$postGroupId}", [
+    'status' => 'scheduled',
+    'scheduledTime' => (new DateTimeImmutable('+10 minutes'))->format(DateTimeInterface::ATOM),
+], "reschedule-{$postGroupId}");
+```
+
+## 5. Webhook consumer
 
 ```php
 <?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-try {
-    $response = $client->createPost([
-        'content' => 'Test post',
-        'platforms' => ['twitter-123456789'],
-    ]);
-
-    echo "Success: {$response['postGroupId']}\n";
-} catch (PubloraException $e) {
-    switch ($e->statusCode) {
-        case 401:
-            echo "Authentication failed. Check your API key.\n";
-            break;
-        case 403:
-            echo "Access denied: " . $e->getMessage() . "\n";
-            // Handle subscription or limit issues
-            break;
-        case 400:
-            echo "Bad request: " . $e->getMessage() . "\n";
-            // Handle validation errors
-            break;
-        case 404:
-            echo "Not found: " . $e->getMessage() . "\n";
-            break;
-        case 429:
-            echo "Rate limited. Retry after delay.\n";
-            break;
-        case 500:
-            echo "Server error. Retry later.\n";
-            break;
-        default:
-            echo "API error ({$e->statusCode}): " . $e->getMessage() . "\n";
-    }
-} catch (Exception $e) {
-    echo "Network or unexpected error: " . $e->getMessage() . "\n";
+$raw = file_get_contents('php://input');
+$expected = hash_hmac('sha256', $raw, getenv('PUBLORA_WEBHOOK_SECRET'));
+$received = $_SERVER['HTTP_X_PUBLORA_SIGNATURE'] ?? '';
+if (!hash_equals($expected, $received)) {
+    http_response_code(401);
+    exit;
 }
+$envelope = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+http_response_code(204);
 ```
 
-### Monitor Post Status
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-function waitForPublish(PubloraClient $client, string $postGroupId, int $maxAttempts = 30): array
-{
-    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-        $postGroup = $client->getPost($postGroupId);
-        $status = $postGroup['status'];
-
-        echo "[$attempt/$maxAttempts] Status: $status\n";
-
-        switch ($status) {
-            case 'published':
-                echo "All platforms published successfully!\n";
-                return $postGroup;
-
-            case 'partially_published':
-                echo "Partial success:\n";
-                foreach ($postGroup['posts'] as $post) {
-                    if ($post['status'] === 'failed') {
-                        echo "  - {$post['platform']}: FAILED - {$post['error']}\n";
-                    } else {
-                        echo "  - {$post['platform']}: {$post['status']}\n";
-                    }
-                }
-                return $postGroup;
-
-            case 'failed':
-                echo "All platforms failed:\n";
-                foreach ($postGroup['posts'] as $post) {
-                    echo "  - {$post['platform']}: {$post['error']}\n";
-                }
-                return $postGroup;
-        }
-
-        sleep(10);
-    }
-
-    throw new Exception("Timeout waiting for post $postGroupId to publish");
-}
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-try {
-    $response = $client->createPost([
-        'content' => 'Publishing now!',
-        'platforms' => ['twitter-123456789'],
-        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
-    ]);
-
-    $postGroup = waitForPublish($client, $response['postGroupId']);
-    echo "Final status: {$postGroup['status']}\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
-}
-```
-
-### Import from CSV
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-$csvFile = 'posts.csv';
-$handle = fopen($csvFile, 'r');
-
-// Skip header
-fgetcsv($handle);
-
-$results = [];
-
-while (($row = fgetcsv($handle)) !== false) {
-    [$content, $platforms, $scheduledTime] = $row;
-
-    $platformIds = array_map('trim', explode(';', $platforms));
-
-    $postData = [
-        'content' => $content,
-        'platforms' => $platformIds,
-        'scheduledTime' => $scheduledTime,
-    ];
-
-    try {
-        $response = $client->createPost($postData);
-        $results[] = [
-            'content' => substr($content, 0, 30) . '...',
-            'success' => true,
-            'postGroupId' => $response['postGroupId'],
-        ];
-        echo "✓ " . substr($content, 0, 40) . "...\n";
-    } catch (PubloraException $e) {
-        $results[] = [
-            'content' => substr($content, 0, 30) . '...',
-            'success' => false,
-            'error' => $e->getMessage(),
-        ];
-        echo "✗ " . substr($content, 0, 40) . "... - {$e->getMessage()}\n";
-    }
-
-    usleep(200000); // Rate limiting
-}
-
-fclose($handle);
-
-$successful = count(array_filter($results, fn($r) => $r['success']));
-echo "\nImported $successful/" . count($results) . " posts\n";
-```
-
-### LinkedIn Analytics
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-$platformId = 'linkedin-ABC123DEF';
-$postedIds = [
-    'urn:li:share:7123456789012345678',
-    'urn:li:share:7234567890123456789',
-];
-
-echo "=== LinkedIn Analytics Report ===\n\n";
-
-$totalImpressions = 0;
-$totalEngagement = 0;
-
-foreach ($postedIds as $postedId) {
-    try {
-        $result = $client->getLinkedInPostStats($platformId, $postedId);
-
-        $metrics = $result['metrics'];
-        $engagement = $metrics['REACTION'] + $metrics['COMMENT'] + $metrics['RESHARE'];
-        $totalImpressions += $metrics['IMPRESSION'];
-        $totalEngagement += $engagement;
-
-        echo "Post: $postedId\n";
-        echo "  Impressions: " . number_format($metrics['IMPRESSION']) . "\n";
-        echo "  Members Reached: " . number_format($metrics['MEMBERS_REACHED']) . "\n";
-        echo "  Engagement: $engagement ({$metrics['REACTION']} reactions, {$metrics['COMMENT']} comments, {$metrics['RESHARE']} reshares)\n\n";
-    } catch (PubloraException $e) {
-        echo "Post: $postedId - Error: {$e->getMessage()}\n\n";
-    }
-}
-
-echo "=== TOTALS ===\n";
-echo "Total Impressions: " . number_format($totalImpressions) . "\n";
-echo "Total Engagement: $totalEngagement\n";
-if ($totalImpressions > 0) {
-    echo "Avg Engagement Rate: " . number_format(($totalEngagement / $totalImpressions) * 100, 2) . "%\n";
-}
-```
-
-### Batch Delete Posts
-
-```php
-<?php
-require_once 'src/PubloraClient.php';
-
-$client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
-
-$postGroupIds = ['67a1b2c3d4e5f6a7b8c9d0e1', '67a1b2c3d4e5f6a7b8c9d0e2', '67a1b2c3d4e5f6a7b8c9d0e3'];
-
-$results = [];
-
-foreach ($postGroupIds as $id) {
-    try {
-        $client->deletePost($id);
-        $results[] = ['id' => $id, 'success' => true];
-        echo "✓ Deleted $id\n";
-    } catch (PubloraException $e) {
-        $results[] = ['id' => $id, 'success' => false, 'error' => $e->getMessage()];
-        echo "✗ Failed to delete $id: {$e->getMessage()}\n";
-    }
-
-    usleep(100000); // 100ms rate limiting
-}
-
-$successful = count(array_filter($results, fn($r) => $r['success']));
-echo "\nDeleted $successful/" . count($postGroupIds) . " posts\n";
-```
-
-### Laravel Integration
-
-```php
-<?php
-// config/services.php
-return [
-    // ...
-    'publora' => [
-        'api_key' => env('PUBLORA_API_KEY'),
-    ],
-];
-
-// app/Services/PubloraService.php
-namespace App\Services;
-
-use Illuminate\Support\Facades\Http;
-
-class PubloraService
-{
-    private const BASE_URL = 'https://api.publora.com/api/v1';
-    private string $apiKey;
-
-    public function __construct()
-    {
-        $this->apiKey = config('services.publora.api_key');
-    }
-
-    public function createPost(string $content, array $platforms, ?string $scheduledTime = null): array
-    {
-        $response = Http::withHeaders([
-            'x-publora-key' => $this->apiKey,
-        ])->post(self::BASE_URL . '/create-post', [
-            'content' => $content,
-            'platforms' => $platforms,
-            'scheduledTime' => $scheduledTime,
-        ]);
-
-        if ($response->failed()) {
-            throw new \Exception($response->json('error') ?? 'Failed to create post');
-        }
-
-        return $response->json();
-    }
-
-    public function getConnections(): array
-    {
-        $response = Http::withHeaders([
-            'x-publora-key' => $this->apiKey,
-        ])->get(self::BASE_URL . '/platform-connections');
-
-        return $response->json('connections', []);
-    }
-}
-
-// Usage in controller
-use App\Services\PubloraService;
-
-class SocialController extends Controller
-{
-    public function schedulePost(Request $request, PubloraService $publora)
-    {
-        $validated = $request->validate([
-            'content' => 'required|string|max:3000',
-            'platforms' => 'required|array',
-            'scheduled_time' => 'nullable|date|after:now',
-        ]);
-
-        $result = $publora->createPost(
-            $validated['content'],
-            $validated['platforms'],
-            $validated['scheduled_time'] ?? null
-        );
-
-        return response()->json([
-            'success' => true,
-            'post_group_id' => $result['postGroupId'],
-        ]);
-    }
-}
-```
-
----
-
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+CSV import, batch orchestration, and LinkedIn analytics remain available through their dedicated guides and the [OpenAPI document](https://docs.publora.com/openapi.yaml); their contract is not copied here. See [Webhooks](../../endpoints/webhooks.md) for delivery behavior.

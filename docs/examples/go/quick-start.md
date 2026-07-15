@@ -1,801 +1,120 @@
 # Go Quick Start
 
-Integrate Publora API with Go using the standard library and best practices.
+Go syntax for the five [Core Workflows](../curl/all-endpoints.md). The canonical page owns ordering and API semantics.
 
-## Installation
-
-No external dependencies required. Uses Go's standard `net/http` package.
-
-```bash
-go mod init your-project
-```
-
-## Basic Client
+## Client
 
 ```go
-// publora/client.go
 package publora
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"time"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "os"
+    "time"
 )
-
-const BaseURL = "https://api.publora.com/api/v1"
 
 type Client struct {
-	apiKey     string
-	userId     string
-	httpClient *http.Client
+    BaseURL string
+    APIKey string
+    HTTP *http.Client
 }
 
-func NewClient(apiKey string) *Client {
-	return &Client{
-		apiKey: apiKey,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
+func New() *Client {
+    return &Client{
+        BaseURL: "https://api.publora.com/api/v1",
+        APIKey: os.Getenv("PUBLORA_API_KEY"),
+        HTTP: &http.Client{Timeout: 30 * time.Second},
+    }
 }
 
-func NewWorkspaceClient(apiKey, userId string) *Client {
-	return &Client{
-		apiKey: apiKey,
-		userId: userId,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
-}
-
-func (c *Client) request(method, endpoint string, body interface{}) ([]byte, error) {
-	var reqBody io.Reader
-	if body != nil {
-		jsonData, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request: %w", err)
-		}
-		reqBody = bytes.NewBuffer(jsonData)
-	}
-
-	req, err := http.NewRequest(method, BaseURL+endpoint, reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-publora-key", c.apiKey)
-	if c.userId != "" {
-		req.Header.Set("x-publora-user-id", c.userId)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		var apiErr APIError
-		json.Unmarshal(respBody, &apiErr)
-		return nil, &apiErr
-	}
-
-	return respBody, nil
+func (c *Client) JSON(method, path string, body any, key string, out any) error {
+    payload, err := json.Marshal(body)
+    if err != nil { return err }
+    req, err := http.NewRequest(method, c.BaseURL+"/"+path, bytes.NewReader(payload))
+    if err != nil { return err }
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("x-publora-key", c.APIKey)
+    if key != "" { req.Header.Set("Idempotency-Key", key) }
+    resp, err := c.HTTP.Do(req)
+    if err != nil { return err }
+    defer resp.Body.Close()
+    if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+        return fmt.Errorf("Publora returned %s", resp.Status)
+    }
+    return json.NewDecoder(resp.Body).Decode(out)
 }
 ```
 
-## Types
+## 1. Draft
 
 ```go
-// publora/types.go
-package publora
-
-import "fmt"
-
-type APIError struct {
-	StatusCode int    `json:"-"`
-	ErrorText  string `json:"error,omitempty"`
-	Message    string `json:"message,omitempty"`
-}
-
-func (e *APIError) Error() string {
-	msg := e.ErrorText
-	if msg == "" {
-		msg = e.Message
-	}
-	return fmt.Sprintf("API error (%d): %s", e.StatusCode, msg)
-}
-
-type PlatformConnection struct {
-	PlatformID    string `json:"platformId"`
-	Platform      string `json:"platform"`
-	Username      string `json:"username"`
-	DisplayName   string `json:"displayName"`
-	ProfileImage  string `json:"profileImageUrl,omitempty"`
-	ExpiresAt     string `json:"accessTokenExpiresAt,omitempty"`
-}
-
-type Post struct {
-	ID           string `json:"_id"`
-	Platform     string `json:"platform"`
-	PlatformID   string `json:"platformId"`
-	Content      string `json:"content"`
-	Status       string `json:"status"`
-	PostedID     string `json:"postedId,omitempty"`
-	Permalink string `json:"permalink,omitempty"`
-	Error        string `json:"error,omitempty"`
-}
-
-type PostGroup struct {
-	PostGroupID   string `json:"postGroupId"`
-	Status        string `json:"status"`
-	ScheduledTime string `json:"scheduledTime,omitempty"`
-	Posts         []Post `json:"posts"`
-}
-
-type CreatePostRequest struct {
-	Content          string                  `json:"content"`
-	Platforms        []string                `json:"platforms"`
-	ScheduledTime    string                  `json:"scheduledTime,omitempty"`
-	Status           string                  `json:"status,omitempty"`
-	PlatformSettings *PlatformSettings       `json:"platformSettings,omitempty"`
-}
-
-type PlatformSettings struct {
-	Instagram *InstagramSettings `json:"instagram,omitempty"`
-	TikTok    *TikTokSettings    `json:"tiktok,omitempty"`
-	Telegram  *TelegramSettings  `json:"telegram,omitempty"`
-}
-
-type InstagramSettings struct {
-	VideoType string `json:"videoType,omitempty"`
-}
-
-type TikTokSettings struct {
-	AllowDuet     bool `json:"allowDuet,omitempty"`
-	AllowStitch   bool `json:"allowStitch,omitempty"`
-	AllowComments bool `json:"allowComments,omitempty"`
-}
-
-type TelegramSettings struct {
-	DisableWebPagePreview bool   `json:"disableWebPagePreview,omitempty"`
-}
-
-type CreatePostResponse struct {
-	Success       bool    `json:"success"`
-	PostGroupID   string  `json:"postGroupId"`
-	ScheduledTime *string `json:"scheduledTime"`
-}
-
-type UploadURLResponse struct {
-	UploadURL string `json:"uploadUrl"`
-	FileURL   string `json:"fileUrl"`
-	MediaID   string `json:"mediaId"`
-}
-
-type LinkedInStatsResponse struct {
-	Success bool           `json:"success"`
-	Metrics LinkedInMetrics `json:"metrics"`
-	Cached  bool           `json:"cached"`
-}
-
-type LinkedInMetrics struct {
-	Impression     int `json:"IMPRESSION"`
-	MembersReached int `json:"MEMBERS_REACHED"`
-	Reshare        int `json:"RESHARE"`
-	Reaction       int `json:"REACTION"`
-	Comment        int `json:"COMMENT"`
-}
+var draft map[string]any
+err := client.JSON("POST", "create-post", map[string]any{
+    "content": "Draft from Go",
+    "platforms": []string{platformID},
+}, "", &draft)
 ```
 
-## API Methods
+With no `scheduledTime`, this is intentionally a draft.
+
+## 2. One-shot schedule
 
 ```go
-// publora/api.go
-package publora
-
-import "encoding/json"
-
-func (c *Client) GetConnections() ([]PlatformConnection, error) {
-	data, err := c.request("GET", "/platform-connections", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var result struct {
-		Connections []PlatformConnection `json:"connections"`
-	}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return result.Connections, nil
-}
-
-func (c *Client) CreatePost(req *CreatePostRequest) (*CreatePostResponse, error) {
-	data, err := c.request("POST", "/create-post", req)
-	if err != nil {
-		return nil, err
-	}
-
-	var result CreatePostResponse
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetPost(postGroupID string) (*PostGroup, error) {
-	data, err := c.request("GET", "/get-post/"+postGroupID, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var result PostGroup
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (c *Client) UpdatePost(postGroupID string, updates *CreatePostRequest) (*PostGroup, error) {
-	data, err := c.request("PUT", "/update-post/"+postGroupID, updates)
-	if err != nil {
-		return nil, err
-	}
-
-	var result PostGroup
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (c *Client) DeletePost(postGroupID string) error {
-	_, err := c.request("DELETE", "/delete-post/"+postGroupID, nil)
-	return err
-}
-
-func (c *Client) GetUploadURL(fileName, contentType, postGroupID string) (*UploadURLResponse, error) {
-	data, err := c.request("POST", "/get-upload-url", map[string]string{
-		"fileName":    fileName,
-		"contentType": contentType,
-		"postGroupId": postGroupID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var result UploadURLResponse
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetLinkedInPostStats(platformID, postedID string) (*LinkedInStatsResponse, error) {
-	data, err := c.request("POST", "/linkedin-post-statistics", map[string]string{
-		"platformId": platformID,
-		"postedId":   postedID,
-		"queryTypes": "ALL",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var result LinkedInStatsResponse
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
+scheduledTime := time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339)
+var scheduled map[string]any
+err := client.JSON("POST", "create-post", map[string]any{
+    "content": "Scheduled from Go",
+    "platforms": []string{platformID},
+    "scheduledTime": scheduledTime,
+}, requestID, &scheduled)
 ```
 
-## Usage Examples
+## 3. Upload and schedule
 
-### List Connections
+Follow the canonical [presigned sequence](../curl/all-endpoints.md#3-upload-and-schedule). PUT the file to `uploadUrl` with a plain `http.Request` and its media content type; do not add the Publora API key to the storage request. Then:
 
 ```go
-package main
+var completed map[string]any
+err = client.JSON("POST", "complete-media/"+mediaFileID, nil, "", &completed)
 
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	connections, err := client.GetConnections()
-	if err != nil {
-		log.Fatalf("Failed to get connections: %v", err)
-	}
-
-	fmt.Printf("Found %d connected accounts:\n", len(connections))
-	for _, conn := range connections {
-		fmt.Printf("  - %s: %s (%s)\n", conn.Platform, conn.Username, conn.PlatformID)
-	}
-}
+var updated map[string]any
+err = client.JSON("PUT", "update-post/"+postGroupID, map[string]any{
+    "status": "scheduled",
+    "scheduledTime": time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339),
+}, "schedule-"+postGroupID, &updated)
 ```
 
-### Create a Post
+## 4. Update
 
 ```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-	"time"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	// Schedule for 1 hour from now
-	scheduledTime := time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
-
-	resp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:       "Hello from Go! Building with Publora API.",
-		Platforms:     []string{"twitter-123456789", "linkedin-ABC123DEF"},
-		ScheduledTime: scheduledTime,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create post: %v", err)
-	}
-
-	fmt.Printf("Post created: %s\n", resp.PostGroupID)
-	for _, post := range resp.Posts {
-		fmt.Printf("  - %s: %s\n", post.Platform, post.Status)
-	}
-}
+err = client.JSON("PUT", "update-post/"+postGroupID, map[string]any{
+    "status": "scheduled",
+    "scheduledTime": time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339),
+}, "reschedule-"+postGroupID, &updated)
 ```
 
-### Schedule Multiple Posts
+## 5. Webhook consumer
 
 ```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-	"time"
-
-	"your-project/publora"
-)
-
-type ScheduledPost struct {
-	Content   string
-	Platforms []string
-	DayOffset int
-}
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	posts := []ScheduledPost{
-		{"Monday motivation: Start strong!", []string{"twitter-123456789"}, 0},
-		{"Tech tip Tuesday: Version your APIs!", []string{"twitter-123456789", "linkedin-ABC123DEF"}, 1},
-		{"Wednesday wisdom: Ship fast, iterate faster.", []string{"twitter-123456789"}, 2},
-		{"Throwback Thursday: How we grew to 10K users.", []string{"linkedin-ABC123DEF"}, 3},
-		{"Feature Friday: Check out our new dashboard!", []string{"twitter-123456789", "linkedin-ABC123DEF"}, 4},
-	}
-
-	baseTime := time.Now().Truncate(24 * time.Hour).Add(9 * time.Hour) // 9 AM
-
-	for _, post := range posts {
-		scheduledTime := baseTime.AddDate(0, 0, post.DayOffset).Format(time.RFC3339)
-
-		resp, err := client.CreatePost(&publora.CreatePostRequest{
-			Content:       post.Content,
-			Platforms:     post.Platforms,
-			ScheduledTime: scheduledTime,
-		})
-		if err != nil {
-			log.Printf("Failed to schedule post: %v", err)
-			continue
-		}
-
-		fmt.Printf("Scheduled: %s -> %s\n", post.Content[:30], resp.PostGroupID)
-		time.Sleep(200 * time.Millisecond) // Rate limiting
-	}
+func webhook(secret []byte) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        raw, err := io.ReadAll(r.Body)
+        if err != nil { http.Error(w, "bad body", 400); return }
+        mac := hmac.New(sha256.New, secret)
+        mac.Write(raw)
+        received, err := hex.DecodeString(r.Header.Get("x-publora-signature"))
+        if err != nil || !hmac.Equal(received, mac.Sum(nil)) {
+            http.Error(w, "invalid signature", 401)
+            return
+        }
+        var envelope map[string]any
+        if json.Unmarshal(raw, &envelope) != nil { http.Error(w, "bad json", 400); return }
+        w.WriteHeader(http.StatusNoContent)
+    }
 }
 ```
 
-### Post with Instagram Reel Settings
-
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	resp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:   "Behind the scenes! #buildinpublic",
-		Platforms: []string{"instagram-789012345"},
-		PlatformSettings: &publora.PlatformSettings{
-			Instagram: &publora.InstagramSettings{
-				VideoType: "REELS",
-			},
-		},
-	})
-	if err != nil {
-		log.Fatalf("Failed to create reel: %v", err)
-	}
-
-	fmt.Printf("Instagram Reel draft created: %s (attach a video, then schedule it)\n", resp.PostGroupID)
-}
-```
-
-### Upload Media and Post
-
-```go
-package main
-
-import (
-	"bytes"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"path/filepath"
-	"time"
-
-	"your-project/publora"
-)
-
-func getMimeType(filename string) string {
-	ext := filepath.Ext(filename)
-	mimeTypes := map[string]string{
-		".jpg":  "image/jpeg",
-		".jpeg": "image/jpeg",
-		".png":  "image/png",
-		".gif":  "image/gif",
-		".mp4":  "video/mp4",
-		".webp": "image/webp",
-	}
-	if mime, ok := mimeTypes[ext]; ok {
-		return mime
-	}
-	return "application/octet-stream"
-}
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-	filePath := "./screenshot.png"
-
-	// Step 1: Create post first to get postGroupId
-	postResp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:   "Check out this screenshot!",
-		Platforms: []string{"twitter-123456789", "linkedin-ABC123DEF"},
-	})
-	if err != nil {
-		log.Fatalf("Failed to create post: %v", err)
-	}
-
-	postGroupID := postResp.PostGroupID
-	fmt.Printf("Post created: %s\n", postGroupID)
-
-	// Step 2: Get upload URL (media auto-attaches via postGroupId)
-	fileName := filepath.Base(filePath)
-	contentType := getMimeType(fileName)
-
-	uploadResp, err := client.GetUploadURL(fileName, contentType, postGroupID)
-	if err != nil {
-		log.Fatalf("Failed to get upload URL: %v", err)
-	}
-
-	// Step 3: Upload file to S3
-	fileData, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Fatalf("Failed to read file: %v", err)
-	}
-
-	req, _ := http.NewRequest("PUT", uploadResp.UploadURL, bytes.NewReader(fileData))
-	req.Header.Set("Content-Type", contentType)
-
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		log.Fatalf("Failed to upload file: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		log.Fatalf("Upload failed: %s", body)
-	}
-
-	fmt.Printf("Media uploaded: %s\n", uploadResp.MediaID)
-	fmt.Printf("File URL: %s\n", uploadResp.FileURL)
-
-	_, err = client.UpdatePost(postGroupID, &publora.CreatePostRequest{
-		Status:        "scheduled",
-		ScheduledTime: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
-	})
-	if err != nil {
-		log.Fatalf("Failed to schedule uploaded post: %v", err)
-	}
-	fmt.Printf("Post with media scheduled: %s\n", postGroupID)
-}
-```
-
-### Error Handling
-
-```go
-package main
-
-import (
-	"errors"
-	"fmt"
-	"log"
-	"os"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	_, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:   "Test post",
-		Platforms: []string{"twitter-123456789"},
-	})
-
-	if err != nil {
-		var apiErr *publora.APIError
-		if errors.As(err, &apiErr) {
-			switch apiErr.StatusCode {
-			case 401:
-				fmt.Println("Authentication failed. Check your API key.")
-			case 403:
-				fmt.Printf("Access denied: %s\n", apiErr.Message)
-			case 400:
-				fmt.Printf("Bad request: %s\n", apiErr.Message)
-			case 404:
-				fmt.Printf("Not found: %s\n", apiErr.Message)
-			case 429:
-				fmt.Println("Rate limited. Retry after delay.")
-			case 500:
-				fmt.Println("Server error. Retry later.")
-			default:
-				fmt.Printf("API error (%d): %s\n", apiErr.StatusCode, apiErr.Message)
-			}
-		} else {
-			log.Fatalf("Network error: %v", err)
-		}
-		return
-	}
-
-	fmt.Println("Post created successfully!")
-}
-```
-
-### Monitor Post Status
-
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-	"time"
-
-	"your-project/publora"
-)
-
-func waitForPublish(client *publora.Client, postGroupID string, maxAttempts int) (*publora.PostGroup, error) {
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		postGroup, err := client.GetPost(postGroupID)
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Printf("[%d/%d] Status: %s\n", attempt+1, maxAttempts, postGroup.Status)
-
-		switch postGroup.Status {
-		case "published":
-			fmt.Println("All platforms published successfully!")
-			return postGroup, nil
-		case "partially_published":
-			fmt.Println("Partial success:")
-			for _, post := range postGroup.Posts {
-				if post.Status == "failed" {
-					fmt.Printf("  - %s: FAILED - %s\n", post.Platform, post.Error)
-				} else {
-					fmt.Printf("  - %s: %s\n", post.Platform, post.Status)
-				}
-			}
-			return postGroup, nil
-		case "failed":
-			fmt.Println("All platforms failed:")
-			for _, post := range postGroup.Posts {
-				fmt.Printf("  - %s: %s\n", post.Platform, post.Error)
-			}
-			return postGroup, nil
-		}
-
-		time.Sleep(10 * time.Second)
-	}
-
-	return nil, fmt.Errorf("timeout waiting for post %s to publish", postGroupID)
-}
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	resp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:       "Publishing now!",
-		Platforms:     []string{"twitter-123456789"},
-		ScheduledTime: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
-	})
-	if err != nil {
-		log.Fatalf("Failed to create post: %v", err)
-	}
-
-	postGroup, err := waitForPublish(client, resp.PostGroupID, 30)
-	if err != nil {
-		log.Fatalf("Failed to monitor post: %v", err)
-	}
-
-	fmt.Printf("Final status: %s\n", postGroup.Status)
-}
-```
-
-### Concurrent Batch Operations
-
-```go
-package main
-
-import (
-	"fmt"
-	"os"
-	"sync"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	postGroupIDs := []string{"67a1b2c3d4e5f6a7b8c9d0e1", "67a1b2c3d4e5f6a7b8c9d0e2", "67a1b2c3d4e5f6a7b8c9d0e3", "67a1b2c3d4e5f6a7b8c9d0e4"}
-
-	var wg sync.WaitGroup
-	results := make(chan struct {
-		id     string
-		status string
-		err    error
-	}, len(postGroupIDs))
-
-	// Limit concurrency
-	sem := make(chan struct{}, 3)
-
-	for _, id := range postGroupIDs {
-		wg.Add(1)
-		go func(postGroupID string) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			postGroup, err := client.GetPost(postGroupID)
-			if err != nil {
-				results <- struct {
-					id     string
-					status string
-					err    error
-				}{postGroupID, "", err}
-				return
-			}
-
-			results <- struct {
-				id     string
-				status string
-				err    error
-			}{postGroupID, postGroup.Status, nil}
-		}(id)
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	for result := range results {
-		if result.err != nil {
-			fmt.Printf("%s: ERROR - %v\n", result.id, result.err)
-		} else {
-			fmt.Printf("%s: %s\n", result.id, result.status)
-		}
-	}
-}
-```
-
-### LinkedIn Analytics
-
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"your-project/publora"
-)
-
-func main() {
-	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
-
-	platformID := "linkedin-ABC123DEF"
-	postedIDs := []string{
-		"urn:li:share:7123456789012345678",
-		"urn:li:share:7234567890123456789",
-	}
-
-	fmt.Println("=== LinkedIn Analytics Report ===")
-
-	var totalImpressions, totalEngagement int
-
-	for _, postedID := range postedIDs {
-		result, err := client.GetLinkedInPostStats(platformID, postedID)
-		if err != nil {
-			log.Printf("Error fetching stats for %s: %v", postedID, err)
-			continue
-		}
-
-		metrics := result.Metrics
-		engagement := metrics.Reaction + metrics.Comment + metrics.Reshare
-		totalImpressions += metrics.Impression
-		totalEngagement += engagement
-
-		fmt.Printf("\nPost: %s\n", postedID)
-		fmt.Printf("  Impressions: %d\n", metrics.Impression)
-		fmt.Printf("  Members Reached: %d\n", metrics.MembersReached)
-		fmt.Printf("  Engagement: %d (%d reactions, %d comments, %d reshares)\n",
-			engagement, metrics.Reaction, metrics.Comment, metrics.Reshare)
-	}
-
-	fmt.Println("\n=== TOTALS ===")
-	fmt.Printf("Total Impressions: %d\n", totalImpressions)
-	fmt.Printf("Total Engagement: %d\n", totalEngagement)
-	if totalImpressions > 0 {
-		fmt.Printf("Avg Engagement Rate: %.2f%%\n", float64(totalEngagement)/float64(totalImpressions)*100)
-	}
-}
-```
-
----
-
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+Add `crypto/hmac`, `crypto/sha256`, `encoding/hex`, and `io` to the imports used by the webhook file. See [Webhooks](../../endpoints/webhooks.md). Batch work and LinkedIn analytics remain discoverable through the [OpenAPI document](https://docs.publora.com/openapi.yaml), without duplicating their contract here.

@@ -1,445 +1,122 @@
-# cURL Reference: All Endpoints
+# Core Workflows
 
-Complete cURL examples for every Publora API endpoint.
+This page is the canonical request-flow reference for Publora examples. Language and framework guides provide syntax and setup; the semantics live here. For the complete API surface, use the [OpenAPI document](https://docs.publora.com/openapi.yaml).
 
 ## Setup
 
-Set your API key as an environment variable:
-
 ```bash
-export PUBLORA_API_KEY="YOUR_API_KEY"
+export PUBLORA_API_KEY="sk_YOUR_API_KEY"
+export PUBLORA_PLATFORM_ID="twitter-YOUR_CONNECTION_ID"
+export PUBLORA_BASE_URL="https://api.publora.com/api/v1"
 ```
 
-## List Platform Connections
+REST requests require `x-publora-key`. Platform IDs come from [List Platform Connections](../../endpoints/platform-connections.md).
+
+## 1. Create a draft
+
+Omitting `scheduledTime` intentionally creates a draft. A draft does not publish.
 
 ```bash
-curl https://api.publora.com/api/v1/platform-connections \
+curl -sS -X POST "$PUBLORA_BASE_URL/create-post" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"content\":\"Draft from Publora\",\"platforms\":[\"$PUBLORA_PLATFORM_ID\"]}"
+```
+
+The response contains `success`, `postGroupId`, and `scheduledTime` (`null` for this draft). Save the 24-character hexadecimal `postGroupId` for later operations.
+
+## 2. One-shot schedule
+
+`scheduledTime` must be a future ISO 8601 timestamp. This runnable example schedules five minutes ahead:
+
+```bash
+FUTURE_TIME=$(date -u -v+5M +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null || date -u -d '+5 minutes' +%Y-%m-%dT%H:%M:%S.000Z)
+
+curl -sS -X POST "$PUBLORA_BASE_URL/create-post" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: schedule-$(date +%s)" \
+  -d "{\"content\":\"Scheduled from Publora\",\"platforms\":[\"$PUBLORA_PLATFORM_ID\"],\"scheduledTime\":\"$FUTURE_TIME\"}"
+```
+
+Use a stable `Idempotency-Key` when retrying the same logical request. Do not generate a new key for each retry.
+
+## 3. Upload and schedule
+
+The presigned-upload flow is `create draft` → `get-upload-url` → upload bytes → `complete-media` → `update-post` to schedule. Scheduling last avoids the media-attachment demotion behavior.
+
+```bash
+# Create a draft and copy postGroupId from the response.
+POST_GROUP_ID="64f1a2b3c4d5e6f7890abcde"
+
+# Request an upload URL. Copy uploadUrl and mediaId from the response.
+curl -sS -X POST "$PUBLORA_BASE_URL/get-upload-url" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"fileName\":\"photo.jpg\",\"contentType\":\"image/jpeg\",\"type\":\"image\",\"postGroupId\":\"$POST_GROUP_ID\"}"
+
+UPLOAD_URL="<UPLOAD_URL_FROM_RESPONSE>"
+MEDIA_FILE_ID="<MEDIA_ID_FROM_RESPONSE>"
+
+curl -sS -X PUT "$UPLOAD_URL" -H "Content-Type: image/jpeg" --data-binary @photo.jpg
+
+# Probe/finalize the uploaded object before scheduling.
+curl -sS -X POST "$PUBLORA_BASE_URL/complete-media/$MEDIA_FILE_ID" \
   -H "x-publora-key: $PUBLORA_API_KEY"
-```
 
-**Response:**
-```json
-{
-  "success": true,
-  "connections": [
-    {
-      "platformId": "twitter-123456789",
-      "username": "@yourhandle",
-      "displayName": "Your Handle"
-    },
-    {
-      "platformId": "linkedin-ABC123DEF",
-      "username": "johndoe",
-      "displayName": "John Doe"
-    }
-  ]
-}
-```
-
-## Create Post
-
-### Simple Text Post
-
-```bash
-curl -X POST https://api.publora.com/api/v1/create-post \
+FUTURE_TIME=$(date -u -v+5M +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null || date -u -d '+5 minutes' +%Y-%m-%dT%H:%M:%S.000Z)
+curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "Hello from Publora API!",
-    "platforms": ["twitter-123456789", "linkedin-ABC123DEF"]
-  }'
+  -H "Idempotency-Key: media-schedule-$POST_GROUP_ID" \
+  -d "{\"status\":\"scheduled\",\"scheduledTime\":\"$FUTURE_TIME\"}"
 ```
 
-### Scheduled Post
+For public HTTPS assets, `mediaUrls` on create/update is a shorter ingestion path. See [Media Uploads](../../guides/media-uploads.md) for its limits and append semantics.
 
-Replace `<FUTURE_ISO_8601_UTC>` with a UTC time at least five minutes ahead (for example, `$(date -u -v+5M +%Y-%m-%dT%H:%M:%S.000Z)` on macOS).
+## 4. Update a post
+
+Update accepts at least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls`. `mediaUrls` appends media rather than replacing existing items.
 
 ```bash
-curl -X POST https://api.publora.com/api/v1/create-post \
+POST_GROUP_ID="64f1a2b3c4d5e6f7890abcde"
+FUTURE_TIME=$(date -u -v+10M +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null || date -u -d '+10 minutes' +%Y-%m-%dT%H:%M:%S.000Z)
+
+curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "This post will go live tomorrow at 2 PM UTC",
-    "platforms": ["twitter-123456789"],
-    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
-  }'
+  -H "Idempotency-Key: reschedule-$POST_GROUP_ID" \
+  -d "{\"status\":\"scheduled\",\"scheduledTime\":\"$FUTURE_TIME\"}"
 ```
 
-### Post with Media
+See [Update Post](../../endpoints/update-post.md) for validation and state behavior.
 
-```bash
-# Step 1: Create the post first
-curl -X POST https://api.publora.com/api/v1/create-post \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Check out this screenshot!",
-    "platforms": ["twitter-123456789", "linkedin-ABC123DEF"]
-  }'
-# Note: postGroupId from the response
+## 5. Verify a webhook
 
-# Step 2: Get an upload URL
-curl -X POST https://api.publora.com/api/v1/get-upload-url \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fileName": "screenshot.png",
-    "contentType": "image/png",
-    "postGroupId": "POST_GROUP_ID_FROM_STEP_1"
-  }'
+Publora signs the exact request-body bytes with HMAC-SHA256. Verify the raw bytes before parsing JSON.
 
-# Step 3: Upload to the returned URL
-curl -X PUT "UPLOAD_URL_FROM_STEP_2" \
-  -H "Content-Type: image/png" \
-  --data-binary @screenshot.png
+```javascript
+import crypto from 'node:crypto';
+import express from 'express';
 
-# Step 4: Schedule after the final media attachment
-curl -X PUT https://api.publora.com/api/v1/update-post/POST_GROUP_ID_FROM_STEP_1 \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "scheduled",
-    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
-  }'
+const app = express();
+const secret = process.env.PUBLORA_WEBHOOK_SECRET;
+
+app.post('/publora-webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const received = req.get('x-publora-signature') || '';
+  const expected = crypto.createHmac('sha256', secret).update(req.body).digest('hex');
+  const valid = received.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+
+  if (!valid) return res.sendStatus(401);
+  const envelope = JSON.parse(req.body.toString('utf8'));
+  console.log(envelope.event, envelope.data);
+  return res.sendStatus(200);
+});
 ```
 
-The create call above intentionally makes a draft. Schedule it after uploading; attaching media to an already-scheduled group demotes it to draft.
+Delivery is a single attempt per event, not a retry queue. Respond quickly with `2xx`; see [Webhooks](../../endpoints/webhooks.md) for events, failure counting, and re-enabling disabled webhooks.
 
-### Post with Multiple Images (Carousel)
+## Related capabilities
 
-```bash
-# For carousel posts, repeat the upload workflow for each image.
-# Each upload uses the same postGroupId.
-# See the Media Uploads guide for details.
-```
-
-### Draft Post
-
-```bash
-curl -X POST https://api.publora.com/api/v1/create-post \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Work in progress - will publish later",
-    "platforms": ["twitter-123456789"],
-    "status": "draft"
-  }'
-```
-
-### Post with Platform Settings
-
-```bash
-# Instagram Reel (coverUrl = optional custom cover; public JPEG URL)
-curl -X POST https://api.publora.com/api/v1/create-post \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Behind the scenes! #buildinpublic",
-    "platforms": ["instagram-789012345"],
-    "platformSettings": {
-      "instagram": {
-        "videoType": "REELS",
-        "coverUrl": "https://cdn.example.com/covers/reel-cover.jpg"
-      }
-    }
-  }'
-
-# TikTok with settings
-curl -X POST https://api.publora.com/api/v1/create-post \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Quick coding tip! #coding #devtips",
-    "platforms": ["tiktok-456789012"],
-    "platformSettings": {
-      "tiktok": {
-        "allowDuet": true,
-        "allowStitch": true
-      }
-    }
-  }'
-
-# Telegram Markdown formatting is parsed automatically; no parse-mode setting is needed
-curl -X POST https://api.publora.com/api/v1/create-post \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "*Bold* and _italic_ text with [link](https://example.com)",
-    "platforms": ["telegram-1001234567890"],
-    "platformSettings": {
-      "telegram": {
-        "disableWebPagePreview": false
-      }
-    }
-  }'
-```
-
-These platform-settings calls omit `scheduledTime`, so they create drafts. Schedule a draft with `PUT /update-post/{postGroupId}` after any required media is attached.
-
-**Response:**
-```json
-{
-  "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
-}
-```
-
-## Get Post
-
-```bash
-curl https://api.publora.com/api/v1/get-post/67a1b2c3d4e5f6a7b8c9d0e1 \
-  -H "x-publora-key: $PUBLORA_API_KEY"
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
-  "status": "published",
-  "scheduledTime": "2026-03-01T14:00:00.000Z",
-  "posts": [
-    {
-      "platform": "twitter",
-      "platformId": "twitter-123456789",
-      "status": "published",
-      "postedId": "1234567890123456789",
-      "permalink": "https://twitter.com/yourhandle/status/1234567890123456789"
-    }
-  ]
-}
-```
-
-## Update Post
-
-### Reschedule
-
-```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
-  }'
-```
-
-### Change to Draft
-
-```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "draft"
-  }'
-```
-
-### Schedule a Draft
-
-```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "scheduled",
-    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
-  }'
-```
-
-## Delete Post
-
-```bash
-curl -X DELETE https://api.publora.com/api/v1/delete-post/67a1b2c3d4e5f6a7b8c9d0e1 \
-  -H "x-publora-key: $PUBLORA_API_KEY"
-```
-
-**Response:**
-```json
-{
-  "success": true
-}
-```
-
-## Upload Media
-
-### Get Upload URL
-
-```bash
-curl -X POST https://api.publora.com/api/v1/get-upload-url \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fileName": "screenshot.png",
-    "contentType": "image/png",
-    "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
-    "type": "image"
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "uploadUrl": "https://s3.amazonaws.com/bucket/path?signature=...",
-  "fileUrl": "https://cdn.publora.com/uploads/screenshot.png",
-  "mediaId": "abc123"
-}
-```
-
-### Upload File to S3
-
-```bash
-curl -X PUT "https://s3.amazonaws.com/bucket/path?signature=..." \
-  -H "Content-Type: image/png" \
-  --data-binary @screenshot.png
-```
-
-### Attaching Media to Posts
-
-Media files uploaded with a `postGroupId` are automatically attached to that post group. No additional step is needed to link media to a post.
-
-## Upload Instagram Cover
-
-Upload a custom cover image for a Reel, then attach it via `coverUrl` (two-step flow).
-
-```bash
-# 1. Upload the cover (JPEG/PNG/WebP, 8 MB max; converted to JPEG)
-COVER_URL=$(curl -s -X POST https://api.publora.com/api/v1/upload-instagram-cover \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -F "cover=@./reel-cover.png" \
-  -F "postGroupId=507f1f77bcf86cd799439011" | jq -r '.cover.url')
-
-# 2. Attach it to the Reel
-curl -X PUT https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011 \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{\"platformSettings\":{\"instagram\":{\"coverUrl\":\"$COVER_URL\"}}}"
-```
-
-## LinkedIn Statistics
-
-### Get Post Statistics
-
-```bash
-curl -X POST https://api.publora.com/api/v1/linkedin-post-statistics \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platformId": "linkedin-ABC123DEF",
-    "postedId": "urn:li:share:7123456789012345678",
-    "queryTypes": "ALL"
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "metrics": {
-    "IMPRESSION": 1250,
-    "MEMBERS_REACHED": 680,
-    "RESHARE": 3,
-    "REACTION": 28,
-    "COMMENT": 5
-  },
-  "cached": false
-}
-```
-
-### Get Account Statistics
-
-```bash
-curl -X POST https://api.publora.com/api/v1/linkedin-account-statistics \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platformId": "linkedin-ABC123DEF",
-    "queryTypes": "ALL"
-  }'
-```
-
-## LinkedIn Reactions
-
-### Add Reaction
-
-```bash
-curl -X POST https://api.publora.com/api/v1/linkedin-reactions \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platformId": "linkedin-ABC123DEF",
-    "postedId": "urn:li:share:7123456789012345678",
-    "reactionType": "LIKE"
-  }'
-```
-
-Reaction types: `LIKE`, `PRAISE`, `EMPATHY`, `INTEREST`, `APPRECIATION`, `ENTERTAINMENT`
-
-### Remove Reaction
-
-```bash
-curl -X DELETE https://api.publora.com/api/v1/linkedin-reactions \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platformId": "linkedin-ABC123DEF",
-    "postedId": "urn:li:share:7123456789012345678"
-  }'
-```
-
-## LinkedIn Reshare
-
-```bash
-curl -X POST https://api.publora.com/api/v1/linkedin-reshare \
-  -H "x-publora-key: $PUBLORA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platformId": "linkedin-ABC123DEF",
-    "parent": "urn:li:share:7123456789012345678",
-    "commentary": "Great read — sharing with my network!",
-    "visibility": "PUBLIC"
-  }'
-```
-
-`parent` accepts `urn:li:share:<id>` or `urn:li:ugcPost:<id>`. `commentary` (≤3000 chars) and `visibility` (`PUBLIC` / `CONNECTIONS`) are optional. Works for personal and company-page connections.
-
-## Bash Script: Full Workflow
-
-```bash
-#!/bin/bash
-
-# Full Publora API workflow
-
-API_KEY="YOUR_API_KEY"
-BASE_URL="https://api.publora.com/api/v1"
-
-# 1. List connections
-echo "=== Getting connections ==="
-CONNECTIONS=$(curl -s "$BASE_URL/platform-connections" \
-  -H "x-publora-key: $API_KEY")
-echo "$CONNECTIONS" | jq '.connections[].platformId'
-
-# 2. Create a post
-echo -e "\n=== Creating post ==="
-POST_RESULT=$(curl -s -X POST "$BASE_URL/create-post" \
-  -H "x-publora-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Testing via bash script!",
-    "platforms": ["twitter-123456789"]
-  }')
-POST_ID=$(echo "$POST_RESULT" | jq -r '.postGroupId')
-echo "Created post: $POST_ID"
-
-# 3. Wait and check status
-echo -e "\n=== Checking status ==="
-sleep 5
-curl -s "$BASE_URL/get-post/$POST_ID" \
-  -H "x-publora-key: $API_KEY" | jq '.posts[].status'
-
-echo -e "\n=== Done ==="
-```
-
----
-
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+The five workflows above are the shared example contract, not the entire API. Use the endpoint pages and [OpenAPI](https://docs.publora.com/openapi.yaml) for connections, listing and deleting posts, platform limits, post logs, LinkedIn engagement and analytics, workspace operations, and webhook administration.

@@ -1,270 +1,108 @@
 # Python Quick Start
 
-Get started with the Publora API using Python and the `requests` library.
-
-## Installation
-
-```bash
-pip install requests
-```
+Python syntax for the five [Core Workflows](../curl/all-endpoints.md). The canonical page owns the API semantics.
 
 ## Setup
 
+```bash
+pip install requests flask
+```
+
 ```python
+import os
 import requests
-from datetime import datetime, timedelta
 
-PUBLORA_API_KEY = 'YOUR_API_KEY'
-BASE_URL = 'https://api.publora.com/api/v1'
+BASE_URL = "https://api.publora.com/api/v1"
+API_KEY = os.environ["PUBLORA_API_KEY"]
+PLATFORM_ID = os.environ["PUBLORA_PLATFORM_ID"]
 
-headers = {
-    'Content-Type': 'application/json',
-    'x-publora-key': PUBLORA_API_KEY
-}
-```
-
-## List Connected Accounts
-
-```python
-def get_connections():
-    response = requests.get(
-        f'{BASE_URL}/platform-connections',
-        headers={'x-publora-key': PUBLORA_API_KEY}
+def publora(method, path, *, body=None, idempotency_key=None):
+    headers = {"x-publora-key": API_KEY}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    response = requests.request(
+        method, f"{BASE_URL}/{path}", headers=headers, json=body, timeout=30
     )
-
-    data = response.json()
-    print('Connected accounts:', data['connections'])
-    return data['connections']
-
-# Example output:
-# [
-#   {'platformId': 'twitter-123456', 'username': '@myaccount', 'displayName': 'My Account'},
-#   {'platformId': 'linkedin-ABC123', 'username': 'johndoe', 'displayName': 'John Doe'}
-# ]
-```
-
-## Create a Simple Post
-
-```python
-def create_post(content, platforms):
-    response = requests.post(
-        f'{BASE_URL}/create-post',
-        headers=headers,
-        json={
-            'content': content,
-            'platforms': platforms
-        }
-    )
-
-    data = response.json()
-    print('Post created:', data['postGroupId'])
-    return data
-
-# Usage
-create_post(
-    'Hello from Publora API!',
-    ['twitter-123456', 'linkedin-ABC123']
-)
-```
-
-## Schedule a Post for Later
-
-```python
-def schedule_post(content, platforms, scheduled_time):
-    response = requests.post(
-        f'{BASE_URL}/create-post',
-        headers=headers,
-        json={
-            'content': content,
-            'platforms': platforms,
-            'scheduledTime': scheduled_time  # ISO 8601 UTC format
-        }
-    )
-
-    return response.json()
-
-# Schedule for tomorrow at 2 PM UTC
-tomorrow = datetime.utcnow() + timedelta(days=1)
-tomorrow = tomorrow.replace(hour=14, minute=0, second=0, microsecond=0)
-
-schedule_post(
-    'Scheduled post going live tomorrow!',
-    ['twitter-123456'],
-    tomorrow.isoformat() + 'Z'
-)
-```
-
-## Check Post Status
-
-```python
-def get_post_status(post_group_id):
-    response = requests.get(
-        f'{BASE_URL}/get-post/{post_group_id}',
-        headers={'x-publora-key': PUBLORA_API_KEY}
-    )
-
-    data = response.json()
-
-    # Check status of each platform
-    for post in data['posts']:
-        print(f"{post['platform']}: {post['status']}")
-
-    return data
-
-# Statuses: 'scheduled', 'published', 'failed', 'draft'
-```
-
-## Update a Scheduled Post
-
-```python
-def update_post(post_group_id, new_time=None, new_status=None):
-    payload = {}
-
-    if new_time:
-        payload['scheduledTime'] = new_time
-    if new_status:
-        payload['status'] = new_status
-
-    response = requests.put(
-        f'{BASE_URL}/update-post/{post_group_id}',
-        headers=headers,
-        json=payload
-    )
-
-    return response.json()
-
-# Reschedule a post
-update_post(
-    '67a1b2c3d4e5f6a7b8c9d0e1',
-    new_time=(datetime.utcnow() + timedelta(minutes=5)).isoformat() + 'Z'
-)
-
-# Move to draft
-update_post('67a1b2c3d4e5f6a7b8c9d0e1', new_status='draft')
-```
-
-## Delete a Post
-
-```python
-def delete_post(post_group_id):
-    response = requests.delete(
-        f'{BASE_URL}/delete-post/{post_group_id}',
-        headers={'x-publora-key': PUBLORA_API_KEY}
-    )
-
-    if response.ok:
-        print('Post deleted successfully')
-
+    response.raise_for_status()
     return response.json()
 ```
 
-## Complete Example
+## 1. Draft
 
 ```python
-import requests
-from datetime import datetime, timedelta
-
-PUBLORA_API_KEY = 'YOUR_API_KEY'
-BASE_URL = 'https://api.publora.com/api/v1'
-
-def main():
-    headers = {
-        'Content-Type': 'application/json',
-        'x-publora-key': PUBLORA_API_KEY
-    }
-
-    # 1. Get connected accounts
-    connections_response = requests.get(
-        f'{BASE_URL}/platform-connections',
-        headers={'x-publora-key': PUBLORA_API_KEY}
-    )
-    connections = connections_response.json()['connections']
-
-    if not connections:
-        print('No accounts connected. Visit app.publora.com to connect.')
-        return
-
-    # 2. Get platform IDs
-    platform_ids = [
-        c['platformId'] for c in connections
-        if not c['platformId'].startswith(('instagram-', 'tiktok-', 'youtube-', 'pinterest-'))
-    ]
-
-    if not platform_ids:
-        print('No text-capable connections found. Attach media via mediaUrls or use the media upload flow.')
-        return
-    print('Posting to:', platform_ids)
-
-    # 3. Schedule a text post five minutes from now
-    post_response = requests.post(
-        f'{BASE_URL}/create-post',
-        headers=headers,
-        json={
-            'content': 'Testing the Publora API - works great!',
-            'platforms': platform_ids,
-            'scheduledTime': (datetime.utcnow() + timedelta(minutes=5)).isoformat() + 'Z'
-        }
-    )
-    post_response.raise_for_status()
-    result = post_response.json()
-    print('Created post:', result['postGroupId'])
-
-    # 4. Check status
-    import time
-    time.sleep(5)
-
-    status_response = requests.get(
-        f'{BASE_URL}/get-post/{result["postGroupId"]}',
-        headers={'x-publora-key': PUBLORA_API_KEY}
-    )
-    status = status_response.json()
-
-    for post in status['posts']:
-        print(f"{post['platform']}: {post['status']}")
-
-if __name__ == '__main__':
-    main()
+draft = publora("POST", "create-post", body={
+    "content": "Draft from Python",
+    "platforms": [PLATFORM_ID],
+})
 ```
 
-## Error Handling
+Omitting `scheduledTime` intentionally creates a draft.
+
+## 2. One-shot schedule
 
 ```python
-def create_post_safe(content, platforms):
-    try:
-        response = requests.post(
-            f'{BASE_URL}/create-post',
-            headers=headers,
-            json={
-                'content': content,
-                'platforms': platforms
-            },
-            timeout=30
-        )
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
-        response.raise_for_status()
-        return {'success': True, 'data': response.json()}
-
-    except requests.exceptions.HTTPError as e:
-        error_data = e.response.json() if e.response else {}
-        return {
-            'success': False,
-            'status_code': e.response.status_code if e.response else None,
-            'error': error_data.get('message', str(e))
-        }
-    except requests.exceptions.Timeout:
-        return {'success': False, 'error': 'Request timed out'}
-    except requests.exceptions.RequestException as e:
-        return {'success': False, 'error': str(e)}
-
-# Usage
-result = create_post_safe('Hello world!', ['twitter-123456'])
-
-if result['success']:
-    print('Post ID:', result['data']['postGroupId'])
-else:
-    print('Error:', result['error'])
+scheduled = publora("POST", "create-post", idempotency_key=str(uuid4()), body={
+    "content": "Scheduled from Python",
+    "platforms": [PLATFORM_ID],
+    "scheduledTime": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+})
 ```
 
----
+## 3. Upload and schedule
 
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+Use the [canonical presigned sequence](../curl/all-endpoints.md#3-upload-and-schedule). After creating the draft and requesting an upload URL:
+
+```python
+with open("photo.jpg", "rb") as image:
+    uploaded = requests.put(
+        upload_url,
+        headers={"Content-Type": "image/jpeg"},
+        data=image,
+        timeout=120,
+    )
+    uploaded.raise_for_status()
+
+publora("POST", f"complete-media/{media_file_id}")
+publora("PUT", f"update-post/{post_group_id}",
+    idempotency_key=f"schedule-{post_group_id}", body={
+        "status": "scheduled",
+        "scheduledTime": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+    })
+```
+
+## 4. Update
+
+```python
+publora("PUT", f"update-post/{post_group_id}",
+    idempotency_key=f"reschedule-{post_group_id}", body={
+        "status": "scheduled",
+        "scheduledTime": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+    })
+```
+
+## 5. Webhook consumer
+
+```python
+import hashlib
+import hmac
+import json
+from flask import Flask, abort, request
+
+app = Flask(__name__)
+
+@app.post("/publora-webhook")
+def webhook():
+    raw = request.get_data()  # capture before request.get_json()
+    expected = hmac.new(
+        os.environ["PUBLORA_WEBHOOK_SECRET"].encode(), raw, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(request.headers.get("x-publora-signature", ""), expected):
+        abort(401)
+    envelope = json.loads(raw)
+    return "", 204
+```
+
+See [Webhooks](../../endpoints/webhooks.md) and the [complete OpenAPI surface](https://docs.publora.com/openapi.yaml).
