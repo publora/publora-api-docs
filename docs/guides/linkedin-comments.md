@@ -179,7 +179,7 @@ You can also mention organizations:
 @{urn:li:organization:98765432|Acme Corp Inc}
 ```
 
-For details on finding URN IDs and name matching requirements, see the [LinkedIn Mentions Guide](/docs/guides/linkedin-mentions.md).
+For details on finding URN IDs and name matching requirements, see the [LinkedIn Mentions Guide](linkedin-mentions.md).
 
 ## Important Notes
 
@@ -191,6 +191,6 @@ For details on finding URN IDs and name matching requirements, see the [LinkedIn
 
 ## Related Guides
 
-- [LinkedIn Reactions](/docs/guides/linkedin-reactions.md) - Like and react to posts
-- [LinkedIn Mentions](/docs/guides/linkedin-mentions.md) - Mention users and companies
-- [LinkedIn Platform Guide](/docs/platforms/linkedin.md) - Complete LinkedIn API reference
+- [LinkedIn Reactions](linkedin-reactions.md) - Like and react to posts
+- [LinkedIn Mentions](linkedin-mentions.md) - Mention users and companies
+- [LinkedIn Platform Guide](../platforms/linkedin.md) - Complete LinkedIn API reference

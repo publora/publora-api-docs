@@ -186,6 +186,6 @@ After posting, check your LinkedIn post to ensure:
 
 ## Related Guides
 
-- [LinkedIn Comments](/docs/guides/linkedin-comments.md) - Comment on posts
-- [LinkedIn Reactions](/docs/guides/linkedin-reactions.md) - Like and react to posts
-- [LinkedIn Platform Guide](/docs/platforms/linkedin.md) - Complete LinkedIn API reference
+- [LinkedIn Comments](linkedin-comments.md) - Comment on posts
+- [LinkedIn Reactions](linkedin-reactions.md) - Like and react to posts
+- [LinkedIn Platform Guide](../platforms/linkedin.md) - Complete LinkedIn API reference

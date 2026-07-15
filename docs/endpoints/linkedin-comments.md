@@ -224,13 +224,13 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-comments',
 
 **Result on LinkedIn:** `Great point @Jane Smith! Totally agree.` — with "Jane Smith" as a clickable profile link.
 
-> **Important:** You must use a valid LinkedIn URN ID. Invalid IDs will cause LinkedIn to reject the comment with a `400` error. See the [LinkedIn Mentions Guide](/docs/guides/linkedin-mentions.md) for how to find URN IDs.
+> **Important:** You must use a valid LinkedIn URN ID. Invalid IDs will cause LinkedIn to reject the comment with a `400` error. See the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md) for how to find URN IDs.
 
 ### postedId Format
 
 Publora accepts `urn:li:share:xxx`, `urn:li:ugcPost:xxx`, and `urn:li:activity:xxx`. It first sends the supplied URN to LinkedIn. If LinkedIn rejects an activity URN with a retryable target error, Publora also attempts the corresponding `ugcPost` and `share` URNs with the same ID. LinkedIn can still reject a URN based on the target post or account permissions.
 
-For posts created via Publora, prefer the exact `postedId` returned by [get-post](/docs/endpoints/get-post.md).
+For posts created via Publora, prefer the exact `postedId` returned by [get-post](get-post.md).
 
 ---
 

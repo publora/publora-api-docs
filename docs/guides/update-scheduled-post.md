@@ -478,7 +478,7 @@ console.log('Post scheduled for:', result.postGroup.scheduledTime);
 
 ## Related Guides
 
-- [Create Post](/docs/endpoints/create-post.md) - Create new posts
-- [Get Post](/docs/endpoints/get-post.md) - Check post status
-- [Delete Post](/docs/endpoints/delete-post.md) - Remove posts
-- [Scheduling Guide](/docs/guides/scheduling.md) - Scheduling best practices
+- [Create Post](../endpoints/create-post.md) - Create new posts
+- [Get Post](../endpoints/get-post.md) - Check post status
+- [Delete Post](../endpoints/delete-post.md) - Remove posts
+- [Scheduling Guide](scheduling.md) - Scheduling best practices

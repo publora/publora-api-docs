@@ -159,13 +159,13 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `linkedin_delete_comment` | Delete a comment from a LinkedIn post |
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 
-> LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST API](../endpoints/). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
 ## Example Conversations
 
-> **Note:** Analytics examples below illustrate REST-API capabilities. MCP itself exposes engagement *actions* (reactions/comments), not analytics reads — pull metrics via the [REST API](../endpoints/).
+> **Note:** Analytics examples below illustrate REST-API capabilities. MCP itself exposes engagement *actions* (reactions/comments), not analytics reads — pull metrics via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml).
 
 ### Schedule a Post
 

@@ -472,7 +472,7 @@ const postedId = data.posts.find(p => p.platform === 'linkedin')?.postedId;
 
 ## Related Guides
 
-- [LinkedIn Account Statistics](/docs/endpoints/linkedin-statistics.md) - Account-level analytics
-- [LinkedIn Followers](/docs/endpoints/linkedin-followers.md) - Follower count and growth
-- [LinkedIn Profile Summary](/docs/endpoints/linkedin-profile-summary.md) - Combined profile stats
-- [Get Post](/docs/endpoints/get-post.md) - Get postedId for analytics
+- [LinkedIn Account Statistics](../endpoints/linkedin-statistics.md) - Account-level analytics
+- [LinkedIn Followers](../endpoints/linkedin-followers.md) - Follower count and growth
+- [LinkedIn Profile Summary](../endpoints/linkedin-profile-summary.md) - Combined profile stats
+- [Get Post](../endpoints/get-post.md) - Get postedId for analytics

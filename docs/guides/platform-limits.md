@@ -86,7 +86,7 @@ Image requirements vary significantly across platforms. Pay particular attention
 | **Mastodon** | 16 MB | 4 | JPEG, PNG, GIF, WebP (instance-configurable) |
 | **Bluesky** | exactly 2,000,000 bytes | 4 | JPEG, PNG, WebP |
 | **Telegram** | 10 MB | 10 | JPEG, PNG, GIF, WebP, BMP |
-| **Pinterest** | 20 MB | 1 | JPEG, PNG | *Connect-only; not publishable* |
+| **Pinterest** | 20 MB | 1 | JPEG, PNG — connect-only; not publishable |
 
 ### Critical Image Notes
 
@@ -134,7 +134,7 @@ Video restrictions through APIs are often significantly more restrictive than na
 | **Mastodon** | 24 hours | ~99 MB | MP4, MOV, WebM |
 | **Bluesky** | 3 min | 100 MB | MP4 |
 | **Telegram (Bot API)** | 24 hours | 50 MB | MP4, MOV, AVI, MKV, WebM |
-| **Pinterest** | 15 min | 2 GB | MP4, MOV | *Connect-only; not publishable* |
+| **Pinterest** | 15 min | 2 GB | MP4, MOV — connect-only; not publishable |
 
 *Mastodon video duration is limited only by file size (~99 MB default).
 
@@ -208,7 +208,7 @@ Different platforms have different requirements for media. Some platforms are te
 | **Mastodon** | No | No | Yes | No |
 | **Bluesky** | No | No | Yes | No |
 | **Telegram** | No | No | Yes | No |
-| **Pinterest** | Yes | No | No | No | *Not currently supported* |
+| **Pinterest** | Yes | No | No | No — not currently supported |
 
 ### Media Requirement Notes
 

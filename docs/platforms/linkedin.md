@@ -122,7 +122,7 @@ Both mentions will be rendered as clickable links on LinkedIn.
 - **Person URN**: The member ID from LinkedIn's API. The format is `urn:li:person:{member_id}`. Member IDs are typically long alphanumeric strings (e.g. `ACoAABcD1234EfG`). You can find them via LinkedIn's API (`/me` endpoint) or browser developer tools.
 - **Organization URN**: Found in the company page URL or via LinkedIn's API. Format: `urn:li:organization:{numeric_id}`. Organization IDs are typically 8-digit numbers.
 
-> **Important:** You must use a valid LinkedIn URN ID. Invalid or made-up IDs will cause a `400` error: `"Person URN ID in commentary field is invalid."` Always verify the URN before posting. See the [LinkedIn Mentions Guide](/docs/guides/linkedin-mentions.md) for details.
+> **Important:** You must use a valid LinkedIn URN ID. Invalid or made-up IDs will cause a `400` error: `"Person URN ID in commentary field is invalid."` Always verify the URN before posting. See the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md) for details.
 
 ### Important: Name Matching Requirements
 

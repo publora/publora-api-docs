@@ -54,26 +54,26 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 | Method | Endpoint | Description | Docs |
 |--------|----------|-------------|------|
-| `GET` | `/platform-connections` | List connected social accounts | [View](docs/endpoints/platform-connections.md) |
-| `POST` | `/test-connection/:platformId` | Test a platform connection | [View](docs/endpoints/test-connection.md) |
-| `POST` | `/create-post` | Create and schedule a post | [View](docs/endpoints/create-post.md) |
-| `GET` | `/list-posts` | List all posts with pagination | [View](docs/endpoints/list-posts.md) |
-| `GET` | `/get-post/:postGroupId` | Get post details and status | [View](docs/endpoints/get-post.md) |
-| `GET` | `/post-logs/:postGroupId` | Get publish attempt history | [View](docs/endpoints/post-logs.md) |
-| `PUT` | `/update-post/:postGroupId` | Update post timing or status | [View](docs/endpoints/update-post.md) |
-| `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](docs/endpoints/delete-post.md) |
-| `POST` | `/get-upload-url` | Get pre-signed URL for media upload | [View](docs/endpoints/upload-media.md) |
-| `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](docs/endpoints/upload-instagram-cover.md) |
-| `GET` | `/platform-limits` | Get live per-platform limits | [View](docs/endpoints/platform-limits.md) |
-| `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](docs/endpoints/upload-youtube-thumbnail.md) |
-| `GET/POST` | `/webhooks` | Manage webhook notifications | [View](docs/endpoints/webhooks.md) |
-| `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](docs/endpoints/linkedin-statistics.md) |
-| `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](docs/endpoints/linkedin-statistics.md) |
-| `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](docs/endpoints/linkedin-reactions.md) |
-| `DELETE` | `/linkedin-reactions` | Remove a LinkedIn reaction | [View](docs/endpoints/linkedin-reactions.md) |
-| `POST` | `/linkedin-reshare` | Reshare an existing LinkedIn post | [View](docs/endpoints/linkedin-reshare.md) |
-| `POST` | `/linkedin-followers` | Get LinkedIn follower statistics | [View](docs/endpoints/linkedin-followers.md) |
-| `POST` | `/linkedin-profile-summary` | Get LinkedIn profile summary | [View](docs/endpoints/linkedin-profile-summary.md) |
+| `GET` | `/platform-connections` | List connected social accounts | [View](https://docs.publora.com/endpoints/platform-connections) |
+| `POST` | `/test-connection/:platformId` | Test a platform connection | [View](https://docs.publora.com/endpoints/test-connection) |
+| `POST` | `/create-post` | Create and schedule a post | [View](https://docs.publora.com/endpoints/create-post) |
+| `GET` | `/list-posts` | List all posts with pagination | [View](https://docs.publora.com/endpoints/list-posts) |
+| `GET` | `/get-post/:postGroupId` | Get post details and status | [View](https://docs.publora.com/endpoints/get-post) |
+| `GET` | `/post-logs/:postGroupId` | Get publish attempt history | [View](https://docs.publora.com/endpoints/post-logs) |
+| `PUT` | `/update-post/:postGroupId` | Update post timing or status | [View](https://docs.publora.com/endpoints/update-post) |
+| `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](https://docs.publora.com/endpoints/delete-post) |
+| `POST` | `/get-upload-url` | Get pre-signed URL for media upload | [View](https://docs.publora.com/endpoints/upload-media) |
+| `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](https://docs.publora.com/endpoints/upload-instagram-cover) |
+| `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
+| `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
+| `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
+| `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
+| `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
+| `DELETE` | `/linkedin-reactions` | Remove a LinkedIn reaction | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
+| `POST` | `/linkedin-reshare` | Reshare an existing LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reshare) |
+| `POST` | `/linkedin-followers` | Get LinkedIn follower statistics | [View](https://docs.publora.com/endpoints/linkedin-followers) |
+| `POST` | `/linkedin-profile-summary` | Get LinkedIn profile summary | [View](https://docs.publora.com/endpoints/linkedin-profile-summary) |
 
 Base URL: `https://api.publora.com/api/v1`
 
@@ -103,7 +103,7 @@ curl https://api.publora.com/api/v1/platform-connections \
 
 Get your API key: [publora.com](https://publora.com) → **API** in sidebar → Generate.
 
-See [Authentication Guide](docs/authentication.md) for details.
+See [Authentication Guide](https://docs.publora.com/authentication) for details.
 
 ## Pricing
 
@@ -118,56 +118,60 @@ All plans include full API access. Pro/Premium use per-account pricing — add a
 ## Documentation
 
 ### Getting Started
-- [Quick Start Guide](docs/getting-started.md) — first post in 60 seconds
-- [Authentication](docs/authentication.md) — API keys and workspace auth
+- [Quick Start Guide](https://docs.publora.com/getting-started) — first post in 60 seconds
+- [Authentication](https://docs.publora.com/authentication) — API keys and workspace auth
 
 ### Endpoint Reference
-- [Create Post](docs/endpoints/create-post.md) — schedule posts across platforms
-- [List Posts](docs/endpoints/list-posts.md) — fetch all posts with pagination and filters
-- [Get Post](docs/endpoints/get-post.md) — check post status and error details
-- [Post Logs](docs/endpoints/post-logs.md) — publish attempt history for debugging
-- [Update Post](docs/endpoints/update-post.md) — reschedule or change status
-- [Delete Post](docs/endpoints/delete-post.md) — remove posts across all platforms
-- [Platform Connections](docs/endpoints/platform-connections.md) — list connected accounts with health status
-- [Test Connection](docs/endpoints/test-connection.md) — validate a connection before posting
-- [Webhooks](docs/endpoints/webhooks.md) — real-time notifications for post events
-- [Upload Media](docs/endpoints/upload-media.md) — images and video uploads
-- [Upload Instagram Cover](docs/endpoints/upload-instagram-cover.md) — custom cover image for Reels
-- [Upload YouTube Thumbnail](docs/endpoints/upload-youtube-thumbnail.md) — custom video thumbnail (two-step: upload → update-post)
-- [Platform Limits](docs/endpoints/platform-limits.md) — live per-platform character/media limits as JSON
-- [LinkedIn Statistics](docs/endpoints/linkedin-statistics.md) — post and account analytics
-- [LinkedIn Reactions](docs/endpoints/linkedin-reactions.md) — add/remove reactions
-- [LinkedIn Reshare](docs/endpoints/linkedin-reshare.md) — repost an existing LinkedIn post
+- [Create Post](https://docs.publora.com/endpoints/create-post) — schedule posts across platforms
+- [List Posts](https://docs.publora.com/endpoints/list-posts) — fetch all posts with pagination and filters
+- [Get Post](https://docs.publora.com/endpoints/get-post) — check post status and error details
+- [Post Logs](https://docs.publora.com/endpoints/post-logs) — publish attempt history for debugging
+- [Update Post](https://docs.publora.com/endpoints/update-post) — reschedule or change status
+- [Delete Post](https://docs.publora.com/endpoints/delete-post) — remove posts across all platforms
+- [Platform Connections](https://docs.publora.com/endpoints/platform-connections) — list connected accounts with health status
+- [Test Connection](https://docs.publora.com/endpoints/test-connection) — validate a connection before posting
+- [Webhooks](https://docs.publora.com/endpoints/webhooks) — real-time notifications for post events
+- [Upload Media](https://docs.publora.com/endpoints/upload-media) — images and video uploads
+- [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
+- [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
+- [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON
+- [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
+- [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
+- [LinkedIn Reshare](https://docs.publora.com/endpoints/linkedin-reshare) — repost an existing LinkedIn post
 
 ### Platform Guides
-- [X / Twitter](docs/platforms/x-twitter.md) · [LinkedIn](docs/platforms/linkedin.md) · [Instagram](docs/platforms/instagram.md) · [Threads](docs/platforms/threads.md) · [TikTok](docs/platforms/tiktok.md) · [YouTube](docs/platforms/youtube.md) · [Facebook](docs/platforms/facebook.md) · [Bluesky](docs/platforms/bluesky.md) · [Mastodon](docs/platforms/mastodon.md) · [Telegram](docs/platforms/telegram.md)
+- [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)
 
 ### Usage Guides
-- [Scheduling Posts](docs/guides/scheduling.md) — timing, drafts, batch scheduling
-- [Bulk Scheduling](docs/guides/bulk-scheduling.md) — CSV import, weekly content batches
-- [Threading Guide](docs/guides/threading.md) — post multi-part threads via API
-- [Twitter Threads](docs/guides/twitter-threads.md) — tweet thread automation
-- [Threads Multi-Post](docs/guides/threads-multi-post.md) — Meta Threads threading
-- [Rate Limits & Optimal Times](docs/guides/rate-limits.md) — platform limits, peak engagement, queue scheduling
-- [Media Uploads](docs/guides/media-uploads.md) — images, videos, carousels
-- [Cross-Platform Posting](docs/guides/cross-platform.md) — one call, many platforms
-- [LinkedIn Analytics](docs/guides/analytics.md) — post performance, account metrics
-- [Error Handling](docs/guides/error-handling.md) — status codes, retries
-- [Workspace / B2B API](docs/guides/workspace.md) — managed users, white-label
+- [Scheduling Posts](https://docs.publora.com/guides/scheduling) — timing, drafts, batch scheduling
+- [Bulk Scheduling](https://docs.publora.com/guides/bulk-scheduling) — CSV import, weekly content batches
+- [Threading Guide](https://docs.publora.com/guides/threading) — post multi-part threads via API
+- [Twitter Threads](https://docs.publora.com/guides/twitter-threads) — tweet thread automation
+- [Threads Multi-Post](https://docs.publora.com/guides/threads-multi-post) — Meta Threads threading
+- [Rate Limits & Optimal Times](https://docs.publora.com/guides/rate-limits) — platform limits, peak engagement, queue scheduling
+- [Media Uploads](https://docs.publora.com/guides/media-uploads) — images, videos, carousels
+- [Cross-Platform Posting](https://docs.publora.com/guides/cross-platform) — one call, many platforms
+- [LinkedIn Analytics](https://docs.publora.com/guides/analytics) — post performance, account metrics
+- [Error Handling](https://docs.publora.com/guides/error-handling) — status codes, retries
+- [Workspace / B2B API](https://docs.publora.com/guides/workspace) — managed users, white-label
 
 ### AI Integration
-- [MCP Server](docs/guides/mcp-server.md) — Claude Code, Claude Desktop, Cursor integration
-- [Cursor AI Guide](docs/guides/cursor-ai.md) — AI-assisted development with Publora
+- [MCP Server](https://docs.publora.com/guides/mcp-server) — Claude Code, Claude Desktop, Cursor integration
+- [Cursor AI Guide](https://docs.publora.com/guides/cursor-ai) — AI-assisted development with Publora
 
 ### Code Examples
-- [JavaScript Examples](docs/examples/javascript/) — fetch, axios, Node.js
-- [Python Examples](docs/examples/python/) — requests, async workflows
-- [cURL Examples](docs/examples/curl/) — command-line reference
-- [Zapier Integration](docs/examples/no-code/zapier-integration.md) — no-code automation
-- [Make Integration](docs/examples/no-code/make-integration.md) — visual workflows
+- [JavaScript Examples](https://docs.publora.com/examples/javascript/quick-start) — fetch, axios, Node.js
+- [Python Examples](https://docs.publora.com/examples/python/quick-start) — requests, async workflows
+- [cURL Examples](https://docs.publora.com/examples/curl/all-endpoints) — command-line reference
+- [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — no-code automation
+- [Make Integration](https://docs.publora.com/examples/no-code/make-integration) — visual workflows
 
 ### API Specification
 - [OpenAPI 3.0 Spec](schema/openapi.yaml)
+
+### Public Repository Hygiene
+
+Keep this public, Context7-indexed repository limited to user-facing documentation, `SKILL.md`, and published schemas. Internal audit reports, comparison scripts, private-host instructions, and temporary migration notes belong in the private Publora product repository, not here.
 
 ## About
 
@@ -181,4 +185,4 @@ Looking for AI-powered content creation for LinkedIn, Threads, and X? Check out 
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/publora/publora-api-docs/blob/main/LICENSE)

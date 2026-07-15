@@ -193,6 +193,6 @@ const postedId = (await response.json()).posts[0].postedId;
 
 ## Related Guides
 
-- [LinkedIn Comments](/docs/guides/linkedin-comments.md) - Comment on posts
-- [LinkedIn Mentions](/docs/guides/linkedin-mentions.md) - Mention users and companies
-- [LinkedIn Platform Guide](/docs/platforms/linkedin.md) - Complete LinkedIn API reference
+- [LinkedIn Comments](linkedin-comments.md) - Comment on posts
+- [LinkedIn Mentions](linkedin-mentions.md) - Mention users and companies
+- [LinkedIn Platform Guide](../platforms/linkedin.md) - Complete LinkedIn API reference

@@ -14,8 +14,6 @@ The Publora API uses standard HTTP status codes to indicate success or failure. 
 |---|---|---|
 | `200` | OK | Request succeeded (GET, PUT, DELETE, and most POST endpoints including `create-post`) |
 | `201` | Created | Resource created successfully (used by specific POST endpoints such as workspace user creation) |
-
-> **Note:** Most POST endpoints (including `create-post`) return `200` on success, but workspace user creation (`POST /workspace/users`) returns `201`. Check for both `200` and `201` as success codes in your error handling logic.
 | `400` | Bad Request | Invalid input, missing required fields, or malformed data |
 | `401` | Unauthorized | Missing or invalid API key |
 | `403` | Forbidden | Valid API key but insufficient permissions or plan limits reached |
@@ -23,6 +21,8 @@ The Publora API uses standard HTTP status codes to indicate success or failure. 
 | `409` | Conflict | Duplicate or conflicting operation, or an `Idempotency-Key` request that is still in flight |
 | `422` | Unprocessable Entity | An `Idempotency-Key` was reused with a different request body |
 | `500` | Internal Server Error | Something went wrong on Publora's side |
+
+> **Note:** Most POST endpoints (including `create-post`) return `200` on success, but workspace user creation (`POST /workspace/users`) returns `201`. Check for both `200` and `201` as success codes in your error handling logic.
 
 ### Error Response Format
 

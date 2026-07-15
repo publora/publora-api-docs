@@ -613,7 +613,7 @@ try {
 
 ## Related Guides
 
-- [Create Post](/docs/endpoints/create-post.md) - Create new posts
-- [Get Post](/docs/endpoints/get-post.md) - Check post status before deletion
-- [Update Scheduled Post](/docs/guides/update-scheduled-post.md) - Reschedule instead of delete
-- [List Posts](/docs/endpoints/list-posts.md) - Find posts to delete
+- [Create Post](../endpoints/create-post.md) - Create new posts
+- [Get Post](../endpoints/get-post.md) - Check post status before deletion
+- [Update Scheduled Post](update-scheduled-post.md) - Reschedule instead of delete
+- [List Posts](../endpoints/list-posts.md) - Find posts to delete

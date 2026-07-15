@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST API](../endpoints/), not MCP.
+Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the full `{ success, ... }` backend API response as shown in the examples below. `list_connections` returns a different response shape (an array without the `success` wrapper) because the underlying API endpoint uses a different response format. The MCP server does not do any post-processing on responses. The response examples below reflect the actual format returned by each tool.
 
@@ -358,7 +358,7 @@ async def reschedule_post():
 }
 ```
 
-> **Successful responses may carry `warnings`.** When present, `warnings` is an array of `{ code, message, ... }` objects (e.g. `SCHEDULED_TIME_COERCED`, which also carries `requested` and `effective`). The key is omitted entirely when there are no warnings. Surface these to the user — the call succeeded, but the API changed something about the request. Full list: [Error Handling](/guides/error-handling).
+> **Successful responses may carry `warnings`.** When present, `warnings` is an array of `{ code, message, ... }` objects (e.g. `SCHEDULED_TIME_COERCED`, which also carries `requested` and `effective`). The key is omitted entirely when there are no warnings. Surface these to the user — the call succeeded, but the API changed something about the request. Full list: [Error Handling](../guides/error-handling.md).
 
 > **Note:** The `scheduledTime` field in the response is only included when the post has a scheduled time set. Draft posts without a scheduled time will omit this field.
 
