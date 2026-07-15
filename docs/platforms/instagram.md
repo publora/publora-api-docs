@@ -4,7 +4,7 @@ Post to Instagram programmatically using the Publora REST API. A simpler alterna
 
 ## Instagram API Overview
 
-Publora provides a unified REST API for publishing image posts, carousels, Reels, and Stories to Instagram through the Instagram Graph API. A business or creator account is required. No need to manage OAuth flows, handle the Instagram Content Publishing API complexity, or set up a Facebook Developer app.
+Publora connects Instagram accounts through Instagram Login for Business and requests `instagram_business_basic` plus `instagram_business_content_publish`; personal accounts are unsupported. Whether Meta accepts a particular Creator account is determined by Meta, not Publora's code.
 
 ### Why Use Publora Instead of Instagram Graph API / Instagrapi?
 
@@ -29,14 +29,15 @@ Where `{accountId}` is your Instagram Business account ID assigned during connec
 
 ## Requirements
 
-- An **Instagram Business** account is recommended (personal accounts are not supported)
-- Creator accounts may also work, but Business is the recommended account type
+- A professional Instagram account accepted by Meta's Instagram Login for Business flow
 - Connected via Instagram OAuth through the Publora dashboard
 - API key from Publora
 
-> **Important:** Business accounts are recommended but Creator accounts also work with `instagram_business_*` scopes. Personal accounts are not supported.
+> Publora connects Instagram accounts through Instagram Login for Business and requests `instagram_business_basic` plus `instagram_business_content_publish`; personal accounts are unsupported. Whether Meta accepts a particular Creator account is determined by Meta, not Publora's code.
 
 ## API Limits
+
+<!-- limits tables below synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 
 These are critical limits specific to the Instagram Graph API (different from native app limits):
 
@@ -58,20 +59,20 @@ These are critical limits specific to the Instagram Graph API (different from na
 
 | Limit | Reels | Carousel Videos |
 |-------|-------|-----------------|
-| Max duration | **3 minutes (180 seconds)** via API (only 5-90s Reels eligible for Reels tab). Native app allows up to 15-20 minutes. | 60 seconds |
+| Max duration | **15 minutes (900 seconds)** for Reels; feed video supports up to 60 minutes (3600 seconds). | 60 seconds |
 | Min duration | 3 seconds | 3 seconds |
 | Max file size | 300 MB | 300 MB |
 | Formats | MP4, MOV | MP4, MOV |
 
 ### Rate Limits
 
-- **50 posts per 24 hours** (some accounts report a limit of 25)
+Instagram-side posting quotas are account-dependent, may change without notice, and are not a Publora numeric contract.
 
 ### Important API Restrictions
 
 The following features are **not available** via the Instagram Graph API:
 
-- Personal accounts (Business recommended, Creator may also work)
+- Personal accounts are unsupported; account eligibility is determined by Meta's Instagram Login for Business flow
 - Shopping tags
 - Branded content tags
 - Filters and effects
@@ -84,7 +85,7 @@ The following features are **not available** via the Instagram Graph API:
 |------|-----------|--------|
 | Text only | No | Instagram requires at least one image or video |
 | Images | Yes | JPEG, PNG, WebP (WebP auto-converted to JPEG), max 8 MB, 10 per carousel |
-| Videos (Reels) | Yes | MP4/MOV, max 3 minutes (180 seconds), max 300 MB |
+| Videos (Reels) | Yes | MP4/MOV, max 15 minutes (900 seconds), max 300 MB |
 | Videos (Stories) | Yes | MP4/MOV, requires `videoType: "STORIES"` setting |
 | Carousels | Yes | 2-10 items (API limit; native app allows 20) |
 
@@ -467,7 +468,7 @@ console.log(response.data);
 ## Platform Quirks
 
 - **No text-only posts**: Instagram requires at least one image or video. Attempting to post text without media will return an error.
-- **Business account recommended**: Personal Instagram accounts cannot be used with the API. Business is recommended; Creator accounts may also work but are not fully tested.
+- Publora connects Instagram accounts through Instagram Login for Business and requests `instagram_business_basic` plus `instagram_business_content_publish`; personal accounts are unsupported. Whether Meta accepts a particular Creator account is determined by Meta, not Publora's code.
 - **Direct Instagram connection**: Publora connects directly to Instagram via Instagram Business Login. No Facebook Page is required.
 - **Carousel limits**: Carousels require between 2 and 10 media items. A single image is posted as a regular photo post, not a carousel.
 - **Reel is the default**: When posting a video, Publora defaults to publishing it as a Reel. Set `videoType: "STORIES"` to post as a Story instead.

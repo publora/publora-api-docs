@@ -323,35 +323,28 @@ console.log(response.data);
 
 ## API Limits
 
+<!-- limits tables below synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
+
 **Character Limit:** 300 characters (links count toward the limit in Publora — validation uses total `content.length`, not a link-aware count)
 
 **Image Limits:**
-- **Max size: ~976 KB** (Publora enforces 976.56 * 1024 bytes, slightly under 1 MB — compress to 80-85% JPEG quality)
+- **Max size: exactly 2,000,000 bytes** (decimal, not 2 MiB)
 - Max count: 4
-- Max dimensions: 2000x2000 pixels
 - Input formats: JPEG, PNG, WebP (all converted to JPEG before upload to Bluesky). Additional formats supported by sharp (GIF, TIFF, BMP) are also accepted and converted to JPEG.
 
 **Video Limits:**
 - Max duration: 3 minutes
-- Max size: 100 MB (videos under 60s: 50 MB max)
+- Max size: 100 MiB (104,857,600 bytes)
 - Formats: MP4 only
-- **Daily limit: 25 videos OR 10 GB per day**
+- **Daily limit: 25 videos per day** (sourced from `@publora/platform-limits`)
 - Email verification required before video uploads
-
-**Size Tiers:**
-
-| Duration | Max Size |
-|----------|----------|
-| Under 60s | 50 MB |
-| 60s - 3min | 100 MB |
 
 **Common Error Messages:**
 - `429 Too Many Requests` - Rate limit exceeded
 - Video job state `JOB_STATE_FAILED` - Processing failed
 
 **Rate Limits:**
-- 3000 requests per 5 minutes
-- 25 videos per day
+- 25 videos per day (sourced from `@publora/platform-limits`)
 
 ---
 

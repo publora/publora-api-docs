@@ -436,9 +436,9 @@ https://your-bucket.s3.amazonaws.com/images/1710500000000-product-photo.jpg
 |----------|--------|--------|-------|
 | X / Twitter | Up to 4 | 1 per post | PNG preferred for images |
 | LinkedIn | Multiple | 1 per post | WebP auto-converted to JPEG |
-| Instagram | Carousel (10) | Reels or Stories | Business account required |
+| Instagram | Carousel (10) | Reels or Stories | Publora connects Instagram accounts through Instagram Login for Business and requests `instagram_business_basic` plus `instagram_business_content_publish`; personal accounts are unsupported. Whether Meta accepts a particular Creator account is determined by Meta, not Publora's code. |
 | Threads | Carousel | 1 per post | WebP auto-converted |
-| TikTok | -- | 1 per post | MP4 only, min 23 FPS |
+| TikTok | Up to 35 | 1 per post | Images: JPEG, PNG, WebP; video: MP4, MOV, WebM, min 23 FPS |
 | YouTube | -- | 1 per post | MP4, streaming upload |
 | Facebook | Multiple | 1 per post | Carousel support |
 | Bluesky | Up to 4 | 1 per post | WebP auto-converted, alt text |

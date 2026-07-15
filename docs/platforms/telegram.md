@@ -511,10 +511,7 @@ Bots have significantly lower limits than regular Telegram users. This is a comm
 
 ### Rate Limits
 
-| Scope | Limit |
-|-------|-------|
-| Global | 30 messages/second |
-| Per group | 20 messages/minute |
+Telegram-side message quotas are external, context-dependent, and not a Publora numeric contract. Consult Telegram's current Bot API documentation.
 
 
 ---

@@ -31,10 +31,10 @@ Media is automatically attached to the post group via the `postGroupId` you prov
 
 ### Limits
 
-- **Maximum file size:** 512 MB per file. All uploads go through a 512 MB multer limit on the Publora server regardless of platform. While some platforms natively support larger files (e.g., YouTube 256 GB, Facebook 2 GB, Telegram 2 GB), Publora caps all uploads at 512 MB. Note: this limit is not enforced server-side via a `ContentLengthRange` condition on the presigned URL. The 512 MB multer middleware limit applies to the dashboard's `/media/process-video` route, not to the external API `GET /api/v1/get-upload-url` endpoint (which uses JSON body parsing, not multer).
-- **Per post:** The maximum number of images varies by platform: Twitter/X, Bluesky, and Mastodon allow up to **4 images**; Instagram and Threads allow up to **10 images** (carousels); LinkedIn allows up to **10 images**; Facebook and Telegram allow up to **10 images**. Video posts are limited to **1 video** per post. Note: per-post media limits are validated at scheduling time (when the post moves to `scheduled` status), not at upload time. The external API `update-post` endpoint **does** validate media — at the scheduling gate. When a post moves to `scheduled`, `update-post` first finalizes/probes each attached media file and **refuses to schedule while any media is still in `uploading` status** (returns 400 with a not-ready payload), then runs full post validation (per-platform media counts, media-required platforms, etc.) and returns 400 `{ "error": "Validation failed", "validation": {…} }` on failure.
+- **Upload size:** Presigned API uploads have no shared Publora server-side size cap; the destination platform limit applies (for example, YouTube 256 GB and Facebook 2 GB). The dashboard-only `/media/process-video` multipart route has a separate 512 MB multer cap.
+- **Per post:** Twitter/X, Bluesky, and Mastodon allow up to **4 images**; Instagram allows **10**, Threads **20**, and LinkedIn, Facebook, and Telegram **10**. Video posts are limited to **1 video** per post. These limits are validated at the scheduling gate.
 - **Instagram restriction:** Instagram does not allow mixing images and videos in the same post. A post must contain either all images or a single video. This is validated at scheduling time.
-- **Threads carousels:** Up to **10 images** (video items in carousels are not currently supported by Publora; standalone video posts work normally)
+- **Threads carousels:** Up to **20 images** (video items in carousels are not currently supported by Publora; standalone video posts work normally)
 
 ### Automatic Processing
 
@@ -470,8 +470,8 @@ const { data: uploadData } = await api.post('/get-upload-url', {
 const videoBuffer = fs.readFileSync('./promo-video.mp4');
 await axios.put(uploadData.uploadUrl, videoBuffer, {
   headers: { 'Content-Type': 'video/mp4' },
-  maxContentLength: 512 * 1024 * 1024, // 512 MB
-  maxBodyLength: 512 * 1024 * 1024
+  maxContentLength: Infinity,
+  maxBodyLength: Infinity
 });
 
 console.log('Video uploaded:', postData.postGroupId);
@@ -747,7 +747,7 @@ console.log('Carousel post scheduled!');
 
 ## Best Practices
 
-1. **Validate file size before uploading.** The documented maximum is 512 MB per file. While the server does not enforce this via a presigned URL condition, exceeding this size may cause issues with platform processing. Always check the size client-side.
+1. **Validate against the destination platform before uploading.** Presigned API uploads have no shared Publora cap; platform-specific limits are enforced when scheduling/publishing.
 
 2. **Use the correct `contentType`.** The `contentType` you pass to `get-upload-url` must match the `Content-Type` header you send when uploading to S3. A mismatch will cause the upload to fail.
 
@@ -755,7 +755,7 @@ console.log('Carousel post scheduled!');
 
 4. **Upload images in parallel when possible.** For carousel posts, you can request all 4 upload URLs at once and upload concurrently to speed things up.
 
-5. **For large video files, consider streaming the upload.** Instead of reading the entire file into memory, use a stream-based approach for files approaching the 512 MB limit.
+5. **For large video files, stream the upload** instead of reading the entire file into memory.
 
 ## Common Issues
 

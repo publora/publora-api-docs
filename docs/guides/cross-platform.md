@@ -513,7 +513,7 @@ if (status.posts) {
 
 3. **Check post status after publishing.** A post group may end up `partially_published` if some platforms succeed and others fail. Always inspect individual platform post statuses via `GET /api/v1/get-post/:postGroupId`.
 
-4. **Be aware of media requirements per platform.** Instagram requires media on every post. TikTok requires video. If you include platforms with different media requirements, ensure your media satisfies all of them, or split into separate post groups.
+4. **Be aware of media requirements per platform.** Instagram requires media; TikTok accepts a photo carousel or one video; YouTube requires video. Ensure shared media satisfies every target or use separate post groups.
 
 5. **Test with a single platform first.** When developing your integration, start by posting to one platform, verify it works, and then expand to multiple platforms.
 

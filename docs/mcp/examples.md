@@ -43,7 +43,7 @@ Real-world examples of using Publora MCP with AI assistants like Claude, Cursor,
 
 > **You:** Post "We're hiring senior engineers! Check our careers page" to Twitter, LinkedIn, and Bluesky right now
 
-> **Claude:** I'll schedule that for immediate publishing. (To post immediately via MCP, I set `scheduledTime` a few seconds in the future. A time already in the past is clamped to server time and returns a `SCHEDULED_TIME_COERCED` warning -- and from 2026-08-25, times 5+ minutes stale are rejected with `SCHEDULED_TIME_IN_PAST`.)
+> **Claude:** I'll schedule that for immediate publishing. (I set `scheduledTime` a few seconds in the future. Under 5 minutes late is always clamped; 5+ minutes is scheduled to become strict on 2026-08-25 unless production configuration overrides the date either way.)
 >
 > Published successfully:
 > - **Twitter:** https://twitter.com/yourcompany/status/...

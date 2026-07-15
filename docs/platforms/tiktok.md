@@ -342,7 +342,7 @@ console.log(response.data);
 
 ## Platform Quirks
 
-- **Video only**: TikTok does not support text-only or image-only posts through the API. A video must always be included.
+- **Media required**: TikTok does not support text-only posts; attach either a photo carousel (up to 35 images) or one video.
 - **Minimum 23 FPS**: Videos must have a frame rate of at least 23 frames per second. Videos below this threshold will be rejected by TikTok.
 - **Supported formats**: Publora's upload layer accepts MP4, MOV, WebM, AVI, and MKV video formats. However, TikTok's own API may reject formats other than MP4, MOV, and WebM, so those three are recommended for reliable publishing.
 - **Commercial content disclosure**: If your video promotes a brand or is part of a paid partnership, you must set the appropriate commercial content flags. Failing to do so may violate TikTok's community guidelines.
@@ -397,16 +397,13 @@ These limits apply specifically to the TikTok Content Posting API and may differ
 
 ### Rate Limits
 
-| Limit Type | Value |
-|------------|-------|
-| Posts per day | 15-20 posts |
-| Videos per minute | Max 2 videos |
+TikTok-side posting quotas are account-dependent, may change without notice, and are not a Publora numeric contract.
 
 ### Publishing Notes
 
 - **Video or photo**: TikTok accepts a single video (MP4, MOV, WebM), or a photo carousel of up to 35 images (JPEG, PNG, WebP). Other image formats are transcoded automatically where possible.
 - **Privacy is account-dependent**: The viewer settings available to an account are set by TikTok from that account's configuration (see [Viewer Settings](#viewer-settings)). Public accounts can post at any level, including `PUBLIC_TO_EVERYONE`.
-- **Rate limits**: 15–20 posts per day and up to 2 videos per minute per account. Exceeding them returns `spam_risk_too_many_posts`.
+- **Rate limits**: TikTok-side quotas are advisory, account-dependent, and may change; Publora does not contractually enforce a posts-per-day number.
 
 ### Common Error Messages
 

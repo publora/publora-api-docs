@@ -93,12 +93,12 @@ March 15, 2026              ✗ Not ISO 8601
 
 ### Past scheduled times
 
-| How far in the past | Today | From **2026-08-25** (strict mode) |
+| How far in the past | Today | When strict mode is active (scheduled **2026-08-25** by default) |
 |---|---|---|
 | Less than 5 minutes | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Unchanged — still clamped + warned** |
 | 5 minutes or more | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Rejected — `400 SCHEDULED_TIME_IN_PAST`** |
 
-> **The 5-minute tolerance is permanent.** It does **not** go away at the sunset. Only the *5-minutes-or-more* case changes behaviour on 2026-08-25 — flipping from clamp-and-warn to a hard `400`. A time a few seconds or a couple of minutes in the past (ordinary clock skew and request latency) will keep being clamped and warned about, before and after that date, forever.
+> **The 5-minute tolerance is permanent.** The *5-minutes-or-more* case is scheduled to flip from clamp-and-warn to a hard `400` on 2026-08-25, unless production configuration overrides that date either way.
 
 Clamped requests still return `200`, and the response carries the warning:
 
@@ -427,7 +427,7 @@ def update_post_safely(post_group_id, updates):
 |--------|-------|-------|
 | 400 | `"At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"` | None of the four fields was provided (see note below) |
 | 400 | `"Unknown platformSettings path: {path}"` — code `PLATFORM_SETTING_UNKNOWN` | An unrecognized top-level platform or nested settings key. The response includes `field` with the exact dotted path. Nothing is persisted. |
-| 400 | `"Scheduled time is in the past. Server time is {t} UTC."` — code `SCHEDULED_TIME_IN_PAST` | The requested time — or, on a status-only transition, the post's stored time — is 5+ minutes in the past, once strict mode is on (**2026-08-25**). The response includes `serverTime`. |
+| 400 | `"Scheduled time is in the past. Server time is {t} UTC."` — code `SCHEDULED_TIME_IN_PAST` | The requested or stored time is 5+ minutes in the past while strict mode is active (scheduled for **2026-08-25** unless configuration overrides it). Includes `serverTime`. |
 | 400 | `"Idempotency-Key request body is too deeply nested"` — code `IDEMPOTENCY_BODY_TOO_COMPLEX` | The request body sent with an `Idempotency-Key` exceeds the nesting limit and cannot be hashed |
 | 409 | `"A request with this idempotency key is still in flight"` — code `IDEMPOTENCY_IN_FLIGHT` | Another request with the same `Idempotency-Key` is still being processed. Retry shortly. |
 | 422 | `"Idempotency key was already used with a different request body"` — code `IDEMPOTENCY_KEY_CONFLICT` | The same `Idempotency-Key` was reused with a different body. Use a new key. |

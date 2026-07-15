@@ -36,12 +36,12 @@ processingStatus field:  pending --> processing --> finished
 
 Previously, a `scheduledTime` in the past was silently rewritten to the current time -- so "post at 09:00" computed a few seconds late, or a stale retry of an old request, published **immediately** with no signal. That is fixed: the API now always tells you.
 
-| How far in the past | Today | From **2026-08-25** |
+| How far in the past | Today | When strict mode is active (scheduled **2026-08-25** by default) |
 |---|---|---|
 | Less than 5 minutes (clock skew) | Clamped to server time + `warnings` in the 2xx body | Unchanged -- still clamped + warned |
 | 5 minutes or more | Clamped to server time + `warnings` in the 2xx body | **`400 SCHEDULED_TIME_IN_PAST`** |
 
-The 5-minute tolerance for clock skew is permanent. Only the 5-minutes-or-more case changes.
+The 5-minute tolerance for clock skew is permanent. The 5-minutes-or-more case is scheduled to become strict on 2026-08-25 unless production configuration overrides the date either way.
 
 **Warning (2xx)** -- the post *was* created; `effective` is the time actually stored:
 
@@ -74,7 +74,7 @@ The 5-minute tolerance for clock skew is permanent. Only the 5-minutes-or-more c
 
 **What to do now**
 
-- Treat any `warnings` entry with `code: "SCHEDULED_TIME_COERCED"` as an error in the making -- it becomes a `400` on 2026-08-25.
+- Treat `SCHEDULED_TIME_COERCED` as an error in the making; strict mode is scheduled for 2026-08-25 unless production configuration overrides it.
 - Build times from UTC (`new Date().toISOString()`, `datetime.now(timezone.utc)`), not local wall-clock.
 - Add a small buffer (30-60s) when scheduling "now" to absorb network and clock skew.
 - To confirm what the server kept, read the post back -- [`GET /get-post`](../endpoints/get-post.md) returns the stored **effective** `scheduledTime`, not what you asked for.

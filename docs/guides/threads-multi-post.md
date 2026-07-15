@@ -1,6 +1,6 @@
-# Post Multiple Threads Posts via API - Threads Threading Guide
+# Disabled Threads Multi-Post Workflow — Reference
 
-Post multi-part threads (connected posts) to Meta's Threads platform programmatically using the Publora REST API. Create threaded conversations without managing the Threads API complexity.
+Multi-part publishing to Meta Threads is currently disabled. This page preserves non-runnable background material for the capability if it is re-enabled; it is not a current API workflow.
 
 > **⚠️ Temporary Restriction:** Multi-threaded nested posts are temporarily unavailable due to Threads app reconnection status. This guide documents the feature for when it returns. Single posts, carousel posts, and standalone threads continue to work. Contact support@publora.com for updates.
 
@@ -12,7 +12,7 @@ On Threads (by Meta), you can create connected posts that appear as a conversati
 3. Creating subsequent posts with `reply_to_id` pointing to the previous post
 4. Publishing each in sequence
 
-Publora handles this entire flow with a single API call.
+Publora's implementation is currently gated off; this flow is background context, not an available API contract.
 
 ### Keywords: Threads API, Threads multi-post API, Meta Threads API, post to Threads API, Threads thread API, Threads reply chain API, Threads automation API, create Threads post programmatically, Threads bot API, Instagram Threads API, publish multiple Threads posts
 
@@ -40,7 +40,7 @@ Key lesson: Technical debt isn't just slow code. It's the cognitive load on ever
 });
 ```
 
-Publora will automatically split this into multiple connected Threads posts.
+Multi-part Threads publishing is currently disabled (`supportsThreading: false`). Long content is not automatically split, and numbering semantics are not a public contract until the capability is re-enabled.
 
 ## How Threads Threading Works
 
@@ -71,7 +71,7 @@ const container2 = await fetch(
 // ... and so on
 ```
 
-### The Publora Way
+### Disabled Publora flow (non-runnable reference)
 
 ```javascript
 // Single request - everything handled automatically
@@ -92,11 +92,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ### Automatic Splitting
 
-Content over 500 characters is automatically split:
-- At paragraph breaks (`\n\n`) first
-- At sentence endings (`. `, `! `, `? `) second
-- At word boundaries as fallback
-- Unlike Twitter, no `[1/N]` markers are added by default
+Content over 500 characters currently fails validation rather than being split. Splitting and numbering semantics are not a public contract until threading is re-enabled.
 
 ### Manual Thread Parts with `---`
 
@@ -136,7 +132,6 @@ The tool doesn't matter. The work does. Start shipping. (4/4)`;
 |---------|-------|
 | Post body | 500 characters |
 | Hashtags | 1 per post (platform limit) |
-| Thread parts | No fixed limit |
 
 ## Adding Media to Threads
 
@@ -217,14 +212,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ## Rate Limits
 
-The Threads API has publishing limits:
-
-| Limit Type | Value |
-|------------|-------|
-| Posts per 24 hours | 250 |
-| Posts per hour | 50 |
-
-**Important:** Each post in a thread counts toward these limits. A 5-post thread uses 5 posts from your daily quota.
+Threads-side quotas are advisory, account-dependent, and not a Publora numeric contract. Multi-part Threads publishing is disabled.
 
 ## Error Handling
 
@@ -303,9 +291,9 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 | Feature | Publora | Threads API Direct |
 |---------|---------|-------------------|
-| Thread creation | Single API call | Multiple sequential calls |
+| Thread creation | Disabled | Multiple sequential calls |
 | OAuth handling | Not required | Complex Meta OAuth flow |
-| Content splitting | Automatic | Manual implementation |
+| Content splitting | Disabled | Manual implementation |
 | API access | Instant | Requires Meta app review |
 | Multi-platform | Yes (+ Twitter, LinkedIn, etc.) | Threads only |
 

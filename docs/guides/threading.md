@@ -1,6 +1,6 @@
 # Threading Guide - Post Multi-Part Threads via API
 
-Learn how to post threads (multiple connected posts) to Twitter/X and Threads using the Publora API. This guide covers automatic thread splitting, manual thread creation, and best practices.
+Learn how to post connected threads to Twitter/X. Multi-part publishing on Meta Threads is currently disabled; any Threads mechanics shown are non-operational reference material.
 
 > **⚠️ Threads Platform Notice:** Multi-part nested threads on Threads are temporarily unavailable due to API access requirements. Twitter/X threading works normally. Single posts and carousels on Threads continue to work. Contact support@publora.com for updates.
 
@@ -24,10 +24,10 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: `This is a long post that will be automatically split into multiple parts.
 
-When your content exceeds the character limit (280 for X/Twitter, 500 for Threads), Publora automatically creates a thread.
+When X/Twitter content exceeds the applicable account limit, Publora can automatically create a thread.
 
 Each part is posted as a reply to the previous one, creating a connected conversation that your followers can read through.`,
-    platforms: ['twitter-123', 'threads-456']
+    platforms: ['twitter-123']
   })
 });
 ```
@@ -53,9 +53,9 @@ When your content exceeds platform limits, Publora automatically:
 2. **Posts sequentially:**
    - First post published normally
    - Each subsequent post replies to the previous
-   - Uses `reply_to_id` (Threads) or `in_reply_to_tweet_id` (X)
+   - Uses `in_reply_to_tweet_id` on X; the analogous Threads flow is disabled
 
-3. **Adds numbering (X/Twitter and Threads):**
+3. **Adds numbering (X/Twitter only):**
    - Appends `(1/N)`, `(2/N)`, etc. to each post
    - Reserves 10 characters for the marker
 
@@ -65,7 +65,7 @@ When your content exceeds platform limits, Publora automatically:
 |----------|----------------|------------------|
 | X/Twitter (Standard) | 280 | Yes `(1/N)` |
 | X/Twitter (Premium) | 25,000 | Yes `(1/N)` |
-| Threads | 500 | Yes (default) |
+| Threads | 500 | Disabled; numbering is not a public contract |
 
 ## Manual Thread Control
 
@@ -116,7 +116,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content,
-    platforms: ['twitter-123', 'threads-456']
+    platforms: ['twitter-123']
   })
 });
 ```
@@ -204,7 +204,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
 | Platform | Images | Video | Notes |
 |----------|--------|-------|-------|
 | X/Twitter | Up to 4 | 1 | Cannot mix images and video |
-| Threads | Up to 10 (carousel) | 1 | WebP auto-converted |
+| Threads | Up to 20 images | 1 | WebP auto-converted; threading disabled |
 
 ## Cross-Platform Threading
 
@@ -219,14 +219,14 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: `A long piece of content that will become a thread...`,
-    platforms: ['twitter-123', 'threads-456']
+    platforms: ['twitter-123']
   })
 });
 ```
 
 Publora handles platform differences:
 - X/Twitter: 280 char limit, adds `(1/N)` markers
-- Threads: 500 char limit, adds `(1/N)` markers by default
+- Threads: multi-part threading is disabled; numbering semantics are not a public contract until re-enabled
 
 ## Scheduling Threads
 
@@ -272,11 +272,7 @@ The successfully posted parts remain live. You may need to:
 
 ### Rate Limits
 
-| Platform | Limit | Notes |
-|----------|-------|-------|
-| X/Twitter (Free) | 500/month | Each tweet in thread counts |
-| X/Twitter (Basic) | 10,000/month | 100 per 15 min per user |
-| Threads | 250/day | ~25/hour |
+Platform-side quotas and pricing change independently and are not a Publora numeric contract. Threads multi-part publishing remains disabled.
 
 ## Best Practices
 
@@ -340,4 +336,4 @@ The `postedId` field contains the platform-native post ID (not a full URL). If a
 
 ---
 
-*[Publora](https://publora.com) - Post threads to X/Twitter and Threads via a simple REST API.*
+*[Publora](https://publora.com) - Post threads to X/Twitter via a simple REST API; Meta Threads multi-part publishing is currently disabled.*

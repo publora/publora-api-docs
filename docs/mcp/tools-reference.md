@@ -113,7 +113,7 @@ Create and schedule a post to one or more platforms.
 
 > **Use `idempotencyKey` whenever a retry is possible.** An agent that retries after a network timeout has no way to know whether the first `create_post` landed — without a key it creates a **second post**. Pass a fresh unique key (e.g. a UUID) per distinct post; on retry, resend the *same* key with the *same* arguments and Publora replays the original result instead of posting again. Reusing a key with different arguments returns `422` `IDEMPOTENCY_KEY_CONFLICT`; retrying while the first call is still running returns `409` `IDEMPOTENCY_IN_FLIGHT` (wait and retry the identical call — do not switch keys).
 
-> **A `scheduledTime` in the past is not taken literally.** Under 5 minutes late it is always clamped to server time and the response carries a `SCHEDULED_TIME_COERCED` warning — that tolerance is permanent. From 5 minutes late it is clamped and warned until the strict sunset (`2026-08-25`), and rejected with `400` `SCHEDULED_TIME_IN_PAST` (plus a `serverTime` field) after it. Always send a future time. See [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
+> **A `scheduledTime` in the past is not taken literally.** Under 5 minutes late it is always clamped with `SCHEDULED_TIME_COERCED`. At 5+ minutes it is scheduled to become `400 SCHEDULED_TIME_IN_PAST` on 2026-08-25, unless production configuration overrides the date either way.
 
 > **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
@@ -218,18 +218,19 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 
 **Platform limits:**
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Characters | Images | Video | Special Features |
 |----------|------------|--------|-------|------------------|
 | LinkedIn | 3,000 | 10 | 500MB | Documents, @mentions |
-| X/Twitter | 280 (25K premium) | 4 | 120s | Auto-threading |
-| Instagram | 2,200 | 10 | 3 min (180s) Reels, 60s carousel | Reels & Stories supported |
-| Threads | 500 (10,000 with text attachment) | 10 | 5min | Auto-threading |
-| TikTok | 2,200 | N/A | 10min | Video-only platform |
-| YouTube | 5,000 desc | N/A | 12h | Shorts support |
-| Facebook | 63,206 | 10 | 45min | Page posts, Reels |
+| X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
+| Instagram | 2,200 | 10 | 900s Reels, 3600s feed, 60s carousel | Reels & Stories supported |
+| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Threading disabled |
+| TikTok | 2,200 | 35 | 10min / 4 GB | Image carousel or video |
+| YouTube | 5,000 desc | 0 | 12h / 256 GB | Shorts support |
+| Facebook | 63,206 | 10 | 45min / 2 GB | Page posts, Reels |
 | Bluesky | 300 | 4 | 3 min / 100 MB | Auto-facet detection |
 | Mastodon | 500* | 4 | ~99 MB | Instance-variable |
-| Telegram | 4,096 (1,024 captions) | Unlimited | 2GB | Markdown/HTML support |
+| Telegram | 4,096 (1,024 captions) | 10 | 24h / 50 MB | Automatic Markdown parsing |
 
 *Varies by instance
 
@@ -313,7 +314,7 @@ Reschedule or change post status.
 
 > **Note:** Provide at least one of `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
 
-> **`scheduledTime` handling:** omitting `scheduledTime` keeps the post's current scheduled time. A time under 5 minutes in the past is clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response's `warnings[]` — that tolerance is permanent. A time 5+ minutes in the past is clamped and warned until the strict sunset (`2026-08-25`), and returns `400` `SCHEDULED_TIME_IN_PAST` (with `serverTime`) after it. See [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
+> **`scheduledTime` handling:** omitting it keeps the current time. Under 5 minutes late is always clamped with `SCHEDULED_TIME_COERCED`; 5+ minutes is scheduled to become strict on 2026-08-25 unless production configuration overrides the date either way.
 
 > **Known discrepancy:** the `update_post` tool description returned by the live MCP server still says a past `scheduledTime` "is snapped to now". That is only true under the conditions above; the note in this section is authoritative.
 

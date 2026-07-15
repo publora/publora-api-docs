@@ -48,6 +48,8 @@ Where `{profileId}` is your LinkedIn profile identifier assigned during account 
 
 ## API Limits
 
+<!-- limits tables below synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
+
 ### Character Limit
 
 - **3,000 characters** maximum per post
@@ -57,7 +59,7 @@ Where `{profileId}` is your LinkedIn profile identifier assigned during account 
 
 | Property | Limit |
 |----------|-------|
-| Max size | 5 MB |
+| Primary gate | 36,152,320 pixels (about 6048×6048); 50 MB permissive byte ceiling |
 | Max count | 10 (multi-image posts) |
 | Formats | JPEG, PNG, GIF, WebP (WebP images are auto-converted to JPEG before upload to LinkedIn) |
 

@@ -76,13 +76,14 @@ A `scheduledTime` in the past is handled by how far in the past it is. The 5-min
 tolerance absorbs ordinary client clock skew; anything beyond it is a real bug in the
 caller's logic.
 
-| How far in the past | Behaviour today | Behaviour after 2026-08-25 |
+| How far in the past | Behaviour today | Behaviour when strict mode is active (scheduled 2026-08-25 by default) |
 |---------------------|-----------------|----------------------------|
 | Less than 5 minutes | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Unchanged** — clamped + warned |
 | 5 minutes or more | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Rejected** with `400` / `SCHEDULED_TIME_IN_PAST` |
 
-> **⚠️ Migration deadline — 2026-08-25.** Sending a `scheduledTime` 5+ minutes in the
-> past currently succeeds with a warning. On **2026-08-25** this becomes a hard `400`.
+> **⚠️ Scheduled strict date — 2026-08-25.** Sending a `scheduledTime` 5+ minutes in the
+> past currently succeeds with a warning. It is scheduled to become a hard `400` on
+> **2026-08-25**, unless production configuration overrides that date either way.
 > If you see `SCHEDULED_TIME_COERCED` in your responses today, fix it before that date:
 > the usual causes are an unsynced client clock, a local-time value sent without a UTC
 > offset, or replaying a stored `scheduledTime` from an earlier run. Compare your
@@ -387,7 +388,7 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 400 | `"Invalid platforms JSON format"` | `platforms` contains malformed JSON |
 | 400 | `"Invalid platform ID format: <id>"` | Prefix is not lowercase letters, or the ID is empty or contains whitespace, `/`, `?`, or `#` |
 | 400 | `"Invalid scheduled time format"` | `scheduledTime` is not a valid ISO 8601 datetime |
-| 400 | `"Scheduled time is in the past. Server time is <ISO> UTC."` | `code: "SCHEDULED_TIME_IN_PAST"`, `serverTime: "<ISO>"`. `scheduledTime` is 5+ minutes in the past. Warn-only until **2026-08-25** — see [Past scheduled times](#past-scheduled-times) |
+| 400 | `"Scheduled time is in the past. Server time is <ISO> UTC."` | `code: "SCHEDULED_TIME_IN_PAST"`, `serverTime: "<ISO>"`. `scheduledTime` is 5+ minutes in the past while strict mode is active; the default transition is scheduled for **2026-08-25** but configuration can override it. |
 | 400 | `"Unknown platformSettings path: <path>"` | `code: "PLATFORM_SETTING_UNKNOWN"`, `field: "<exact.path>"`. Unknown platform or nested key; nothing is persisted. See [Unknown platformSettings paths](#unknown-platformsettings-paths) |
 | 400 | `"Invalid platformSettings JSON"` | `platformSettings` was provided as a string that could not be parsed as valid JSON |
 | 400 | `"Idempotency-Key request body is too deeply nested"` | `code: "IDEMPOTENCY_BODY_TOO_COMPLEX"`. Body nested more than 200 levels deep while using `Idempotency-Key` |

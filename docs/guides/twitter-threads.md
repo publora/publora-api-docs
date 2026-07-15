@@ -234,15 +234,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ## Rate Limits
 
-Twitter/X API has strict rate limits:
-
-| Tier | Monthly Limit | Per 15 Minutes | Per User |
-|------|--------------|----------------|----------|
-| Free | 500 tweets | ~17 | Limited |
-| Basic ($100/mo) | 10,000 | 100 | 100 |
-| Pro ($5,000/mo) | 1,000,000 | Higher | Higher |
-
-**Important:** Each tweet in a thread counts as a separate tweet toward your limit. A 5-tweet thread uses 5 tweets from your quota.
+X-side pricing and posting quotas change independently and are not a Publora numeric contract. Consult X's current developer documentation; each tweet in a thread is a separate platform publication.
 
 ## Error Handling
 

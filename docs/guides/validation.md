@@ -28,6 +28,7 @@ If validation fails with blocking errors, the API returns a `400` status code wi
 
 Each platform has a maximum character limit. Some platforms also have minimum requirements.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Max Characters | Notes |
 |---|---|---|
 | **Twitter/X** | 280 (standard) / 25,000 (Premium) | Threading supported for long content |
@@ -46,12 +47,13 @@ Each platform has a maximum character limit. Some platforms also have minimum re
 
 Some platforms require media, while others support text-only posts.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Requires Media | Requires Video | Supports Text-Only |
 |---|---|---|---|
 | **Twitter/X** | No | No | Yes |
 | **Instagram** | Yes | No | No |
 | **Threads** | No | No | Yes |
-| **TikTok** | Yes | Yes | No |
+| **TikTok** | Yes | No | No |
 | **LinkedIn** | No | No | Yes |
 | **YouTube** | Yes | Yes | No |
 | **Facebook** | No | No | Yes |
@@ -62,55 +64,57 @@ Some platforms require media, while others support text-only posts.
 
 ### Media File Sizes
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Max Image Size | Max Video Size | Max Media Count |
 |---|---|---|---|
 | **Twitter/X** | 5 MB | 512 MB | 4 images OR 1 video |
 | **Instagram** | 8 MB | 300 MB | 10 (API carousel) |
-| **Threads** | 8 MB | 500 MB | 10 |
-| **TikTok** | - | 4 GB | 1 video only |
-| **LinkedIn** | 5 MB | 500 MB | 10 images OR 1 video |
+| **Threads** | 8 MB | 1 GB | 20 images OR 1 video |
+| **TikTok** | 20 MB | 4 GB | 35 images OR 1 video |
+| **LinkedIn** | 36,152,320 pixels primary gate; 50 MB ceiling | 500 MB | 10 images OR 1 video |
 | **YouTube** | - | 256 GB | 1 video only |
 | **Facebook** | 10 MB | 2 GB (API) | 10 images OR 1 video |
 | **Mastodon** | 16 MB | ~99 MB | 4 |
-| **Bluesky** | 1 MB | 100 MB | 4 |
+| **Bluesky** | exactly 2,000,000 bytes | 100 MB | 4 |
 | **Telegram** | 10 MB | 50 MB (Bot API) | 10 |
-| **Pinterest** | 20 MB | 1 GB | 5 (carousel) |
+| **Pinterest** | 20 MB | 2 GB | 1 image OR 1 video (connect-only; not publishable) |
 
 ### Media Formats
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Supported Image Formats | Supported Video Formats |
 |---|---|---|
 | **Twitter/X** | JPEG, PNG, GIF, WebP | MP4, MOV |
 | **Instagram** | JPEG, PNG, WebP (WebP auto-converted) | MP4, MOV |
-| **Threads** | JPEG, PNG | MP4, MOV |
-| **TikTok** | - | MP4, MOV, WebM |
-| **LinkedIn** | JPEG, PNG, GIF | MP4 |
+| **Threads** | JPEG, PNG, WebP | MP4, MOV |
+| **TikTok** | JPEG, PNG, WebP | MP4, MOV, WebM |
+| **LinkedIn** | JPEG, PNG, GIF, WebP | MP4 |
 | **YouTube** | - | MP4, MOV, AVI, WebM |
-| **Facebook** | JPEG, PNG, GIF, BMP, TIFF | MP4, MOV |
-| **Mastodon** | JPEG, PNG, GIF, WebP | MP4, MOV, WebM |
-| **Bluesky** | JPEG, PNG, WebP (max 2000x2000 px) | MP4 |
+| **Facebook** | JPEG, PNG, GIF, BMP, TIFF, WebP, AVIF, HEIF, HEIC | MP4, MOV |
+| **Mastodon** | JPEG, PNG, GIF, WebP, HEIF, HEIC, AVIF | MP4, MOV, WebM |
+| **Bluesky** | JPEG, PNG, WebP | MP4 |
 | **Telegram** | JPEG, PNG, GIF, WebP, BMP | MP4, MOV, AVI, MKV, WebM |
-| **Pinterest** | JPEG, PNG, TIFF, BMP, GIF, WebP | MP4, MOV |
+| **Pinterest** | JPEG, PNG | MP4, MOV |
 
 > **Note:** Instagram accepts JPEG, PNG, and WebP images (WebP is auto-converted to JPEG before publishing). Animated GIF, BMP, and TIFF will fail validation.
 
 ### Video Duration Limits
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Min Duration | Max Duration (API) | Notes |
 |---|---|---|---|
-| **Twitter/X** | - | 2 min (120s) | Native allows 2:20 |
-| **Instagram Reels** | - | 3 min (180s) | Native allows 15-20 min |
-| **Instagram Carousel** | - | 60s per video | - |
+| **Twitter/X** | 0.5s | 2 min 20s (140s) | Package-enforced API limit |
+| **Instagram Reels** | 3s | 15 min (900s) | Feed video: 60 min; carousel: 60s |
+| **Instagram Carousel** | 3s | 60s per video | - |
 | **Threads** | - | 5 min | - |
 | **TikTok** | 3 seconds | 10 min | Native allows 60 min |
-| **LinkedIn** | - | 30 min | - |
+| **LinkedIn** | 3s | 30 min | - |
 | **YouTube** | - | 12 hours | - |
 | **Facebook** | - | 45 min | Native allows 240 min |
-| **Facebook Reels** | 3 seconds | 90 seconds | - |
-| **Mastodon** | - | No limit* | *Limited by file size |
-| **Bluesky** | - | 3 min | Daily limit: 25 videos OR 10 GB |
-| **Telegram** | - | No limit | Limited by 50 MB file size |
-| **Pinterest** | - | 15 min | - |
+| **Mastodon** | - | 24 hours | Package limit: 86,400 seconds |
+| **Bluesky** | - | 3 min | Package-sourced daily limit: 25 videos |
+| **Telegram** | - | 24 hours | Limited by 50 MB file size |
+| **Pinterest** | 4s | 15 min | - |
 
 ## Validation Response Format
 
@@ -133,9 +137,9 @@ When validation errors occur, the API returns a `400` status code with a structu
       },
       {
         "platform": "tiktok",
-        "code": "VIDEO_REQUIRED",
-        "message": "TikTok posts require a video",
-        "field": "video",
+        "code": "MEDIA_REQUIRED",
+        "message": "TikTok posts require media",
+        "field": "media",
         "severity": "error"
       }
     ],
@@ -207,13 +211,13 @@ When validation errors occur, the API returns a `400` status code with a structu
 | `MEDIA_COUNT_EXCEEDED` | Too many media files attached | Reduce the number of files |
 | `MEDIA_TYPE_NOT_SUPPORTED` | File format not supported by the platform | Convert to a supported format |
 | `MEDIA_DIMENSIONS_INVALID` | Image dimensions outside allowed range | Resize the image |
-| `IMAGES_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform is video-only (TikTok, YouTube) | Use a video instead |
+| `IMAGES_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform does not accept images (YouTube) | Use a video instead |
 
 ### Video Errors
 
 | Code | Description | Resolution |
 |---|---|---|
-| `VIDEO_REQUIRED` | Platform requires a video (TikTok, YouTube) | Attach a video file |
+| `VIDEO_REQUIRED` | Platform requires a video (YouTube) | Attach a video file |
 | `VIDEO_DURATION_EXCEEDED` | Video is longer than the platform allows | Trim the video to meet the limit |
 | `VIDEO_DURATION_TOO_SHORT` | Video is shorter than the minimum required | Use a longer video (min 3s for TikTok/FB Reels) |
 | `VIDEO_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform does not support video | Remove the video or change target platforms |
@@ -275,7 +279,7 @@ When posting to Instagram without media:
 
 ### Validation Error: Video Required for TikTok
 
-When posting an image to TikTok (video-only platform):
+When scheduling TikTok without required media:
 
 **Request:**
 
@@ -296,16 +300,16 @@ When posting an image to TikTok (video-only platform):
     "valid": false,
     "errors": [
       {
-        "platform": "tiktok",
+        "platform": "youtube",
         "code": "VIDEO_REQUIRED",
-        "message": "TikTok posts require a video",
+        "message": "YouTube requires a video",
         "field": "video",
         "severity": "error"
       }
     ],
     "warnings": [],
     "summary": {
-      "affectedPlatforms": ["tiktok"],
+      "affectedPlatforms": ["youtube"],
       "errorCount": 1,
       "warningCount": 0
     }
@@ -317,7 +321,7 @@ When posting an image to TikTok (video-only platform):
 
 When content exceeds Twitter's 280 character limit:
 
-> **Threading note:** This example shows `CONTENT_TOO_LONG` as an `"error"` with `severity: "error"`. However, on threading-capable platforms (Twitter/X, Threads) with threading enabled, this would be a **warning** (`severity: "warning"`) instead, because the content will be automatically split into a thread. The example below assumes threading is disabled.
+> **Threading note:** Twitter/X can turn this into a warning when threading is enabled. Threads has `supportsThreading: false`, so over-limit Threads content remains an error.
 
 **Response (400):**
 
@@ -397,7 +401,7 @@ When a video exceeds platform limits:
       {
         "platform": "twitter",
         "code": "VIDEO_DURATION_EXCEEDED",
-        "message": "Video duration (3m 0s) exceeds Twitter/X's 2m 0s limit",
+        "message": "Video duration (3m 0s) exceeds Twitter/X's 2m 20s limit",
         "field": "videoDuration",
         "severity": "error"
       }
@@ -414,7 +418,7 @@ When a video exceeds platform limits:
 
 ### Validation Error: File Size Exceeded
 
-When an image exceeds Bluesky's strict 1 MB limit:
+When an image exceeds Bluesky's strict 2,000,000-byte limit:
 
 **Response (400):**
 
@@ -427,7 +431,7 @@ When an image exceeds Bluesky's strict 1 MB limit:
       {
         "platform": "bluesky",
         "code": "MEDIA_SIZE_EXCEEDED",
-        "message": "Image (2.5MB) exceeds Bluesky's 1.0MB limit",
+        "message": "Image (2.5MB) exceeds Bluesky's 1.9MB limit",
         "field": "imageSize",
         "severity": "error"
       }
@@ -464,15 +468,15 @@ When a single post has issues on multiple platforms:
       {
         "platform": "bluesky",
         "code": "MEDIA_SIZE_EXCEEDED",
-        "message": "Image (2.5MB) exceeds Bluesky's 1.0MB limit",
+        "message": "Image (2.5MB) exceeds Bluesky's 1.9MB limit",
         "field": "imageSize",
         "severity": "error"
       },
       {
         "platform": "tiktok",
-        "code": "VIDEO_REQUIRED",
-        "message": "TikTok posts require a video",
-        "field": "video",
+        "code": "MEDIA_REQUIRED",
+        "message": "TikTok posts require media",
+        "field": "media",
         "severity": "error"
       }
     ],
@@ -492,9 +496,9 @@ When a single post has issues on multiple platforms:
 
 2. **Use supported Instagram image formats.** Instagram accepts JPEG, PNG, and WebP images; WebP is auto-converted before publishing. GIF is not supported for Instagram image posts.
 
-3. **Compress images for Bluesky.** Bluesky has a strict 1 MB limit. Use JPEG compression at 80-85% quality to stay under the limit.
+3. **Compress images for Bluesky.** Bluesky has a strict 2,000,000-byte decimal limit.
 
-4. **Check video durations before uploading.** Instagram Reels API maxes out at 3 minutes (180s), carousel videos at 60 seconds, Twitter at 2 minutes, TikTok at 10 minutes. Trim videos accordingly.
+4. **Check video durations before uploading.** Instagram Reels max out at 15 minutes (900s), feed videos at 60 minutes, carousel videos at 60 seconds, Twitter at 140 seconds, and TikTok at 10 minutes.
 
 5. **Use separate media for different platform groups.** If posting to both image and video platforms, consider creating separate posts:
    - Image posts for Instagram, Twitter, LinkedIn
@@ -502,23 +506,21 @@ When a single post has issues on multiple platforms:
 
 6. **Handle validation errors gracefully in your UI.** Display platform-specific error messages so users know exactly what to fix.
 
-7. **Consider platform requirements when designing content.** If targeting TikTok, always start with video. If targeting Instagram, prepare JPEG, PNG, or WebP images.
+7. **Consider platform requirements when designing content.** TikTok accepts a JPEG/PNG/WebP photo carousel of up to 35 images or one video. Instagram requires supported image or video media.
 
-8. **Keep Bluesky image dimensions under 2000x2000 pixels.** Larger images will fail validation.
+8. **For Telegram bots, keep captions under 1,024 characters.** Bots cannot exceed this limit even though users can send 4,096 characters.
 
-9. **For Telegram bots, keep captions under 1,024 characters.** Bots cannot exceed this limit even though users can send 4,096 characters.
-
-10. **Test video FPS for TikTok.** TikTok has minimum FPS requirements. Videos with very low frame rates will fail at publish time.
+9. **Test video FPS for TikTok.** TikTok has minimum FPS requirements. Videos with very low frame rates will fail at publish time.
 
 ## Common Issues
 
 | Problem | Cause | Solution |
 |---|---|---|
 | Instagram post fails with `MEDIA_TYPE_NOT_SUPPORTED` | Using an unsupported image format, such as GIF | Use JPEG, PNG, or WebP images |
-| TikTok post fails with `VIDEO_REQUIRED` | Posting images to a video-only platform | Use a video file instead |
-| Bluesky post fails with `MEDIA_SIZE_EXCEEDED` | Image over 1 MB | Compress to 80-85% JPEG quality |
+| TikTok post fails with `MEDIA_REQUIRED` | No image carousel or video attached | Attach supported image or video media |
+| Bluesky post fails with `MEDIA_SIZE_EXCEEDED` | Image over 2,000,000 bytes | Compress below the decimal byte limit |
 | Twitter post fails with `CONTENT_TOO_LONG` | Content exceeds the connected account's applicable limit | Shorten content or use threading |
-| Instagram Reels fails with `VIDEO_DURATION_EXCEEDED` | Video over 3 minutes | Trim video to under 3 minutes (180s) |
+| Instagram Reels fails with `VIDEO_DURATION_EXCEEDED` | Video over 15 minutes | Trim video to 900 seconds or less |
 | Multiple platforms fail with different errors | Content not optimized for all targets | Create platform-specific posts or fix each error |
 | Validation passes but publish fails | Platform-side issues (rate limits, account restrictions) | Check platform-specific error messages in the post status |
 

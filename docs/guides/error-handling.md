@@ -72,9 +72,11 @@ A `200` from `create-post` or `update-post` may include a `warnings` array. It i
 |---|---|
 | Less than 5 minutes in the past | **Always** clamped to server time + `SCHEDULED_TIME_COERCED` warning (tolerates clock skew). This tolerance is permanent — it does not change after the sunset. |
 | 5 minutes or more in the past, **before** the strict sunset (`2026-08-25`) | Clamped to server time + `SCHEDULED_TIME_COERCED` warning |
-| 5 minutes or more in the past, **on or after** the sunset (`2026-08-25`) | Rejected: `400` `SCHEDULED_TIME_IN_PAST` |
+| 5 minutes or more in the past, **on or after** the configured sunset (default `2026-08-25`) | Rejected: `400` `SCHEDULED_TIME_IN_PAST` |
 
-**Migrate now:** if you see `SCHEDULED_TIME_COERCED` in a response, that same request will start failing with `400` after the sunset. Compare `requested` against the `serverTime`/`effective` value to detect clock skew in your own system. For the full narrative, see [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
+Production configuration can force strict mode on or off, or move the sunset, so the calendar date is not unconditional.
+
+**Migrate now:** `SCHEDULED_TIME_COERCED` means the request will fail whenever strict mode becomes active. Compare `requested` against `serverTime`/`effective` to detect clock skew.
 
 ### Common Errors
 
@@ -889,12 +891,12 @@ if result['failed']:
 | `401` on every request | API key not set or incorrect | Ensure `x-publora-key` header is present with a valid key |
 | `403` but key is valid | Account has no active subscription, hit a usage limit, or account is on hold/inactive | Check subscription status, review the structured error response for limit details, or contact support |
 | `400` when scheduling | `scheduledTime` is malformed, or (code `SCHEDULED_TIME_IN_PAST`) 5+ minutes in the past with strict mode active | Always send a future UTC time as `YYYY-MM-DDTHH:mm:ss.sssZ`. Compare your clock against the `serverTime` in the error body. |
-| Post scheduled "now" instead of my requested time | The time was in the past and was clamped — the response carried a `SCHEDULED_TIME_COERCED` warning | Send a future time. This becomes a hard `400` after the `2026-08-25` strict sunset. |
+| Post scheduled "now" instead of my requested time | The time was in the past and was clamped — the response carried a `SCHEDULED_TIME_COERCED` warning | Send a future time; strict mode may turn this into a hard `400` (scheduled for 2026-08-25 unless configuration overrides it). |
 | `422` on retry | Same `Idempotency-Key` reused with a different body | Generate a fresh key per distinct request; reuse a key only to retry the *identical* request |
 | `409` on retry | The original request with that key is still processing | Wait and retry the identical request — do not issue a new key |
 | `404` when fetching a post | Post group ID is wrong or belongs to another account | Verify the ID and that you are using the correct API key |
 | Post group shows `partially_published` | Some platforms failed while others succeeded | Inspect individual platform post statuses for error details |
-| TikTok post fails with FPS error | Video frame rate below TikTok's minimum requirement | Re-encode the video with at least 24 FPS before uploading |
+| TikTok post fails with FPS error | Video frame rate below TikTok's minimum requirement | Re-encode the video with at least 23 FPS before uploading |
 | `500` intermittent errors | Temporary server issues | Implement retry logic with exponential backoff |
 | Threads post fails with nested thread error | Multi-part nested threads are temporarily disabled pending Meta permissions approval | Keep content under 500 characters or use carousel posts. Contact support@publora.com for updates. |
 

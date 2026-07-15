@@ -20,6 +20,8 @@ No query parameters or request body.
 
 ## Response
 
+The JSON below is abridged: only `twitter` is shown under `platforms`. The live response includes an object for every one of the 11 `supportedPlatforms` keys.
+
 ```json
 {
   "success": true,
@@ -31,16 +33,15 @@ No query parameters or request body.
   "platforms": {
     "twitter": {
       "platform": "twitter",
-      "displayName": "X (Twitter)",
+      "displayName": "Twitter/X",
       "characters": { "standard": 280, "premium": 25000 },
       "images": { "supported": true, "maxSizeBytes": 5242880, "maxCount": 4, "formats": ["image/jpeg", "image/png", "image/gif", "image/webp"] },
-      "videos": { "supported": true, "maxDurationSeconds": 120, "maxSizeBytes": 536870912, "maxCount": 1, "formats": ["video/mp4", "video/quicktime"] },
+      "videos": { "supported": true, "maxDurationSeconds": 140, "minDurationSeconds": 0.5, "maxSizeBytes": 536870912, "maxCount": 1, "formats": ["video/mp4", "video/quicktime"], "aspectRatioRange": { "min": 0.3333333333333333, "max": 3 } },
       "requirements": { "requiresMedia": false, "requiresVideo": false, "supportsTextOnly": true, "supportsThreading": true },
       "documents": null,
       "gifs": null,
       "thumbnails": null
     }
-    // ... one entry per platform in supportedPlatforms
   }
 }
 ```

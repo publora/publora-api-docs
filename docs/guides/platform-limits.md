@@ -31,8 +31,8 @@ The following table highlights the most significant differences between API and 
 
 | Platform | API Restriction | Native App Allows | Impact |
 |----------|-----------------|-------------------|--------|
-| **Twitter/X** | 2 min video max | 2:20 (140s) video | Videos over 2 min will fail |
-| **Instagram** | 3 min Reels, 10 carousel items, no animated GIF/BMP/TIFF | 15-20 min Reels, 20 items, more formats | Animated GIF/BMP/TIFF rejected; use JPEG, PNG, or WebP |
+| **Twitter/X** | 2:20 (140s) video max | 2:20 (140s) video | Videos over 140s fail validation |
+| **Instagram** | 15 min Reels, 10 carousel items, no animated GIF/BMP/TIFF | Platform UI may differ | Animated GIF/BMP/TIFF rejected; use JPEG, PNG, or WebP |
 | **TikTok** | 10 min video, 2,200 char captions | 60 min video, 4,000 chars | Long captions truncated or rejected |
 | **Facebook** | 45 min video, 2 GB files | 240 min video, 4 GB files | Large files will fail |
 | **LinkedIn** | 500 MB video | 5 GB video | Videos over 500 MB will fail |
@@ -44,11 +44,12 @@ The following table highlights the most significant differences between API and 
 
 All platforms have character limits for text content. Some platforms have different limits for premium accounts or specific content types.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Standard Limit | Premium/Special | Notes |
 |----------|---------------|-----------------|-------|
 | **Twitter/X** | 280 characters | 25,000 (Premium) | Threading supported for long content |
 | **Instagram** | 2,200 characters | - | First 125 chars visible before "more" |
-| **Threads** | 500 characters | 10,000 (text attachment) | Threading supported; max 5 links per post |
+| **Threads** | 500 characters | 10,000 (text attachment) | Threading disabled; max 5 links per post |
 | **TikTok** | 2,200 characters (API) | 4,000 (native app) | API enforces stricter limit |
 | **LinkedIn** | 3,000 characters | - | First 210 chars visible before "see more" |
 | **YouTube** | 100 (title) / 5,000 (description) | - | First 150 chars of description visible |
@@ -72,19 +73,20 @@ All platforms have character limits for text content. Some platforms have differ
 
 Image requirements vary significantly across platforms. Pay particular attention to each platform's format and size rules; Instagram accepts JPEG, PNG, and WebP images, with WebP auto-converted before publishing.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Max Size | Max Count | Supported Formats |
 |----------|----------|-----------|-------------------|
 | **Twitter/X** | 5 MB | 4 | JPEG, PNG, GIF, WebP |
 | **Instagram** | 8 MB | 10 (API carousel) | **JPEG, PNG, WebP** (WebP auto-converted) |
-| **Threads** | 8 MB | 10 | JPEG, PNG |
-| **TikTok** | - | 0 | Video only platform |
-| **LinkedIn** | 5 MB | 10 (multi-image) | JPEG, PNG, GIF |
+| **Threads** | 8 MB | 20 | JPEG, PNG, WebP |
+| **TikTok** | 20 MB | 35 | JPEG, PNG, WebP |
+| **LinkedIn** | 36,152,320 pixels primary gate; 50 MB ceiling | 10 (multi-image) | JPEG, PNG, GIF, WebP |
 | **YouTube** | - | 0 | Video only for uploads |
-| **Facebook** | 10 MB | 10 | JPEG, PNG, GIF, BMP, TIFF |
+| **Facebook** | 10 MB | 10 | JPEG, PNG, GIF, BMP, TIFF, WebP, AVIF, HEIF, HEIC |
 | **Mastodon** | 16 MB | 4 | JPEG, PNG, GIF, WebP (instance-configurable) |
-| **Bluesky** | 1 MB | 4 | JPEG, PNG, WebP (max 2000x2000 px) |
+| **Bluesky** | exactly 2,000,000 bytes | 4 | JPEG, PNG, WebP |
 | **Telegram** | 10 MB | 10 | JPEG, PNG, GIF, WebP, BMP |
-| **Pinterest** | 20 MB | 5 (carousel) | JPEG, PNG, TIFF, BMP, GIF, WebP | *Not currently supported* |
+| **Pinterest** | 20 MB | 1 | JPEG, PNG | *Connect-only; not publishable* |
 
 ### Critical Image Notes
 
@@ -93,7 +95,7 @@ Image requirements vary significantly across platforms. Pay particular attention
 | **Image formats** | Instagram | JPEG, PNG, and WebP are accepted (WebP is auto-converted to JPEG before publishing). Animated GIF, BMP, and TIFF are not supported. |
 | **Carousel Limit** | Instagram | API carousels are limited to 10 items (native app allows 20). |
 | **No Mixed Media** | Instagram | Cannot mix images and videos in the same carousel via API. |
-| **Strict Size Limit** | Bluesky | Hard 1 MB limit. Compress images to 80-85% JPEG quality before uploading. |
+| **Strict Size Limit** | Bluesky | Hard 2,000,000-byte decimal limit. |
 | **No Organic Carousels** | LinkedIn | Organic swipeable carousels are NOT supported via API (only sponsored content). |
 
 ### Server-Side Upload Limits
@@ -118,21 +120,21 @@ Publora automatically handles some image conversions:
 
 Video restrictions through APIs are often significantly more restrictive than native apps. This is one of the most common sources of failed posts.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Max Duration | Max Size | Supported Formats |
 |----------|--------------|----------|-------------------|
-| **Twitter/X (API)** | 2 min (120s) | 512 MB | MP4, MOV |
-| **Instagram Reels (API)** | 3 minutes (180s) | 300 MB | MP4, MOV |
+| **Twitter/X (API)** | 2 min 20s (140s) | 512 MB | MP4, MOV |
+| **Instagram Reels (API)** | 15 minutes (900s) | 300 MB | MP4, MOV |
 | **Instagram Carousel** | 60s per video | 300 MB | MP4, MOV |
-| **Threads** | 5 min | 500 MB | MP4, MOV |
+| **Threads** | 5 min | 1 GB | MP4, MOV |
 | **TikTok (API)** | 10 min | 4 GB | MP4, MOV, WebM |
 | **LinkedIn (API)** | 30 min | 500 MB | MP4 |
 | **YouTube** | 12 hours | 256 GB | MP4, MOV, AVI, WebM |
 | **Facebook (API)** | 45 min | 2 GB | MP4, MOV |
-| **Facebook Reels (API)** | 90 seconds | 1 GB | MP4, MOV |
-| **Mastodon** | No limit* | ~99 MB | MP4, MOV, WebM |
+| **Mastodon** | 24 hours | ~99 MB | MP4, MOV, WebM |
 | **Bluesky** | 3 min | 100 MB | MP4 |
-| **Telegram (Bot API)** | No limit | 50 MB | MP4, MOV, AVI, MKV, WebM |
-| **Pinterest** | 15 min | 1 GB | MP4, MOV | *Not currently supported* |
+| **Telegram (Bot API)** | 24 hours | 50 MB | MP4, MOV, AVI, MKV, WebM |
+| **Pinterest** | 15 min | 2 GB | MP4, MOV | *Connect-only; not publishable* |
 
 *Mastodon video duration is limited only by file size (~99 MB default).
 
@@ -142,10 +144,10 @@ Video restrictions through APIs are often significantly more restrictive than na
 
 | Restriction | API Limit | Native App Limit |
 |-------------|-----------|------------------|
-| Reels duration | 3 minutes (180s) | 15-20 minutes |
+| Reels duration | 15 minutes (900s) | Platform UI may differ |
 | Image format | JPEG, PNG, WebP | GIF, BMP, TIFF also supported |
 | Carousel items | 10 | 20 |
-| Account type | Business (recommended) or Creator; personal not supported | Full account support |
+| Account type | Publora connects Instagram accounts through Instagram Login for Business and requests `instagram_business_basic` plus `instagram_business_content_publish`; personal accounts are unsupported. Whether Meta accepts a particular Creator account is determined by Meta, not Publora's code. | Platform UI eligibility is controlled by Meta |
 | Features | No shopping tags, branded content, filters, or music | Full feature set |
 
 #### TikTok API
@@ -154,8 +156,6 @@ Video restrictions through APIs are often significantly more restrictive than na
 |-------------|-----------|------------------|
 | Video duration | 10 minutes | 60 minutes |
 | Caption length | 2,200 characters | 4,000 characters |
-| Daily posts | 15-20 posts/day | Higher limit |
-| Unaudited apps | Can only post PRIVATE videos | Public posting |
 
 #### Facebook API
 
@@ -164,7 +164,6 @@ Video restrictions through APIs are often significantly more restrictive than na
 | Video duration | 45 minutes | 240 minutes |
 | File size | 2 GB | 4 GB |
 | Reels posting | Pages only (not personal profiles) | Both supported |
-| Reels rate limit | 30 Reels per day per Page | Higher limit |
 
 #### LinkedIn API
 
@@ -187,8 +186,7 @@ Video restrictions through APIs are often significantly more restrictive than na
 
 | Restriction | Details |
 |-------------|---------|
-| Daily limit | 25 videos OR 10 GB per day |
-| Size tiers | Videos under 60s: 50 MB max. Videos 60s-3min: 100 MB max |
+| Daily limit | 25 videos per day (sourced from `@publora/platform-limits`) |
 | Prerequisites | Email verification required before video uploads |
 
 ---
@@ -197,12 +195,13 @@ Video restrictions through APIs are often significantly more restrictive than na
 
 Different platforms have different requirements for media. Some platforms are text-only capable, while others require media for every post.
 
+<!-- synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
 | Platform | Requires Media | Requires Video | Supports Text-Only | Supports Threading |
 |----------|----------------|----------------|--------------------|--------------------|
 | **Twitter/X** | No | No | Yes | Yes |
 | **Instagram** | Yes | No | No | No |
-| **Threads** | No | No | Yes | Yes |
-| **TikTok** | Yes | Yes | No | No |
+| **Threads** | No | No | Yes | No |
+| **TikTok** | Yes | No | No | No |
 | **LinkedIn** | No | No | Yes | No |
 | **YouTube** | Yes | Yes | No | No |
 | **Facebook** | No | No | Yes | No |
@@ -213,35 +212,25 @@ Different platforms have different requirements for media. Some platforms are te
 
 ### Media Requirement Notes
 
-- **TikTok and YouTube** are video-only platforms. You cannot post images or text-only content.
+- **TikTok** requires media and supports image carousels or video; **YouTube** requires video. Neither supports text-only publication.
 - **Instagram** requires at least one image or video with every post.
 - **Pinterest** is listed for reference but is **not currently supported** in Publora. Support is planned for a future release.
-- **Threading** allows long content to be automatically split into multiple connected posts (Twitter/X and Threads only).
+- **Threading** is currently available for Twitter/X; multi-part Threads publishing is disabled.
 
 ---
 
 ## Rate Limits
 
-Each platform enforces its own posting rate limits. Exceeding these limits will result in failed posts or temporary restrictions on your account.
+Platform-side posting quotas are advisory, account-dependent, and may change without notice; they are not a Publora contract. Unsourced and conflicting posts-per-hour/day numbers are intentionally omitted.
 
-| Platform | Posting Limit | Notes |
-|----------|---------------|-------|
-| **Instagram** | 50 posts/24hr (some report 25) | Carousels count as 1 post |
-| **Threads** | 250 posts/24hr | 1,000 replies/24hr |
-| **TikTok** | 15-20 posts/day | 2 videos/minute max |
-| **LinkedIn** | Not published | Approximately 200+ calls/hour based on user count |
-| **Facebook** | 30 Reels/day/page | General rate formula: 200 x users/hour |
-| **Bluesky** | 25 videos/day | 3,000 requests/5 min |
-| **Mastodon** | 30 media uploads/30 min | 300 requests/5 min per account |
-| **Telegram** | 30 messages/second | 20 messages/minute per group |
-| **Pinterest** | 15-25 pins/day recommended | *Not currently supported* |
+Publora itself enforces plan entitlements and the media-URL ingestion limit (60 URLs per rolling hour, returned as `429 MEDIA_URL_RATE_LIMITED` with `Retry-After`).
 
 ### Rate Limit Best Practices
 
 1. **Space out posts** rather than bulk-posting at the same time.
 2. **Implement exponential backoff** when you receive rate limit errors.
 3. **Track your posting frequency** per platform to stay within limits.
-4. **Use Publora's built-in rate limiting** which automatically queues and distributes posts.
+4. **Treat platform failures explicitly**; do not assume automatic retry or redistribution.
 
 ---
 
@@ -253,7 +242,7 @@ When posts fail, the platform returns specific error messages. Understanding the
 
 | Error | Meaning | Resolution |
 |-------|---------|------------|
-| `(#10) The user is not an Instagram Business` | Creator accounts not supported | Use a Business account, not a Creator account |
+| `(#10) The user is not an Instagram Business` | Meta rejected the connected account for this operation | Reconnect an eligible professional account through Instagram Login for Business |
 | `Error 2207010` | Caption limit exceeded | Reduce caption to under 2,200 characters |
 | `Error 2207004` | Image exceeds 8 MB | Compress image to under 8 MB |
 | `Error 9, Subcode 2207042` | Publishing rate limit reached | Wait before posting again |
@@ -264,13 +253,12 @@ When posts fail, the platform returns specific error messages. Understanding the
 |-------|---------|------------|
 | `spam_risk_too_many_posts` | Daily post limit reached | Wait 24 hours before posting again |
 | `duration_check_failed` | Video must be 3s-10min | Adjust video duration |
-| `unaudited_client_can_only_post_to_private_accounts` | App needs TikTok review | Submit app for TikTok audit |
 
 ### Twitter/X Errors
 
 | Error | Meaning | Resolution |
 |-------|---------|------------|
-| `This user is not allowed to post a video longer than 2 minutes` | API video duration limit | Trim video to under 2 minutes |
+| `This user is not allowed to post a video longer than 2 minutes` | X rejected the upload for its own duration/account rules; Publora's package limit is 140 seconds (2:20) | Keep the video at or below 140 seconds; if X still rejects it, surface the platform error without assuming an account tier |
 
 ### Facebook Errors
 
@@ -330,11 +318,11 @@ The Publora validation system returns standardized error codes when content does
 
 | Error Code | Description |
 |------------|-------------|
-| `VIDEO_REQUIRED` | Platform requires a video (TikTok, YouTube) |
+| `VIDEO_REQUIRED` | Platform requires a video (YouTube) |
 | `VIDEO_DURATION_EXCEEDED` | Video duration exceeds the platform limit |
 | `VIDEO_DURATION_TOO_SHORT` | Video is shorter than the minimum required duration |
 | `VIDEO_NOT_SUPPORTED` | Platform does not support video content |
-| `IMAGES_NOT_SUPPORTED` | Platform is video-only and does not accept images |
+| `IMAGES_NOT_SUPPORTED` | Platform does not accept images (for example, YouTube) |
 
 ### Platform Errors
 

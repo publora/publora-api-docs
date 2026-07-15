@@ -373,6 +373,8 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 ## API Limits
 
+<!-- limits tables below synced from @publora/platform-limits 1.0.0 (2026-03-11) — regenerate on bump -->
+
 ### Character Limit
 
 - **Standard accounts:** 280 characters
@@ -394,11 +396,11 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 | Property | Limit |
 |----------|-------|
-| **Max duration** | **2 minutes (120 seconds)** |
+| **Max duration** | **2 minutes 20 seconds (140 seconds)** |
 | Max size | 512 MB |
 | Formats | MP4, MOV |
 
-> **Important:** The X API has a **2-minute video limit** even though the native X app allows videos up to 2:20 (140 seconds). If you attempt to upload a longer video via the API, you will receive the error: *"This user is not allowed to post a video longer than 2 minutes"*
+> **Important:** Publora validates X videos at **140 seconds (2:20)** through the API.
 
 **Premium users via native app:** Up to 4 hours (not available via API)
 
@@ -412,15 +414,7 @@ Publora will automatically split this into a numbered thread (e.g., `(1/3)`, `(2
 
 ## Rate Limits
 
-The underlying X API v2 has the following publishing limits based on your account tier:
-
-| Tier | Monthly Posts | Per 15 Minutes | Per 24 Hours |
-|------|--------------|----------------|--------------|
-| Free | 500 | ~17 | ~500 |
-| Basic ($100/mo) | 10,000 | 100 per user | 10,000 per app |
-| Pro ($5,000/mo) | 1,000,000 | Higher | Higher |
-
-Publora returns the appropriate error from the X API if rate limits are exceeded. Each tweet in a thread counts as a separate post toward these limits.
+X-side pricing and posting quotas change independently of Publora and are not a Publora contract. Consult X's current developer documentation; Publora surfaces platform rate-limit errors when X rejects a request.
 
 
 ---

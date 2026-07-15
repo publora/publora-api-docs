@@ -263,7 +263,7 @@ Run it once and check the response to get your platform IDs.
 ### "Scheduled time is in the past" (`SCHEDULED_TIME_IN_PAST`)
 - Zaps are the usual victim: a trigger fires, the Zap queues behind a rate limit, and the `scheduledTime` your formatter computed is already stale by the time the POST lands.
 - Under 5 minutes late, Publora clamps the post to server time and returns `200` with `warnings: [{ code: "SCHEDULED_TIME_COERCED", requested, effective }]` — the post goes out **now**, not at the time you asked for. Check `effective` if the exact minute matters.
-- Five minutes or more late is clamped and warned today, but returns `400 { code: "SCHEDULED_TIME_IN_PAST", serverTime }` from **2026-08-25**. Fix these Zaps before that date.
+- Five minutes or more late is clamped and warned today, and is scheduled to return `400 SCHEDULED_TIME_IN_PAST` from **2026-08-25** unless production configuration overrides that date either way.
 - Make sure your `scheduledTime` is in the future, and use UTC (ends with `Z`) — Zapier's `Formatter > Date/Time` defaults to your account timezone.
 - Add a buffer: schedule at least 2–5 minutes ahead so queueing delay can't push you into the past.
 - The `serverTime` field in a `400` is Publora's authoritative clock — compare it to your Zap's computed time to confirm drift is the cause.

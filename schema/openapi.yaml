@@ -73,7 +73,7 @@ components:
           example: "https://media.publora.com/..."
     PlatformSettingsInput:
       type: object
-      description: "Per-platform settings. Only tiktok, instagram, youtube, threads, and telegram keys are recognized; other platform keys are silently dropped. Merged with defaults on create-post and with existing settings on update-post (omitted fields are preserved)."
+      description: "Per-platform settings for tiktok, instagram, youtube, threads, telegram, and linkedin. Unknown platform or nested paths are rejected with 400 PLATFORM_SETTING_UNKNOWN. Merged with defaults on create-post and with existing settings on update-post (omitted fields are preserved)."
       properties:
         instagram:
           type: object
@@ -1019,7 +1019,7 @@ paths:
         Upload the file directly to S3 via HTTP PUT, then create a post.
         Upload URLs expire in 1 hour. The image count per post is
         platform-specific (up to 4 for Twitter/X, Bluesky, Mastodon; up to 10
-        for Instagram, Threads, LinkedIn, Facebook, Telegram), or 1 video per
+        for Instagram, LinkedIn, Facebook, Telegram; up to 20 for Threads), or 1 video per
         post. Attach multiple images to the same postGroupId to form a carousel.
       operationId: getUploadUrl
       tags:
@@ -3115,7 +3115,7 @@ paths:
       description: |
         Get or generate a URL that allows a managed user to connect their
         social media accounts. The URL expires after a configurable period
-        (default: 7 days).
+        (default: 90 days).
 
         **Requires Workspace access - contact serge@publora.com to enable.**
       operationId: getConnectionUrl
@@ -3141,7 +3141,7 @@ paths:
                 expiresInDays:
                   type: integer
                   description: "Number of days until the token expires"
-                  default: 7
+                  default: 90
                   example: 30
       responses:
         "200":
