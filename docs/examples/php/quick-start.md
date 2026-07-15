@@ -296,7 +296,7 @@ try {
         ],
     ]);
 
-    echo "Instagram Reel scheduled: {$response['postGroupId']}\n";
+    echo "Instagram Reel draft created: {$response['postGroupId']} (attach a video, then schedule it)\n";
 } catch (PubloraException $e) {
     echo "Failed: " . $e->getMessage() . "\n";
 }
@@ -306,9 +306,9 @@ try {
     $response = $client->createPost([
         'content' => '*Bold* and _italic_ text with [link](https://example.com)',
         'platforms' => ['telegram-1001234567890'],
+        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
         'platformSettings' => [
             'telegram' => [
-                'parseMode' => 'MarkdownV2',
                 'disableWebPagePreview' => false,
             ],
         ],
@@ -383,7 +383,11 @@ try {
 
     echo "Media uploaded: {$uploadResult['mediaId']}\n";
     echo "File URL: {$uploadResult['fileUrl']}\n";
-    echo "Post with uploaded media created: $postGroupId\n";
+    $client->updatePost($postGroupId, [
+        'status' => 'scheduled',
+        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
+    ]);
+    echo "Post with uploaded media scheduled: $postGroupId\n";
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }
@@ -484,6 +488,7 @@ try {
     $response = $client->createPost([
         'content' => 'Publishing now!',
         'platforms' => ['twitter-123456789'],
+        'scheduledTime' => (new DateTime('+5 minutes'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'),
     ]);
 
     $postGroup = waitForPublish($client, $response['postGroupId']);
@@ -599,7 +604,7 @@ require_once 'src/PubloraClient.php';
 
 $client = new PubloraClient($_ENV['PUBLORA_API_KEY']);
 
-$postGroupIds = ['pg_abc123', 'pg_def456', 'pg_ghi789'];
+$postGroupIds = ['67a1b2c3d4e5f6a7b8c9d0e1', '67a1b2c3d4e5f6a7b8c9d0e2', '67a1b2c3d4e5f6a7b8c9d0e3'];
 
 $results = [];
 

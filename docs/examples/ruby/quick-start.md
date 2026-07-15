@@ -244,7 +244,7 @@ begin
     }
   )
 
-  puts "Instagram Reel scheduled: #{response['postGroupId']}"
+  puts "Instagram Reel draft created: #{response['postGroupId']} (attach a video, then schedule it)"
 rescue PubloraError => e
   puts "Failed: #{e.message}"
 end
@@ -254,9 +254,9 @@ begin
   response = client.create_post(
     content: '*Bold* and _italic_ text with [link](https://example.com)',
     platforms: ['telegram-1001234567890'],
+    scheduled_time: (Time.now.utc + 300).iso8601,
     platform_settings: {
       telegram: {
-        parseMode: 'MarkdownV2',
         disableWebPagePreview: false
       }
     }
@@ -318,7 +318,12 @@ begin
 
   puts "Media uploaded: #{upload_result['mediaId']}"
   puts "File URL: #{upload_result['fileUrl']}"
-  puts "Post with uploaded media created: #{post_group_id}"
+  client.update_post(
+    post_group_id,
+    status: 'scheduled',
+    scheduledTime: (Time.now.utc + 300).iso8601
+  )
+  puts "Post with uploaded media scheduled: #{post_group_id}"
 rescue => e
   puts "Error: #{e.message}"
 end
@@ -401,7 +406,8 @@ client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
 begin
   response = client.create_post(
     content: 'Publishing now!',
-    platforms: ['twitter-123456789']
+    platforms: ['twitter-123456789'],
+    scheduled_time: (Time.now.utc + 300).iso8601
   )
 
   post_group = wait_for_publish(client, response['postGroupId'])
@@ -495,7 +501,7 @@ end
 ```ruby
 client = PubloraClient.new(ENV['PUBLORA_API_KEY'])
 
-post_group_ids = ['pg_abc123', 'pg_def456', 'pg_ghi789']
+post_group_ids = ['67a1b2c3d4e5f6a7b8c9d0e1', '67a1b2c3d4e5f6a7b8c9d0e2', '67a1b2c3d4e5f6a7b8c9d0e3']
 
 results = []
 

@@ -51,7 +51,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "📝 New article: {{ $json.properties.Name.title[0].plain_text }}\n\nRead it here: {{ $json.url }}",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"]
+  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"],
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
 }
 ```
 
@@ -65,7 +66,7 @@ Use Airtable as your content calendar and auto-schedule posts.
 
 | Content | Platforms | Scheduled Time | Status | Post ID |
 |---------|-----------|----------------|--------|---------|
-| Monday tip! | twitter-123;linkedin-456 | 2026-03-01T09:00:00Z | pending | |
+| Monday tip! | twitter-123;linkedin-456 | `<FUTURE_ISO_8601_UTC>` | pending | |
 
 ### Workflow Setup
 
@@ -129,7 +130,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "🆕 {{ $json.title }}\n\n{{ $json.contentSnippet.substring(0, 200) }}...\n\nRead more: {{ $json.link }}",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"]
+  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"],
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
 }
 ```
 
@@ -198,7 +200,8 @@ Post tailored content to each platform.
 ```json
 {
   "content": "{{ $json.shortContent }}\n\n{{ $json.link }}",
-  "platforms": ["twitter-123456789"]
+  "platforms": ["twitter-123456789"],
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
 }
 ```
 
@@ -207,7 +210,8 @@ Post tailored content to each platform.
 ```json
 {
   "content": "{{ $json.longContent }}\n\n{{ $json.link }}\n\n#business #technology",
-  "platforms": ["linkedin-ABC123DEF"]
+  "platforms": ["linkedin-ABC123DEF"],
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
 }
 ```
 
@@ -216,7 +220,8 @@ Post tailored content to each platform.
 ```json
 {
   "content": "{{ $json.mediumContent }}\n\n{{ $json.link }}",
-  "platforms": ["threads-987654321"]
+  "platforms": ["threads-987654321"],
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
 }
 ```
 
@@ -233,6 +238,7 @@ Upload an image first, then create a post with it.
 3. **HTTP Request** → GET upload URL from Publora (with postGroupId)
 4. **HTTP Request** → Download image from source
 5. **HTTP Request** → PUT upload to S3 (media auto-attaches via postGroupId)
+6. **HTTP Request** → PUT `/update-post/{postGroupId}` to schedule the draft
 
 ### Step 2: Create Post
 
@@ -283,6 +289,22 @@ Content-Type: {{ $json.contentType }}
 **Body:** Binary data from previous download node
 
 > **Note:** Media is automatically attached to the post via the `postGroupId` provided when requesting the upload URL. No need to pass media references when creating the post.
+
+### Step 6: Schedule the Uploaded Post
+
+**URL:** `https://api.publora.com/api/v1/update-post/{{ $node['Create Post'].json.postGroupId }}`
+
+**Method:** `PUT`
+
+**Body (JSON):**
+```json
+{
+  "status": "scheduled",
+  "scheduledTime": "{{ new Date(Date.now() + 5 * 60 * 1000).toISOString() }}"
+}
+```
+
+The initial create call intentionally makes a draft. Always schedule after the final upload; attaching media to a scheduled group demotes it back to draft.
 
 ---
 
@@ -369,7 +391,8 @@ const platforms = match[1].split(',')
 return [{
   json: {
     content: match[2],
-    platforms: platforms
+    platforms: platforms,
+    scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString()
   }
 }];
 ```

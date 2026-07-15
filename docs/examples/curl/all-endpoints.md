@@ -52,6 +52,8 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 ### Scheduled Post
 
+Replace `<FUTURE_ISO_8601_UTC>` with a UTC time at least five minutes ahead (for example, `$(date -u -v+5M +%Y-%m-%dT%H:%M:%S.000Z)` on macOS).
+
 ```bash
 curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: $PUBLORA_API_KEY" \
@@ -59,7 +61,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "This post will go live tomorrow at 2 PM UTC",
     "platforms": ["twitter-123456789"],
-    "scheduledTime": "2026-03-01T14:00:00.000Z"
+    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
   }'
 ```
 
@@ -90,7 +92,18 @@ curl -X POST https://api.publora.com/api/v1/get-upload-url \
 curl -X PUT "UPLOAD_URL_FROM_STEP_2" \
   -H "Content-Type: image/png" \
   --data-binary @screenshot.png
+
+# Step 4: Schedule after the final media attachment
+curl -X PUT https://api.publora.com/api/v1/update-post/POST_GROUP_ID_FROM_STEP_1 \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "scheduled",
+    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
+  }'
 ```
+
+The create call above intentionally makes a draft. Schedule it after uploading; attaching media to an already-scheduled group demotes it to draft.
 
 ### Post with Multiple Images (Carousel)
 
@@ -140,13 +153,13 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "platforms": ["tiktok-456789012"],
     "platformSettings": {
       "tiktok": {
-        "disableDuet": false,
-        "disableStitch": false
+        "allowDuet": true,
+        "allowStitch": true
       }
     }
   }'
 
-# Telegram with parse mode
+# Telegram Markdown formatting is parsed automatically; no parse-mode setting is needed
 curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
@@ -155,24 +168,26 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "platforms": ["telegram-1001234567890"],
     "platformSettings": {
       "telegram": {
-        "parseMode": "MarkdownV2"
+        "disableWebPagePreview": false
       }
     }
   }'
 ```
 
+These platform-settings calls omit `scheduledTime`, so they create drafts. Schedule a draft with `PUT /update-post/{postGroupId}` after any required media is attached.
+
 **Response:**
 ```json
 {
   "success": true,
-  "postGroupId": "pg_abc123xyz"
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
 }
 ```
 
 ## Get Post
 
 ```bash
-curl https://api.publora.com/api/v1/get-post/pg_abc123xyz \
+curl https://api.publora.com/api/v1/get-post/67a1b2c3d4e5f6a7b8c9d0e1 \
   -H "x-publora-key: $PUBLORA_API_KEY"
 ```
 
@@ -180,8 +195,7 @@ curl https://api.publora.com/api/v1/get-post/pg_abc123xyz \
 ```json
 {
   "success": true,
-  "postGroupId": "pg_abc123xyz",
-  "content": "Hello from Publora API!",
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
   "status": "published",
   "scheduledTime": "2026-03-01T14:00:00.000Z",
   "posts": [
@@ -189,9 +203,8 @@ curl https://api.publora.com/api/v1/get-post/pg_abc123xyz \
       "platform": "twitter",
       "platformId": "twitter-123456789",
       "status": "published",
-      "publishedAt": "2026-03-01T14:00:05.123Z",
-      "platformPostId": "1234567890123456789",
-      "platformPostUrl": "https://twitter.com/yourhandle/status/1234567890123456789"
+      "postedId": "1234567890123456789",
+      "permalink": "https://twitter.com/yourhandle/status/1234567890123456789"
     }
   ]
 }
@@ -202,18 +215,18 @@ curl https://api.publora.com/api/v1/get-post/pg_abc123xyz \
 ### Reschedule
 
 ```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/pg_abc123xyz \
+curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "scheduledTime": "2026-03-15T10:00:00.000Z"
+    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
   }'
 ```
 
 ### Change to Draft
 
 ```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/pg_abc123xyz \
+curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -224,19 +237,19 @@ curl -X PUT https://api.publora.com/api/v1/update-post/pg_abc123xyz \
 ### Schedule a Draft
 
 ```bash
-curl -X PUT https://api.publora.com/api/v1/update-post/pg_abc123xyz \
+curl -X PUT https://api.publora.com/api/v1/update-post/67a1b2c3d4e5f6a7b8c9d0e1 \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-01T14:00:00.000Z"
+    "scheduledTime": "<FUTURE_ISO_8601_UTC>"
   }'
 ```
 
 ## Delete Post
 
 ```bash
-curl -X DELETE https://api.publora.com/api/v1/delete-post/pg_abc123xyz \
+curl -X DELETE https://api.publora.com/api/v1/delete-post/67a1b2c3d4e5f6a7b8c9d0e1 \
   -H "x-publora-key: $PUBLORA_API_KEY"
 ```
 
@@ -258,7 +271,7 @@ curl -X POST https://api.publora.com/api/v1/get-upload-url \
   -d '{
     "fileName": "screenshot.png",
     "contentType": "image/png",
-    "postGroupId": "pg_abc123xyz",
+    "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
     "type": "image"
   }'
 ```

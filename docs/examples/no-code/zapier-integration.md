@@ -43,7 +43,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "New blog post: {{title}} - {{link}}",
-  "platforms": ["twitter-YOUR_PLATFORM_ID", "linkedin-YOUR_PLATFORM_ID"]
+  "platforms": ["twitter-YOUR_PLATFORM_ID", "linkedin-YOUR_PLATFORM_ID"],
+  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
 }
 ```
 
@@ -52,6 +53,8 @@ https://api.publora.com/api/v1/create-post
 |-----|-------|
 | `x-publora-key` | `YOUR_API_KEY` |
 | `Content-Type` | `application/json` |
+
+For recipes using `{{Publish Time ISO (at least 5 minutes ahead)}}`, add a Formatter → Date/Time step before the Webhook and map its future ISO 8601 output into that field.
 
 ### Step 4: Test and Enable
 
@@ -68,8 +71,8 @@ Use a Google Sheet as your content calendar and automatically schedule posts.
 
 | A (Content) | B (Platforms) | C (Schedule Time) | D (Posted) |
 |-------------|---------------|-------------------|------------|
-| Monday motivation! | twitter-123;linkedin-456 | 2026-03-01T09:00:00Z | |
-| New feature alert | twitter-123 | 2026-03-01T14:00:00Z | |
+| Monday motivation! | twitter-123;linkedin-456 | `<FUTURE_ISO_8601_UTC>` | |
+| New feature alert | twitter-123 | `<FUTURE_ISO_8601_UTC>` | |
 
 ### Zap Configuration
 
@@ -122,7 +125,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "📰 {{Title}}\n\n{{Description}}\n\nRead more: {{Link}}",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"]
+  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"],
+  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
 }
 ```
 
@@ -151,7 +155,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "{{Extracted Text}}",
-  "platforms": ["twitter-123456789"]
+  "platforms": ["twitter-123456789"],
+  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
 }
 ```
 
@@ -176,7 +181,8 @@ https://api.publora.com/api/v1/create-post
 ```json
 {
   "content": "Happy Monday! What are you working on this week? Share in the comments! 👇",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF", "threads-987654321"]
+  "platforms": ["twitter-123456789", "linkedin-ABC123DEF", "threads-987654321"],
+  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
 }
 ```
 
@@ -190,7 +196,7 @@ Publora returns:
 ```json
 {
   "success": true,
-  "postGroupId": "pg_abc123xyz"
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
 }
 ```
 
@@ -240,7 +246,7 @@ Run it once and check the response to get your platform IDs.
 2. **Rate Limits:** Add a 1-second delay between multiple webhook calls
 3. **Error Notifications:** Set up email alerts for failed Zaps
 4. **Content Length:** Be mindful of platform character limits (Twitter: 280, LinkedIn: 3000, etc.)
-5. **Scheduling:** Use ISO 8601 format for `scheduledTime` (e.g., `2026-03-01T14:00:00.000Z`)
+5. **Scheduling:** Use a future ISO 8601 UTC value for `scheduledTime` (for example, `<FUTURE_ISO_8601_UTC>`)
 
 ---
 

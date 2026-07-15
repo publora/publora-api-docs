@@ -29,14 +29,13 @@ export interface Post {
   content: string;
   status: 'draft' | 'scheduled' | 'pending' | 'processing' | 'published' | 'failed';
   postedId?: string;
-  publishedUrl?: string;
+  permalink?: string | null;
   error?: string;
 }
 
 export interface PostGroup {
   postGroupId: string;
-  content: string;
-  status: 'draft' | 'scheduled' | 'pending' | 'processing' | 'published' | 'partially_published' | 'failed';
+  status: 'draft' | 'scheduled' | 'published' | 'partially_published' | 'failed';
   scheduledTime?: string;
   posts: Post[];
 }
@@ -56,12 +55,12 @@ export interface PlatformSettings {
     coverUrl?: string;
   };
   tiktok?: {
-    disableDuet?: boolean;
-    disableStitch?: boolean;
-    disableComment?: boolean;
+    allowDuet?: boolean;
+    allowStitch?: boolean;
+    allowComments?: boolean;
   };
   telegram?: {
-    parseMode?: 'HTML' | 'MarkdownV2';
+    disableNotification?: boolean;
     disableWebPagePreview?: boolean;
   };
 }
@@ -69,6 +68,7 @@ export interface PlatformSettings {
 export interface CreatePostResponse {
   success: boolean;
   postGroupId: string;
+  scheduledTime: string | null;
 }
 
 export interface ApiError {
@@ -292,17 +292,17 @@ const weeklyContent: ScheduledPost[] = [
   {
     content: 'Monday motivation: Start your week with purpose!',
     platforms: ['twitter-123456789'],
-    scheduledTime: new Date('2026-03-01T09:00:00Z')
+    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
   },
   {
     content: 'Tech tip Tuesday: Always version your APIs.',
     platforms: ['twitter-123456789', 'linkedin-ABC123DEF'],
-    scheduledTime: new Date('2026-03-02T09:00:00Z')
+    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
   },
   {
     content: 'Wednesday wisdom: Ship fast, iterate faster.',
     platforms: ['twitter-123456789'],
-    scheduledTime: new Date('2026-03-03T09:00:00Z')
+    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
   }
 ];
 
@@ -323,16 +323,17 @@ async function postInstagramReel(): Promise<void> {
     }
   });
 
-  console.log('Instagram Reel scheduled:', response.postGroupId);
+  console.log('Instagram Reel draft created:', response.postGroupId);
+  console.log('Attach a video, then schedule this draft with updatePost.');
 }
 
 async function postToTelegram(): Promise<void> {
   const response = await client.createPost({
     content: '*Bold* and _italic_ text with [link](https://example.com)',
     platforms: ['telegram-1001234567890'],
+    scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     platformSettings: {
       telegram: {
-        parseMode: 'MarkdownV2',
         disableWebPagePreview: false
       }
     }
@@ -369,7 +370,12 @@ async function uploadAndPost(filePath: string, caption: string): Promise<void> {
     body: fileBuffer
   });
 
-  console.log('Post with media created:', postResponse.postGroupId);
+  await client.updatePost(postResponse.postGroupId, {
+    status: 'scheduled',
+    scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+  });
+
+  console.log('Post with media scheduled:', postResponse.postGroupId);
   console.log('File URL:', fileUrl);
 }
 
@@ -479,7 +485,8 @@ async function waitForPublish(
 // Usage
 const response = await client.createPost({
   content: 'Publishing now!',
-  platforms: ['twitter-123456789']
+  platforms: ['twitter-123456789'],
+  scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString()
 });
 
 const finalStatus = await waitForPublish(response.postGroupId);

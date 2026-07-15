@@ -202,12 +202,11 @@ export interface CreatePostRequest {
 
 export interface PostGroup {
   postGroupId: string;
-  content: string;
   status: string;
   posts: Array<{
     platform: string;
     status: string;
-    publishedUrl?: string;
+    permalink?: string | null;
     error?: string;
   }>;
 }
@@ -380,7 +379,9 @@ export default function SocialPostForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Schedule (optional)</label>
+        <label className="block text-sm font-medium mb-1">
+          Schedule (optional — leave blank to create a draft)
+        </label>
         <input
           type="datetime-local"
           value={scheduledTime}
@@ -394,7 +395,7 @@ export default function SocialPostForm() {
         disabled={isLoading || !content || selectedPlatforms.length === 0}
         className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
       >
-        {isLoading ? 'Posting...' : 'Schedule Post'}
+        {isLoading ? 'Saving...' : scheduledTime ? 'Schedule Post' : 'Create Draft'}
       </button>
 
       {result && (
@@ -424,7 +425,7 @@ interface PostStatusProps {
 interface Post {
   platform: string;
   status: string;
-  publishedUrl?: string;
+  permalink?: string | null;
   error?: string;
 }
 
@@ -491,8 +492,8 @@ export default function PostStatus({ postGroupId }: PostStatusProps) {
               <span className={`text-sm ${post.status === 'published' ? 'text-green-600' : post.status === 'failed' ? 'text-red-600' : 'text-gray-600'}`}>
                 {post.status}
               </span>
-              {post.publishedUrl && (
-                <a href={post.publishedUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 text-sm">
+              {post.permalink && (
+                <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 text-sm">
                   View
                 </a>
               )}
@@ -528,7 +529,8 @@ export async function createSocialPost(formData: FormData) {
     const result = await publora.createPost({
       content,
       platforms,
-      scheduledTime: scheduledTime || undefined,
+      // datetime-local is interpreted in the user's local timezone; send UTC to Publora.
+      scheduledTime: scheduledTime ? new Date(scheduledTime).toISOString() : undefined,
     });
 
     revalidatePath('/dashboard');

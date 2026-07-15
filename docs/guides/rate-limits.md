@@ -214,7 +214,7 @@ x-publora-key: sk_YOUR_API_KEY
 {
   "content": "Your post content",
   "platforms": ["twitter-123456", "linkedin-ABC123"],
-  "scheduledTime": "2026-03-15T14:00:00.000Z"
+  "scheduledTime": "<FUTURE_ISO_8601_UTC>"
 }
 ```
 
@@ -238,25 +238,27 @@ x-publora-key: sk_YOUR_API_KEY
 
 ```json
 {
+  "success": true,
   "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
   "status": "published",
-  "content": "Your post content",
+  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "platformSettings": {},
+  "platforms": ["twitter-123456", "linkedin-ABC123"],
   "posts": [
     {
-      "postId": "p_1",
       "platform": "twitter",
       "platformId": "123456",
       "status": "published",
-      "publishedUrl": "https://twitter.com/user/status/123456"
+      "permalink": "https://twitter.com/user/status/123456"
     },
     {
-      "postId": "p_2",
       "platform": "linkedin",
       "platformId": "ABC123",
       "status": "published",
-      "publishedUrl": "https://linkedin.com/posts/..."
+      "permalink": "https://linkedin.com/posts/..."
     }
-  ]
+  ],
+  "media": []
 }
 ```
 

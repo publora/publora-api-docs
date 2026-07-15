@@ -132,13 +132,12 @@ type Post struct {
 	Content      string `json:"content"`
 	Status       string `json:"status"`
 	PostedID     string `json:"postedId,omitempty"`
-	PublishedURL string `json:"publishedUrl,omitempty"`
+	Permalink string `json:"permalink,omitempty"`
 	Error        string `json:"error,omitempty"`
 }
 
 type PostGroup struct {
 	PostGroupID   string `json:"postGroupId"`
-	Content       string `json:"content"`
 	Status        string `json:"status"`
 	ScheduledTime string `json:"scheduledTime,omitempty"`
 	Posts         []Post `json:"posts"`
@@ -163,24 +162,19 @@ type InstagramSettings struct {
 }
 
 type TikTokSettings struct {
-	DisableDuet    bool `json:"disableDuet,omitempty"`
-	DisableStitch  bool `json:"disableStitch,omitempty"`
-	DisableComment bool `json:"disableComment,omitempty"`
+	AllowDuet     bool `json:"allowDuet,omitempty"`
+	AllowStitch   bool `json:"allowStitch,omitempty"`
+	AllowComments bool `json:"allowComments,omitempty"`
 }
 
 type TelegramSettings struct {
-	ParseMode             string `json:"parseMode,omitempty"`
 	DisableWebPagePreview bool   `json:"disableWebPagePreview,omitempty"`
 }
 
 type CreatePostResponse struct {
-	Success     bool   `json:"success"`
-	PostGroupID string `json:"postGroupId"`
-	Posts       []struct {
-		Platform   string `json:"platform"`
-		PlatformID string `json:"platformId"`
-		Status     string `json:"status"`
-	} `json:"posts"`
+	Success       bool    `json:"success"`
+	PostGroupID   string  `json:"postGroupId"`
+	ScheduledTime *string `json:"scheduledTime"`
 }
 
 type UploadURLResponse struct {
@@ -459,7 +453,7 @@ func main() {
 		log.Fatalf("Failed to create reel: %v", err)
 	}
 
-	fmt.Printf("Instagram Reel scheduled: %s\n", resp.PostGroupID)
+	fmt.Printf("Instagram Reel draft created: %s (attach a video, then schedule it)\n", resp.PostGroupID)
 }
 ```
 
@@ -476,6 +470,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"your-project/publora"
 )
@@ -544,7 +539,15 @@ func main() {
 
 	fmt.Printf("Media uploaded: %s\n", uploadResp.MediaID)
 	fmt.Printf("File URL: %s\n", uploadResp.FileURL)
-	fmt.Printf("Post with media created: %s\n", postGroupID)
+
+	_, err = client.UpdatePost(postGroupID, &publora.CreatePostRequest{
+		Status:        "scheduled",
+		ScheduledTime: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		log.Fatalf("Failed to schedule uploaded post: %v", err)
+	}
+	fmt.Printf("Post with media scheduled: %s\n", postGroupID)
 }
 ```
 
@@ -654,8 +657,9 @@ func main() {
 	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
 
 	resp, err := client.CreatePost(&publora.CreatePostRequest{
-		Content:   "Publishing now!",
-		Platforms: []string{"twitter-123456789"},
+		Content:       "Publishing now!",
+		Platforms:     []string{"twitter-123456789"},
+		ScheduledTime: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create post: %v", err)
@@ -686,7 +690,7 @@ import (
 func main() {
 	client := publora.NewClient(os.Getenv("PUBLORA_API_KEY"))
 
-	postGroupIDs := []string{"pg_abc123", "pg_def456", "pg_ghi789", "pg_jkl012"}
+	postGroupIDs := []string{"67a1b2c3d4e5f6a7b8c9d0e1", "67a1b2c3d4e5f6a7b8c9d0e2", "67a1b2c3d4e5f6a7b8c9d0e3", "67a1b2c3d4e5f6a7b8c9d0e4"}
 
 	var wg sync.WaitGroup
 	results := make(chan struct {

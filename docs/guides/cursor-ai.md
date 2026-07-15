@@ -93,7 +93,7 @@ const post = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Your post content',
     platforms: ['twitter-123456789'],
-    scheduledTime: '2026-03-01T14:00:00.000Z', // Optional
+    scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // Optional
   })
 }).then(r => r.json());
 
@@ -114,6 +114,9 @@ await fetch(`https://api.publora.com/api/v1/delete-post/${postGroupId}`, {
 ```python
 # Cursor: Use this as reference for Publora API calls
 
+import os
+from datetime import datetime, timedelta, timezone
+
 import requests
 
 BASE_URL = 'https://api.publora.com/api/v1'
@@ -129,7 +132,7 @@ connections = requests.get(f'{BASE_URL}/platform-connections', headers=headers).
 post = requests.post(f'{BASE_URL}/create-post', headers=headers, json={
     'content': 'Your post content',
     'platforms': ['twitter-123456789'],
-    'scheduledTime': '2026-03-01T14:00:00.000Z',  # Optional
+    'scheduledTime': (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),  # Optional
 }).json()
 
 # Get post status
@@ -270,8 +273,8 @@ declare namespace Publora {
     status?: 'draft' | 'scheduled';
     platformSettings?: {
       instagram?: { videoType?: 'REELS' | 'STORIES'; coverUrl?: string };
-      tiktok?: { disableDuet?: boolean; disableStitch?: boolean };
-      telegram?: { parseMode?: 'HTML' | 'MarkdownV2' };
+      tiktok?: { allowComments?: boolean; allowDuet?: boolean; allowStitch?: boolean };
+      telegram?: { disableNotification?: boolean; disableWebPagePreview?: boolean; protectContent?: boolean };
     };
   }
 
@@ -279,13 +282,12 @@ declare namespace Publora {
     platform: string;
     platformId: string;
     status: 'draft' | 'scheduled' | 'pending' | 'processing' | 'published' | 'failed';
-    publishedUrl?: string;
+    permalink?: string | null;
     error?: string;
   }
 
   interface PostGroup {
     postGroupId: string;
-    content: string;
     status: string;
     scheduledTime?: string;
     posts: Post[];
@@ -294,7 +296,7 @@ declare namespace Publora {
   interface CreatePostResponse {
     success: boolean;
     postGroupId: string;
-    posts: Post[];
+    scheduledTime: string | null;
   }
 
   interface LinkedInStats {
@@ -418,27 +420,24 @@ export const mockConnections = [
 
 export const mockCreatePostResponse = {
   success: true,
-  postGroupId: 'pg_test123',
-  posts: [
-    { platform: 'twitter', platformId: 'twitter-123456789', status: 'scheduled' },
-    { platform: 'linkedin', platformId: 'linkedin-ABC123DEF', status: 'scheduled' },
-  ],
+  postGroupId: '67a1b2c3d4e5f6a7b8c9d0e1',
+  scheduledTime: '2026-03-01T14:00:00.000Z',
 };
 
 export const mockPostGroup = {
-  postGroupId: 'pg_test123',
-  content: 'Test post content',
+  success: true,
+  postGroupId: '67a1b2c3d4e5f6a7b8c9d0e1',
   status: 'published',
   posts: [
     {
       platform: 'twitter',
       status: 'published',
-      publishedUrl: 'https://twitter.com/testuser/status/123',
+      permalink: 'https://twitter.com/testuser/status/123',
     },
     {
       platform: 'linkedin',
       status: 'published',
-      publishedUrl: 'https://linkedin.com/post/123',
+      permalink: 'https://linkedin.com/post/123',
     },
   ],
 };

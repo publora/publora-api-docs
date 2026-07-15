@@ -134,10 +134,13 @@ def update_post(post_group_id, new_time=None, new_status=None):
     return response.json()
 
 # Reschedule a post
-update_post('pg_abc123', new_time='2026-03-15T10:00:00.000Z')
+update_post(
+    '67a1b2c3d4e5f6a7b8c9d0e1',
+    new_time=(datetime.utcnow() + timedelta(minutes=5)).isoformat() + 'Z'
+)
 
 # Move to draft
-update_post('pg_abc123', new_status='draft')
+update_post('67a1b2c3d4e5f6a7b8c9d0e1', new_status='draft')
 ```
 
 ## Delete a Post
@@ -182,18 +185,27 @@ def main():
         return
 
     # 2. Get platform IDs
-    platform_ids = [c['platformId'] for c in connections]
+    platform_ids = [
+        c['platformId'] for c in connections
+        if not c['platformId'].startswith(('instagram-', 'tiktok-', 'youtube-', 'pinterest-'))
+    ]
+
+    if not platform_ids:
+        print('No text-capable connections found. Attach media via mediaUrls or use the media upload flow.')
+        return
     print('Posting to:', platform_ids)
 
-    # 3. Create a post
+    # 3. Schedule a text post five minutes from now
     post_response = requests.post(
         f'{BASE_URL}/create-post',
         headers=headers,
         json={
             'content': 'Testing the Publora API - works great!',
-            'platforms': platform_ids
+            'platforms': platform_ids,
+            'scheduledTime': (datetime.utcnow() + timedelta(minutes=5)).isoformat() + 'Z'
         }
     )
+    post_response.raise_for_status()
     result = post_response.json()
     print('Created post:', result['postGroupId'])
 

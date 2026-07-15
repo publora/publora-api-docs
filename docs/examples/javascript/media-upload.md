@@ -8,6 +8,7 @@ Upload images and videos to Publora using the pre-signed URL workflow.
 2. **Get a pre-signed upload URL** using `POST /get-upload-url` with the `postGroupId`
 3. **Upload the file** directly to the returned S3 URL
 4. Media is **automatically attached** to the post via the `postGroupId`
+5. Schedule the draft with `PUT /update-post/{postGroupId}` after uploading. Attaching media to an already-scheduled post demotes it to draft (`postGroupDemoted: true`), so schedule it again after the final attachment.
 
 ## Upload a Single Image
 
@@ -15,6 +16,18 @@ Upload images and videos to Publora using the pre-signed URL workflow.
 const PUBLORA_API_KEY = 'YOUR_API_KEY';
 const BASE_URL = 'https://api.publora.com/api/v1';
 const fs = require('fs');
+
+async function scheduleUploadedPost(postGroupId, headers) {
+  const response = await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      status: 'scheduled',
+      scheduledTime: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    })
+  });
+  if (!response.ok) throw new Error(`Scheduling failed: ${await response.text()}`);
+}
 
 async function createPostWithImage(content, platforms, imagePath, fileName, contentType) {
   const headers = {
@@ -51,6 +64,9 @@ async function createPostWithImage(content, platforms, imagePath, fileName, cont
 
   console.log('Uploaded! File URL:', fileUrl);
   console.log('Media ID:', mediaId);
+
+  // Step 4: Schedule after the media attachment is complete
+  await scheduleUploadedPost(postGroupId, headers);
 
   return { postGroupId, fileUrl, mediaId };
 }
@@ -107,6 +123,9 @@ async function createCarouselPost(content, platforms, images) {
 
     console.log(`Uploaded ${image.name} (mediaId: ${mediaId})`);
   }
+
+  // Step 3: Schedule only after the final image is attached
+  await scheduleUploadedPost(postGroupId, headers);
 
   return postGroupId;
 }
@@ -165,6 +184,8 @@ async function createVideoPost(content, platforms, videoPath, fileName) {
   });
 
   console.log('Video uploaded:', fileUrl);
+  // Step 4: Schedule only after the video is attached
+  await scheduleUploadedPost(postGroupId, headers);
   return { postGroupId, fileUrl, mediaId };
 }
 

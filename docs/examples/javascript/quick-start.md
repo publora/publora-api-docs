@@ -140,14 +140,26 @@ async function main() {
   }
 
   // 2. Get platform IDs
-  const platforms = connections.map(c => c.platformId);
+  const platforms = connections
+    .map(c => c.platformId)
+    .filter(id => !/^(instagram|tiktok|youtube|pinterest)-/.test(id));
+
+  if (platforms.length === 0) {
+    console.log('No text-capable connections found. Attach media via mediaUrls or use the media upload flow.');
+    return;
+  }
   console.log('Posting to:', platforms);
 
-  // 3. Create a post
-  const result = await createPost(
+  // 3. Schedule a text post five minutes from now
+  const result = await schedulePost(
     'Testing the Publora API - works great!',
-    platforms
+    platforms,
+    new Date(Date.now() + 5 * 60 * 1000).toISOString()
   );
+
+  if (!result.success) {
+    throw new Error(result.message || result.error || 'Failed to schedule post');
+  }
 
   // 4. Check status after a moment
   setTimeout(async () => {

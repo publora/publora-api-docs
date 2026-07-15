@@ -8,11 +8,13 @@ Create a CSV file (`posts.csv`) with your content:
 
 ```csv
 content,platforms,scheduled_time,media_url
-"Monday motivation: Start strong!",twitter-123456;linkedin-ABC123,2026-03-01T09:00:00Z,
-"Check out our new feature!",twitter-123456,2026-03-01T14:00:00Z,https://example.com/feature.png
-"Weekly roundup thread",twitter-123456,2026-03-02T10:00:00Z,
-"LinkedIn deep dive post",linkedin-ABC123,2026-03-02T12:00:00Z,https://example.com/chart.png
+"Monday motivation: Start strong!",twitter-123456;linkedin-ABC123,<FUTURE_ISO_8601_UTC>,
+"Check out our new feature!",twitter-123456,<FUTURE_ISO_8601_UTC>,https://example.com/feature.png
+"Weekly roundup thread",twitter-123456,<FUTURE_ISO_8601_UTC>,
+"LinkedIn deep dive post",linkedin-ABC123,<FUTURE_ISO_8601_UTC>,https://example.com/chart.png
 ```
+
+Replace each `<FUTURE_ISO_8601_UTC>` with the intended future UTC time before importing.
 
 ## Basic CSV Import
 
@@ -221,19 +223,19 @@ def generate_csv_template(output_file='posts_template.csv'):
         {
             'content': 'Monday motivation: Start your week strong!',
             'platforms': 'twitter-123456;linkedin-ABC123',
-            'scheduled_time': '2026-03-01T09:00:00Z',
+            'scheduled_time': '<FUTURE_ISO_8601_UTC>',
             'media_url': ''
         },
         {
             'content': 'Check out our latest blog post!',
             'platforms': 'twitter-123456',
-            'scheduled_time': '2026-03-01T14:00:00Z',
+            'scheduled_time': '<FUTURE_ISO_8601_UTC>',
             'media_url': 'https://example.com/blog-image.png'
         },
         {
             'content': 'Behind the scenes at our office',
             'platforms': 'instagram-789012',
-            'scheduled_time': '2026-03-02T11:00:00Z',
+            'scheduled_time': '<FUTURE_ISO_8601_UTC>',
             'media_url': 'https://example.com/office-photo.jpg'
         }
     ]

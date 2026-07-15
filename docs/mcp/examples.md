@@ -54,9 +54,9 @@ Real-world examples of using Publora MCP with AI assistants like Claude, Cursor,
 
 > **You:** Create a draft post for Instagram: "Behind the scenes at our office today"
 
-> **Claude:** I can't create a draft via MCP -- the `create_post` tool requires a `scheduledTime` (it's not optional). I'll need a specific date and time to schedule this post. When would you like it published?
+> **Claude:** I'll create that as a draft by omitting `scheduledTime`.
 >
-> **Limitation:** The MCP `create_post` tool requires `scheduledTime` — it is marked as required in the MCP schema, even though the REST API accepts it as optional (omitting it in REST creates a draft). Drafts cannot be created via MCP; use the [REST API](/endpoints/create-post) directly or the Publora dashboard instead.
+> Draft created. It will not publish until you schedule it with `update_post` using `status: "scheduled"` and a future `scheduledTime`.
 
 ### Schedule a Thread
 
@@ -161,7 +161,7 @@ Real-world examples of using Publora MCP with AI assistants like Claude, Cursor,
 
 ### Batch Content Creation
 
-> **Important:** The MCP `create_post` tool requires `scheduledTime` — it is marked as required in the MCP schema, even though the REST API accepts it as optional (omitting it in REST creates a draft). Drafts cannot be created via MCP; use the [REST API](/endpoints/create-post) directly or the Publora dashboard instead.
+> **Draft behavior:** Omitting `scheduledTime` from MCP `create_post` creates a draft. Drafts do not publish until `update_post` sets `status: "scheduled"` with a future `scheduledTime`.
 
 > **You:** Create 5 posts about our new feature for different platforms, scheduled hourly starting tomorrow at 9am
 

@@ -155,17 +155,17 @@ const postsToSchedule = [
   {
     content: 'Post 1: Morning update',
     platforms: ['twitter-123456'],
-    scheduledTime: '2026-03-01T09:00:00.000Z'
+    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   },
   {
     content: 'Post 2: Afternoon engagement',
     platforms: ['twitter-123456', 'linkedin-ABC123'],
-    scheduledTime: '2026-03-01T14:00:00.000Z'
+    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
     content: 'Post 3: Evening wrap-up',
     platforms: ['twitter-123456'],
-    scheduledTime: '2026-03-01T18:00:00.000Z'
+    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];
 
@@ -257,19 +257,23 @@ async function scheduleInTimezone(content, platforms, localTime, timezone) {
   return response.json();
 }
 
-// Schedule for 9 AM Eastern Time
+const tomorrowLocal = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  .toISOString()
+  .slice(0, 19);
+
+// Schedule for tomorrow in Eastern Time
 await scheduleInTimezone(
   'Good morning East Coast!',
   ['twitter-123456'],
-  '2026-03-01T09:00:00',
+  tomorrowLocal,
   'America/New_York'
 );
 
-// Schedule for 9 AM Pacific Time
+// Schedule for tomorrow in Pacific Time
 await scheduleInTimezone(
   'Good morning West Coast!',
   ['twitter-123456'],
-  '2026-03-01T09:00:00',
+  tomorrowLocal,
   'America/Los_Angeles'
 );
 ```
