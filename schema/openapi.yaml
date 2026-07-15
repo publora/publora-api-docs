@@ -238,6 +238,8 @@ components:
           example: "twitter"
         platformId:
           type: string
+          nullable: true
+          description: "Platform connection ID. Always present; null if the post has no connection resolved."
           example: "123456789"
         content:
           type: string
@@ -248,15 +250,102 @@ components:
           example: "published"
         postedId:
           type: string
-          description: "Platform-specific post ID (only present if published)"
+          nullable: true
+          description: "Platform-specific post ID. Always present; null until the post is published."
           example: "1234567890123456789"
+        permalink:
+          type: string
+          nullable: true
+          description: |
+            Public URL of the published post. Always present; null until the post
+            is published, and null for platforms that expose no permalink.
+          example: "https://x.com/publora/status/1234567890123456789"
+
+    Warning:
+      type: object
+      description: |
+        A non-fatal notice about a request that still succeeded. The `warnings`
+        array is only present when at least one warning applies — the key is
+        omitted, not empty, otherwise.
+
+        Treat `code` as the contract: `message` is human-readable and may change
+        at any time. Which fields accompany `code` depends on the code itself.
+      properties:
+        code:
+          type: string
+          enum: [SCHEDULED_TIME_COERCED, MEDIA_VALIDATION_PENDING]
+          description: |
+            - `SCHEDULED_TIME_COERCED` — the requested `scheduledTime` was in the
+              past and was clamped to server time. Carries `requested` and
+              `effective`.
+            - `MEDIA_VALIDATION_PENDING` — /update-post only. Media validation had
+              not finished, but the post was scheduled anyway; the media is
+              re-checked before publishing. Carries `mediaFileId`, `mediaStatus`,
+              `pendingCode`, and `attempts`. Accompanied by
+              `mediaValidationStatus: "pending"` on the response.
+          example: "SCHEDULED_TIME_COERCED"
+        message:
+          type: string
+          description: "Human-readable explanation. Do not match on this string — match on code."
+          example: "Requested scheduled time 2026-03-01T14:00:00.000Z was in the past and was changed to server time 2026-03-01T14:02:11.412Z."
+        requested:
+          type: string
+          format: date-time
+          description: "SCHEDULED_TIME_COERCED only. The scheduledTime you sent."
+          example: "2026-03-01T14:00:00.000Z"
+        effective:
+          type: string
+          format: date-time
+          description: "SCHEDULED_TIME_COERCED only. The scheduledTime actually stored."
+          example: "2026-03-01T14:02:11.412Z"
+        mediaFileId:
+          type: string
+          nullable: true
+          description: "MEDIA_VALIDATION_PENDING only. The media file still being validated."
+          example: "507f1f77bcf86cd799439012"
+        mediaStatus:
+          type: string
+          nullable: true
+          description: "MEDIA_VALIDATION_PENDING only. Status of that media file when the response was sent."
+          example: "uploading"
+        pendingCode:
+          type: string
+          nullable: true
+          description: "MEDIA_VALIDATION_PENDING only. The last transient probe result."
+          example: "MEDIA_VALIDATION_PENDING"
+        attempts:
+          type: integer
+          description: "MEDIA_VALIDATION_PENDING only. How many validation probes ran before responding."
+          example: 3
 
     Error:
       type: object
       properties:
         error:
           type: string
+          description: "Human-readable message. Do not match on this string — match on code where present."
           example: "Invalid API key"
+        code:
+          type: string
+          description: |
+            Stable machine-readable error code. Present on the newer error paths
+            (scheduling, platformSettings validation, idempotency); older errors
+            return `error` only. Always prefer this over the `error` text.
+          example: "SCHEDULED_TIME_IN_PAST"
+        field:
+          type: string
+          description: |
+            `PLATFORM_SETTING_UNKNOWN` only. The exact dotted path of the rejected
+            key, relative to the `platformSettings` object (no `platformSettings.`
+            prefix).
+          example: "youtube.thumbnail.typo"
+        serverTime:
+          type: string
+          format: date-time
+          description: |
+            `SCHEDULED_TIME_IN_PAST` only. Current server time (UTC) when the
+            request was rejected — compare against your clock to diagnose skew.
+          example: "2026-03-01T14:02:11.412Z"
 
 paths:
   /platform-connections:
@@ -380,6 +469,30 @@ paths:
           description: Managed user ID (workspace only)
           schema:
             type: string
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: |
+            Opt-in idempotency. Omit the header for the previous behaviour —
+            every call creates a new post.
+
+            Send a unique value (a UUID is a good choice) per logical operation
+            to make retries safe:
+
+            - Same key + identical body, original request finished → the original
+              status code and response body are replayed. No second post.
+            - Same key + identical body, original request still in flight → `409`
+              (`IDEMPOTENCY_IN_FLIGHT`). Retry shortly.
+            - Same key + different body → `422` (`IDEMPOTENCY_KEY_CONFLICT`).
+              Nothing is created.
+
+            Keys are scoped to the acting user (the managed user when
+            `x-publora-user-id` is set), so they never collide across accounts.
+            Records expire 24 hours after they are created; reusing a key after
+            that window is treated as a brand-new request.
+          schema:
+            type: string
+          example: "6f1e2d3c-4b5a-4c7d-8e9f-0a1b2c3d4e5f"
       requestBody:
         required: true
         content:
@@ -401,7 +514,19 @@ paths:
                 scheduledTime:
                   type: string
                   format: date-time
-                  description: "ISO 8601 UTC datetime for scheduling. Omit for draft."
+                  description: |
+                    ISO 8601 UTC datetime for scheduling. Omit for draft.
+
+                    If the time is in the past, it is clamped to the current server
+                    time and a `SCHEDULED_TIME_COERCED` warning is returned — the
+                    post is still created. Read the `scheduledTime` in the response
+                    for the time actually stored.
+
+                    Times less than 5 minutes in the past are always tolerated this
+                    way. From **2026-08-25**, a time 5 or more minutes in the past
+                    is rejected with `400` (`SCHEDULED_TIME_IN_PAST`) instead of
+                    being clamped; until then it is clamped with a warning. Send a
+                    future time to avoid both.
                   example: "2026-03-01T14:00:00.000Z"
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
@@ -419,6 +544,24 @@ paths:
                   postGroupId:
                     type: string
                     example: "507f1f77bcf86cd799439011"
+                  scheduledTime:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: |
+                      The effective scheduled time that was actually stored. Always
+                      present. `null` when the post was saved as a draft (no
+                      scheduledTime sent). This may differ from the value you sent
+                      — if so, a `SCHEDULED_TIME_COERCED` warning explains why.
+                      Trust this field over your requested value.
+                    example: "2026-03-01T14:00:00.000Z"
+                  warnings:
+                    type: array
+                    description: |
+                      Non-fatal notices about a request that still succeeded. Only
+                      present when at least one warning applies.
+                    items:
+                      $ref: "#/components/schemas/Warning"
         "400":
           description: Validation error
           content:
@@ -429,7 +572,30 @@ paths:
                 missingContent:
                   value: { "error": "Content is required" }
                 invalidTime:
-                  value: { "error": "Invalid scheduled time" }
+                  value: { "error": "Invalid scheduled time format" }
+                pastTime:
+                  summary: "scheduledTime 5+ minutes in the past (strict mode)"
+                  value:
+                    {
+                      "error": "Scheduled time is in the past. Server time is 2026-09-01T14:02:11.412Z UTC.",
+                      "code": "SCHEDULED_TIME_IN_PAST",
+                      "serverTime": "2026-09-01T14:02:11.412Z",
+                    }
+                unknownPlatformSetting:
+                  summary: "Unrecognised platformSettings path — nothing was created"
+                  value:
+                    {
+                      "error": "Unknown platformSettings path: youtube.thumbnail.typo",
+                      "code": "PLATFORM_SETTING_UNKNOWN",
+                      "field": "youtube.thumbnail.typo",
+                    }
+                idempotencyBodyTooComplex:
+                  summary: "Idempotency-Key sent with an excessively nested body"
+                  value:
+                    {
+                      "error": "Idempotency-Key request body is too deeply nested",
+                      "code": "IDEMPOTENCY_BODY_TOO_COMPLEX",
+                    }
         "401":
           description: Invalid API key
           content:
@@ -447,6 +613,40 @@ paths:
                   value: { "error": "Subscription required" }
                 freeLimit:
                   value: { "error": "Free plan limit reached" }
+        "409":
+          description: |
+            An earlier request with this `Idempotency-Key` is still in flight.
+            Nothing was created by this call — retry shortly to receive the
+            original response. Match on `code`; the `error` text varies.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                inFlight:
+                  value:
+                    {
+                      "error": "A request with this idempotency key is still in flight",
+                      "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+                superseded:
+                  value:
+                    {
+                      "error": "Idempotency claim was superseded by another request",
+                      "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+        "422":
+          description: |
+            This `Idempotency-Key` was already used with a different request body.
+            Nothing was created — either replay the original body, or retry with a
+            new key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Idempotency key was already used with a different request body"
+                code: "IDEMPOTENCY_KEY_CONFLICT"
         "500":
           description: Internal server error
           content:
@@ -486,6 +686,32 @@ paths:
                     example: true
                   postGroupId:
                     type: string
+                  scheduledTime:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: |
+                      The effective scheduled time stored for this post group.
+                      Always present; `null` for drafts and for groups that were
+                      never given a time.
+                    example: "2026-03-01T14:00:00.000Z"
+                  platformSettings:
+                    type: object
+                    description: |
+                      Per-platform settings currently stored on this post group,
+                      keyed by platform. Always present; `{}` when none are set.
+                      Mirrors the platformSettings accepted by /create-post and
+                      /update-post.
+                    example:
+                      { "youtube": { "privacy": "public", "madeForKids": false } }
+                  platforms:
+                    type: array
+                    items:
+                      type: string
+                    description: |
+                      Platform connection IDs targeted by this post group (format:
+                      platform-platformId). Always present; `[]` when none.
+                    example: ["twitter-123456789", "linkedin-ABC123"]
                   posts:
                     type: array
                     items:
@@ -522,6 +748,33 @@ paths:
           required: false
           schema:
             type: string
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: |
+            Opt-in idempotency. Omit the header for the previous behaviour —
+            every call applies the update again.
+
+            Send a unique value (a UUID is a good choice) per logical operation
+            to make retries safe:
+
+            - Same key + identical body, original request finished → the original
+              status code and response body are replayed. The update is not
+              re-applied.
+            - Same key + identical body, original request still in flight → `409`
+              (`IDEMPOTENCY_IN_FLIGHT`). Retry shortly.
+            - Same key + different body → `422` (`IDEMPOTENCY_KEY_CONFLICT`).
+              Nothing is changed.
+
+            The key is bound to this `postGroupId` as well as the body, so the
+            same key reused against a different post counts as a different
+            request. Keys are scoped to the acting user (the managed user when
+            `x-publora-user-id` is set), so they never collide across accounts.
+            Records expire 24 hours after they are created; reusing a key after
+            that window is treated as a brand-new request.
+          schema:
+            type: string
+          example: "6f1e2d3c-4b5a-4c7d-8e9f-0a1b2c3d4e5f"
       requestBody:
         required: true
         content:
@@ -537,7 +790,22 @@ paths:
                 scheduledTime:
                   type: string
                   format: date-time
-                  description: "New ISO 8601 UTC scheduled time (must be in the future)"
+                  description: |
+                    New ISO 8601 UTC scheduled time. Send a future time.
+
+                    If the time is in the past, it is clamped to the current server
+                    time and a `SCHEDULED_TIME_COERCED` warning is returned — the
+                    update still succeeds. Read the `scheduledTime` in the response
+                    for the time actually stored.
+
+                    Times less than 5 minutes in the past are always tolerated this
+                    way. From **2026-08-25**, a time 5 or more minutes in the past
+                    is rejected with `400` (`SCHEDULED_TIME_IN_PAST`) instead of
+                    being clamped; until then it is clamped with a warning.
+
+                    The same check applies to the post's existing scheduledTime when
+                    you move a post to `status: "scheduled"` without sending a new
+                    time — a long-stale draft can therefore be rejected.
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
       responses:
@@ -553,6 +821,33 @@ paths:
                   message:
                     type: string
                     example: "Post updated successfully"
+                  scheduledTime:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: |
+                      The effective scheduled time that was actually stored. Always
+                      present. `null` when the post has no scheduled time (e.g. it
+                      was moved back to draft). This may differ from the value you
+                      sent — if so, a `SCHEDULED_TIME_COERCED` warning explains
+                      why. Trust this field over your requested value.
+                    example: "2026-03-01T14:00:00.000Z"
+                  mediaValidationStatus:
+                    type: string
+                    enum: [pending]
+                    description: |
+                      Only present when the post was scheduled while media
+                      validation was still unfinished. The media is re-checked
+                      before publishing. Accompanied by a
+                      `MEDIA_VALIDATION_PENDING` entry in `warnings`.
+                    example: "pending"
+                  warnings:
+                    type: array
+                    description: |
+                      Non-fatal notices about a request that still succeeded. Only
+                      present when at least one warning applies.
+                    items:
+                      $ref: "#/components/schemas/Warning"
                   postGroup:
                     type: object
                     properties:
@@ -563,7 +858,10 @@ paths:
                       scheduledTime:
                         type: string
                         format: date-time
-                        description: "Only included if post has a scheduled time"
+                        description: |
+                          Only included if the post has a scheduled time. Duplicates
+                          the top-level `scheduledTime`, which is always present and
+                          is the preferred field to read.
         "400":
           description: Invalid request
           content:
@@ -578,7 +876,28 @@ paths:
                 invalidTimeFormat:
                   value: { "error": "Invalid scheduled time format" }
                 pastTime:
-                  value: { "error": "Scheduled time cannot be in the past" }
+                  summary: "scheduledTime 5+ minutes in the past (strict mode)"
+                  value:
+                    {
+                      "error": "Scheduled time is in the past. Server time is 2026-09-01T14:02:11.412Z UTC.",
+                      "code": "SCHEDULED_TIME_IN_PAST",
+                      "serverTime": "2026-09-01T14:02:11.412Z",
+                    }
+                unknownPlatformSetting:
+                  summary: "Unrecognised platformSettings path — nothing was changed"
+                  value:
+                    {
+                      "error": "Unknown platformSettings path: youtube.thumbnail.typo",
+                      "code": "PLATFORM_SETTING_UNKNOWN",
+                      "field": "youtube.thumbnail.typo",
+                    }
+                idempotencyBodyTooComplex:
+                  summary: "Idempotency-Key sent with an excessively nested body"
+                  value:
+                    {
+                      "error": "Idempotency-Key request body is too deeply nested",
+                      "code": "IDEMPOTENCY_BODY_TOO_COMPLEX",
+                    }
                 cannotUpdate:
                   value: { "error": "Cannot update post: post is currently in published status" }
         "401":
@@ -587,6 +906,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            An earlier request with this `Idempotency-Key` is still in flight.
+            Nothing was changed by this call — retry shortly to receive the
+            original response. Match on `code`; the `error` text varies.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                inFlight:
+                  value:
+                    {
+                      "error": "A request with this idempotency key is still in flight",
+                      "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+                superseded:
+                  value:
+                    {
+                      "error": "Idempotency claim was superseded by another request",
+                      "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+        "422":
+          description: |
+            This `Idempotency-Key` was already used with a different request body
+            (or against a different postGroupId). Nothing was changed — either
+            replay the original body, or retry with a new key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Idempotency key was already used with a different request body"
+                code: "IDEMPOTENCY_KEY_CONFLICT"
         "404":
           description: Post not found
           content:

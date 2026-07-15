@@ -16,6 +16,7 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 | `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `"mcp"`) |
 | `Content-Type` | Yes | `application/json` |
+| `Idempotency-Key` | No | Opt-in retry safety. Any client-generated unique string (e.g. a UUID). See [Idempotency](#idempotency). **Strongly recommended when sending `mediaUrls`** — without it, a retried update appends the media a second time. |
 
 ## Path Parameters
 
@@ -25,17 +26,40 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 
 ## Request Body
 
-At least one of `status`, `scheduledTime`, or `platformSettings` must be provided. Missing all three returns `400 { "error": "At least one of status, scheduledTime, or platformSettings must be provided" }`.
+At least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` must be provided. Missing all four returns `400 { "error": "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" }`.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `status` | string | No | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No | New ISO 8601 UTC datetime |
-| `platformSettings` | object | No | Per-platform settings (same shape and allowlist as in [create-post](./create-post.md#platformsettings)). Merged with existing settings server-side — fields you omit are preserved. Only `tiktok`, `instagram`, `youtube`, `threads`, and `telegram` keys are accepted; other platform keys are silently dropped. |
+| `platformSettings` | object | No | Per-platform settings (same shape and allowlist as in [create-post](./create-post.md#platformsettings)). Merged with existing settings server-side — fields you omit are preserved. Only `tiktok`, `instagram`, `youtube`, `threads`, and `telegram` keys are accepted. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
+| `mediaUrls` | string[] | No | Public **`https://`** URLs (1–10 per request) that the server downloads and attaches to the post. **Semantics are APPEND** — the media is added to the post's existing media, never replacing it. Ingestion is all-or-nothing: if any URL fails, none are attached. Plain `http://`, embedded credentials, non-443 ports, and internal/loopback hosts are rejected. Because a retry re-appends, **send an [`Idempotency-Key`](#idempotency) whenever this field is present.** |
 
 > **YouTube playlist & thumbnail (partial update):** `platformSettings` supports partial per-platform updates, so you can change `youtube.playlist` or set/clear `youtube.thumbnail` without resending the other YouTube fields. The **thumbnail can only be set here** (not on `create-post`, which has no `postGroupId` yet). Clear either by sending empty strings — `youtube.playlist` as `{ "id": "", "platformId": "" }`, or `youtube.thumbnail` as `{ "url": "" }`. Playlist or thumbnail changes return **`409`** while the post is publishing/processing (e.g. *"Post group is currently being published; cannot change YouTube playlist. Retry once publishing completes."*). See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings).
 
 > **Instagram Reels cover:** set or change `instagram.coverUrl` (alias: `cover_url`) here — a JPEG image used as the Reel's cover. Either pass a publicly accessible http(s) URL, or [upload a cover file](upload-instagram-cover.md) (JPEG/PNG/WebP up to 8 MB) and set the returned URL. Send `{ "instagram": { "coverUrl": "" } }` to clear it (the cover falls back to automatic/frame-based selection). Non-JPEG or non-http(s) URLs are rejected with `400`; a change is rejected with `409` while the post is publishing. See [Instagram → Platform-Specific Settings](../platforms/instagram.md#platform-specific-settings).
+
+### Unknown platformSettings paths
+
+Every path you send is checked against the accepted tree **before anything is written**. An unrecognized top-level platform, or an unrecognized nested key under a known one, is rejected — the whole request is a no-op:
+
+```json
+{
+  "error": "Unknown platformSettings path: youtube.thumbnail.mediaID",
+  "code": "PLATFORM_SETTING_UNKNOWN",
+  "field": "youtube.thumbnail.mediaID"
+}
+```
+
+`field` is the exact dotted path that failed, so you can point a user straight at the typo. Nested references are checked down to their leaves — `youtube.playlist.{id,platformId}` and `youtube.thumbnail.{mediaId,id,url,path}`. This matters most for thumbnails: a miscased `youtube.thumbnail.mediaID` previously slipped through the allowlist and **silently cleared an already-uploaded thumbnail**. It is now a `400`.
+
+Values under a known leaf are never traversed, so these keep working unchanged:
+
+- Aliases — `instagram.cover_url` (for `coverUrl`), `youtube.thumbnail.id` (for `mediaId`), `youtube.thumbnail.path` (for `url`)
+- String booleans — `"true"` / `"false"` / `"1"` / `"0"` / `"yes"` / `"no"` / `"on"` / `"off"`
+- Comma-separated `youtube.tags`
+
+The deprecated flat fields `youtube.playlistId` and `youtube.thumbnailUrl` still return their existing guidance errors (e.g. *"playlistId is not supported; use …playlist"*) rather than `PLATFORM_SETTING_UNKNOWN`.
 
 ### ISO 8601 DateTime Format
 
@@ -62,10 +86,56 @@ March 15, 2026              ✗ Not ISO 8601
 
 ### Timing Constraints
 
-- **Past times:** If the scheduled time is in the past, it is silently set to the current time
+- **Past times:** Never silent. A time in the past is either clamped to the current server time **with a `warnings` entry in the response**, or rejected with `400 SCHEDULED_TIME_IN_PAST` — see [Past scheduled times](#past-scheduled-times) for the exact rule and the migration date.
 - **No scheduled time:** If the resulting status is `scheduled` and neither the request body nor the existing post has a `scheduledTime`, it defaults to the current time (`new Date()`). This default does not apply when updating to `draft` — the existing value is preserved
 - **Maximum:** Recommended within 2 months for best reliability
 - **Timezone:** Always use UTC (Z suffix or +00:00 offset)
+
+### Past scheduled times
+
+| How far in the past | Today | From **2026-08-25** (strict mode) |
+|---|---|---|
+| Less than 5 minutes | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Unchanged — still clamped + warned** |
+| 5 minutes or more | Clamped to server time + `SCHEDULED_TIME_COERCED` warning | **Rejected — `400 SCHEDULED_TIME_IN_PAST`** |
+
+> **The 5-minute tolerance is permanent.** It does **not** go away at the sunset. Only the *5-minutes-or-more* case changes behaviour on 2026-08-25 — flipping from clamp-and-warn to a hard `400`. A time a few seconds or a couple of minutes in the past (ordinary clock skew and request latency) will keep being clamped and warned about, before and after that date, forever.
+
+Clamped requests still return `200`, and the response carries the warning:
+
+```json
+{
+  "success": true,
+  "message": "Post updated successfully",
+  "scheduledTime": "2026-07-15T09:31:04.812Z",
+  "warnings": [
+    {
+      "code": "SCHEDULED_TIME_COERCED",
+      "message": "Requested scheduled time 2026-07-15T08:00:00.000Z was in the past and was changed to server time 2026-07-15T09:31:04.812Z.",
+      "requested": "2026-07-15T08:00:00.000Z",
+      "effective": "2026-07-15T09:31:04.812Z"
+    }
+  ],
+  "postGroup": {
+    "_id": "507f1f77bcf86cd799439011",
+    "status": "scheduled",
+    "scheduledTime": "2026-07-15T09:31:04.812Z"
+  }
+}
+```
+
+Once strict mode is on, that same request returns:
+
+```json
+{
+  "error": "Scheduled time is in the past. Server time is 2026-07-15T09:31:04.812Z UTC.",
+  "code": "SCHEDULED_TIME_IN_PAST",
+  "serverTime": "2026-07-15T09:31:04.812Z"
+}
+```
+
+**Migrate now:** treat every `SCHEDULED_TIME_COERCED` warning where the gap is 5 minutes or more as a future `400`. Log it, and re-send a time in the future. `serverTime` on the error is the authoritative clock to compute against. For the full rationale and cross-endpoint behaviour, see [Scheduling → Past scheduled times](../guides/scheduling.md#past-scheduled-times).
+
+> **Status-only transitions validate the *stored* time.** Sending `{ "status": "scheduled" }` with **no** `scheduledTime`, on a post that is not already scheduled, runs the post's **existing stored** time through the rules above. An old draft whose stored time has since passed therefore now returns a `SCHEDULED_TIME_COERCED` warning (and, once strict mode is on, a `400 SCHEDULED_TIME_IN_PAST`). Previously it silently published at the stale time — effectively immediately. If you flip old drafts to `scheduled`, always send an explicit fresh `scheduledTime` alongside the status.
 
 ### Scheduling Limits
 
@@ -119,12 +189,46 @@ scheduled_time = schedule_for_tomorrow(14, 0)  # Tomorrow at 2pm UTC
 # "2026-02-21T14:00:00.000Z"
 ```
 
+## Idempotency
+
+Send an optional `Idempotency-Key` header with any value unique to the logical operation (a UUID works). It is **opt-in** — omit it and behaviour is exactly as before.
+
+| Situation | Result |
+|---|---|
+| Same key, same body | The original response is **replayed** (same status code, same body). The update is not applied twice. |
+| Same key, **different** body | `422` `IDEMPOTENCY_KEY_CONFLICT` |
+| Same key, original still running | `409` `IDEMPOTENCY_IN_FLIGHT` |
+| New key | Processed normally |
+
+Keys are scoped to the **acting user** (the managed user when `x-publora-user-id` is set) and expire **24 hours** after first use. Two different users can safely use the same key string.
+
+> **Why it matters most here:** `mediaUrls` on `update-post` has **append** semantics. A timeout or network blip on a request that already committed leaves you no way to tell whether it landed — and a naive retry appends the same media **again**, producing duplicate attachments on the post. With an `Idempotency-Key`, the retry replays the original response instead. **Always send one when the body contains `mediaUrls`.**
+
+```javascript
+const key = crypto.randomUUID();   // reuse this exact key for every retry
+
+await fetch(`https://api.publora.com/api/v1/update-post/${postGroupId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': process.env.PUBLORA_API_KEY,
+    'Idempotency-Key': key
+  },
+  body: JSON.stringify({
+    mediaUrls: ['https://example.com/photo.jpg']
+  })
+});
+```
+
+Generate the key **once per logical update** and reuse it across retries. Generating a fresh key per attempt defeats the protection entirely.
+
 ## Response
 
 ```json
 {
   "success": true,
   "message": "Post updated successfully",
+  "scheduledTime": "2026-03-15T10:00:00.000Z",
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",
@@ -133,7 +237,12 @@ scheduled_time = schedule_for_tomorrow(14, 0)  # Tomorrow at 2pm UTC
 }
 ```
 
-**Note:** The `scheduledTime` field is conditionally included in the response only if the post has a scheduled time set.
+| Field | Type | Description |
+|-------|------|-------------|
+| `scheduledTime` | string/null | **Always present.** The *effective* time actually stored, after any past-time clamping or limits-service adjustment. `null` if the post has no scheduled time. Trust this over the time you sent. |
+| `postGroup.scheduledTime` | string | The same value; included only when the post has a scheduled time set. |
+| `warnings` | array | Present only when something was adjusted — e.g. a `SCHEDULED_TIME_COERCED` entry. See [Past scheduled times](#past-scheduled-times). |
+| `mediaValidationStatus` | string | Present as `"pending"` only when media validation had not completed by the time the response was sent. |
 
 ## Examples
 
@@ -316,7 +425,12 @@ def update_post_safely(post_group_id, updates):
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"Either status or scheduledTime must be provided"` | Neither field was provided in the request (see note below) |
+| 400 | `"At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"` | None of the four fields was provided (see note below) |
+| 400 | `"Unknown platformSettings path: {path}"` — code `PLATFORM_SETTING_UNKNOWN` | An unrecognized top-level platform or nested settings key. The response includes `field` with the exact dotted path. Nothing is persisted. |
+| 400 | `"Scheduled time is in the past. Server time is {t} UTC."` — code `SCHEDULED_TIME_IN_PAST` | The requested time — or, on a status-only transition, the post's stored time — is 5+ minutes in the past, once strict mode is on (**2026-08-25**). The response includes `serverTime`. |
+| 400 | `"Idempotency-Key request body is too deeply nested"` — code `IDEMPOTENCY_BODY_TOO_COMPLEX` | The request body sent with an `Idempotency-Key` exceeds the nesting limit and cannot be hashed |
+| 409 | `"A request with this idempotency key is still in flight"` — code `IDEMPOTENCY_IN_FLIGHT` | Another request with the same `Idempotency-Key` is still being processed. Retry shortly. |
+| 422 | `"Idempotency key was already used with a different request body"` — code `IDEMPOTENCY_KEY_CONFLICT` | The same `Idempotency-Key` was reused with a different body. Use a new key. |
 | 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
 | 400 | `"Invalid scheduled time format"` | Malformed datetime string |
 | 400 | `"Cannot update post: post is currently in {status} status"` | Post is in any status other than `draft` or `scheduled` |
@@ -333,7 +447,7 @@ def update_post_safely(post_group_id, updates):
 | 500 | `"Failed to update post"` | Malformed post group ID or internal server error |
 | 500 | `"Internal server error"` | Unexpected server error in middleware |
 
-> **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. If both `status` and `scheduledTime` are falsy, you will receive the "Either status or scheduledTime must be provided" error.
+> **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. If `status` and `scheduledTime` are both falsy and neither `platformSettings` nor `mediaUrls` is present, you will receive the "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" error.
 
 > **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 

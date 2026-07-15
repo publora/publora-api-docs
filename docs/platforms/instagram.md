@@ -366,7 +366,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   }'
 ```
 
-> **Note:** For immediate publishing, set `scheduledTime` to the current time. For more details, see the [media upload workflow](../guides/media-uploads.md).
+> **Note:** For immediate publishing, set `scheduledTime` a few seconds in the future — a time already in the past is clamped to server time and flagged with a `SCHEDULED_TIME_COERCED` warning (see [past scheduled times](../guides/scheduling.md#past-scheduled-times)). For more details, see the [media upload workflow](../guides/media-uploads.md).
 
 ### Post a Reel
 

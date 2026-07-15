@@ -107,8 +107,13 @@ Create and schedule a post to one or more platforms.
 | `scheduledTime` | string | No | When to publish (ISO 8601): `2026-03-01T14:00:00Z`. Omit to create a **draft**. |
 | `mediaUrls` | string[] | No | Up to 10 public **https** image/video URLs, downloaded server-side and attached before validation. Pass together with `scheduledTime` to attach **and** schedule in one call. |
 | `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
+| `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request replays the original response without creating another post. |
 
 > **MCP vs REST difference:** `scheduledTime` is optional in the MCP schema — omit it to create a **draft**. Media-required platforms (Instagram, TikTok, YouTube, Pinterest) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached.
+
+> **Use `idempotencyKey` whenever a retry is possible.** An agent that retries after a network timeout has no way to know whether the first `create_post` landed — without a key it creates a **second post**. Pass a fresh unique key (e.g. a UUID) per distinct post; on retry, resend the *same* key with the *same* arguments and Publora replays the original result instead of posting again. Reusing a key with different arguments returns `422` `IDEMPOTENCY_KEY_CONFLICT`; retrying while the first call is still running returns `409` `IDEMPOTENCY_IN_FLIGHT` (wait and retry the identical call — do not switch keys).
+
+> **A `scheduledTime` in the past is not taken literally.** Under 5 minutes late it is always clamped to server time and the response carries a `SCHEDULED_TIME_COERCED` warning — that tolerance is permanent. From 5 minutes late it is clamped and warned until the strict sunset (`2026-08-25`), and rejected with `400` `SCHEDULED_TIME_IN_PAST` (plus a `serverTime` field) after it. Always send a future time. See [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
 
 > **Media-required platforms (Instagram, TikTok, YouTube, Pinterest):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`.
 
@@ -299,8 +304,13 @@ Reschedule or change post status.
 | `scheduledTime` | string | No | New scheduled time (ISO 8601) |
 | `mediaUrls` | string[] | No | Public https URLs (≤10) to download and **append** to the post's media. |
 | `platformSettings` | object | No | Per-platform options to merge (same strict schema as `create_post`). |
+| `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request prevents repeated media appends and replays the original response. |
 
-> **Note:** Provide at least one of `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent** — repeating a call with `mediaUrls` appends the media again.
+> **Note:** Provide at least one of `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
+
+> **`scheduledTime` handling:** omitting `scheduledTime` keeps the post's current scheduled time. A time under 5 minutes in the past is clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response's `warnings[]` — that tolerance is permanent. A time 5+ minutes in the past is clamped and warned until the strict sunset (`2026-08-25`), and returns `400` `SCHEDULED_TIME_IN_PAST` (with `serverTime`) after it. See [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
+
+> **Known discrepancy:** the `update_post` tool description returned by the live MCP server still says a past `scheduledTime` "is snapped to now". That is only true under the conditions above; the note in this section is authoritative.
 
 **Example prompts:**
 
@@ -341,6 +351,8 @@ async def reschedule_post():
   }
 }
 ```
+
+> **Successful responses may carry `warnings`.** When present, `warnings` is an array of `{ code, message, ... }` objects (e.g. `SCHEDULED_TIME_COERCED`, which also carries `requested` and `effective`). The key is omitted entirely when there are no warnings. Surface these to the user — the call succeeded, but the API changed something about the request. Full list: [Error Handling](/guides/error-handling).
 
 > **Note:** The `scheduledTime` field in the response is only included when the post has a scheduled time set. Draft posts without a scheduled time will omit this field.
 

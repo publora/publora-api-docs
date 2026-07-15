@@ -25,12 +25,59 @@ processingStatus field:  pending --> processing --> finished
 ### Key Rules
 
 - `scheduledTime` must be in **ISO 8601 UTC format** (e.g., `2026-03-15T14:30:00.000Z`). An invalid format returns a `400 "Invalid scheduled time format"` error.
-- If a `scheduledTime` is in the past or exactly equal to `now` (`scheduledTime <= now`), it is silently reset to the current time (it does not return an error).
+- A `scheduledTime` that is in the past or exactly equal to `now` (`scheduledTime <= now`) is **never silently accepted**. See [Past scheduled times](#past-scheduled-times) below -- the API either clamps it and warns you, or rejects it.
 - **Starter plan** users can have a maximum of **3 pending (scheduled) posts** at any time. This counts individual platform-level posts, not post groups. A single post group targeting 3 platforms counts as 3 scheduled posts toward this limit. Pro and Premium plan `scheduledPosts` limits are per-connection (100 and 500 respectively), not account-wide like Starter's limit of 3.
 - **Schedule horizon:** Starter plan users can schedule up to **7 days** in advance. Pro and Premium plans have no horizon limit.
 - **Monthly post limits:** Starter allows **15 posts/month** (account-wide), Pro allows **100 posts/month per connection**, Premium allows **500 posts/month per connection**. Note: scheduled posts are counted per-platform post, not per post group. A single post group targeting 3 platforms counts as 3 posts toward your limit.
 - **Starter plan can post to any of the 10 platforms** (no platform restriction).
 - The scheduler runs every minute, so posts are published within roughly 60 seconds of their scheduled time.
+
+### Past scheduled times
+
+Previously, a `scheduledTime` in the past was silently rewritten to the current time -- so "post at 09:00" computed a few seconds late, or a stale retry of an old request, published **immediately** with no signal. That is fixed: the API now always tells you.
+
+| How far in the past | Today | From **2026-08-25** |
+|---|---|---|
+| Less than 5 minutes (clock skew) | Clamped to server time + `warnings` in the 2xx body | Unchanged -- still clamped + warned |
+| 5 minutes or more | Clamped to server time + `warnings` in the 2xx body | **`400 SCHEDULED_TIME_IN_PAST`** |
+
+The 5-minute tolerance for clock skew is permanent. Only the 5-minutes-or-more case changes.
+
+**Warning (2xx)** -- the post *was* created; `effective` is the time actually stored:
+
+```json
+{
+  "success": true,
+  "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d",
+  "warnings": [
+    {
+      "code": "SCHEDULED_TIME_COERCED",
+      "message": "Requested scheduled time 2026-03-15T14:29:58.000Z was in the past and was changed to server time 2026-03-15T14:30:02.104Z.",
+      "requested": "2026-03-15T14:29:58.000Z",
+      "effective": "2026-03-15T14:30:02.104Z"
+    }
+  ]
+}
+```
+
+**Rejection (400)** -- once the change lands, nothing is created:
+
+```json
+{
+  "error": "Scheduled time is in the past. Server time is 2026-03-15T14:30:02.104Z UTC.",
+  "code": "SCHEDULED_TIME_IN_PAST",
+  "serverTime": "2026-03-15T14:30:02.104Z"
+}
+```
+
+`serverTime` is the authoritative UTC clock -- compare it against your own to detect drift, and retry with a `scheduledTime` after it.
+
+**What to do now**
+
+- Treat any `warnings` entry with `code: "SCHEDULED_TIME_COERCED"` as an error in the making -- it becomes a `400` on 2026-08-25.
+- Build times from UTC (`new Date().toISOString()`, `datetime.now(timezone.utc)`), not local wall-clock.
+- Add a small buffer (30-60s) when scheduling "now" to absorb network and clock skew.
+- To confirm what the server kept, read the post back -- [`GET /get-post`](../endpoints/get-post.md) returns the stored **effective** `scheduledTime`, not what you asked for.
 
 ## Examples
 

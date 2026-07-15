@@ -28,6 +28,12 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 {
   "success": true,
   "postGroupId": "507f1f77bcf86cd799439011",
+  "status": "published",
+  "scheduledTime": "2026-02-22T14:30:00.000Z",
+  "platforms": ["twitter-123456789", "linkedin-ABC123"],
+  "platformSettings": {
+    "youtube": { "privacy": "public" }
+  },
   "posts": [
     {
       "_id": "663a1b2c3d4e5f6a7b8c9d01",
@@ -35,7 +41,8 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "platformId": "123456789",
       "content": "Excited to share our new product launch! 🚀",
       "status": "published",
-      "postedId": "1234567890123456789"
+      "postedId": "1234567890123456789",
+      "permalink": null
     },
     {
       "_id": "663a1b2c3d4e5f6a7b8c9d02",
@@ -43,15 +50,45 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "platformId": "ABC123",
       "content": "Excited to share our new product launch! 🚀",
       "status": "published",
-      "postedId": "urn:li:share:7654321"
+      "postedId": "urn:li:share:7654321",
+      "permalink": null
     }
   ]
 }
 ```
 
+### Group-level fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `postGroupId` | string | The post group ID |
+| `status` | string | Group status (see [Post Status Values](#post-status-values)) |
+| `scheduledTime` | string/null | **The effective scheduled time as actually stored by the server** — `null` if the group has none |
+| `platforms` | array | The effective platform list stored on the group (compound `platform-platformId` form) |
+| `platformSettings` | object | The stored per-platform settings (`{}` if none were stored) |
+| `posts` | array | One entry per platform target (see below) |
+
+> **Read-after-write:** `scheduledTime`, `platforms` and `platformSettings` echo **what the server actually stored**, not what you sent. The server may adjust your requested schedule time — see [past scheduled times](../guides/scheduling.md#past-scheduled-times) — and previously there was no way to verify that from the API. Read these back whenever the exact stored values matter.
+
+### Per-platform fields (`posts[]`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | string | The individual platform post ID |
+| `platform` | string | Platform name (e.g., `twitter`) |
+| `platformId` | string/null | Raw platform account ID — `null` when absent |
+| `content` | string | The content published to this platform |
+| `status` | string | Per-platform status |
+| `postedId` | string/null | The platform's own ID for the published post — `null` until published |
+| `permalink` | string/null | Public URL of the published post — `null` when unavailable |
+
+> **Stable shape:** `platformId`, `postedId` and `permalink` are **always present** on every `posts[]` entry. When a value is unavailable it is explicitly `null` — the key never disappears, so you can read it without existence checks.
+
+> **`permalink` is not yet populated.** The field is delivered end-to-end, but is currently `null` for essentially all posts pending a separate backfill. Treat a non-null `permalink` as a bonus, never a guarantee — to locate the live post today, resolve it from `platform` + `platformId` + `postedId`.
+
 > **Note:** With `.lean()`, the `error` field may be **absent** (undefined) for non-failed posts if the error subdocument was never populated — it will not necessarily be `null`. When a post has failed, the `error` field contains an error object with details about the failure.
 
-> **Note:** For draft and scheduled posts, the `postedId` field will be absent from the response since the post has not yet been published to the platform. Only published posts include a `postedId`.
+> **Note:** For draft and scheduled posts, `postedId` is `null` (present, but empty) since the post has not yet been published to the platform. Only published posts carry a non-null `postedId`.
 
 > **Note:** The `platformId` field returns the raw platform ID (e.g., `"123456789"`), not the compound format used by list-posts (e.g., `"twitter-123456789"`). See the [list-posts](./list-posts) endpoint for details on this difference.
 
@@ -70,6 +107,8 @@ When a post fails, the response includes detailed error information:
       "platformId": "17841412345678",
       "content": "Check out our new feature!",
       "status": "failed",
+      "postedId": null,
+      "permalink": null,
       "error": {
         "code": "PLATFORM_AUTH_EXPIRED",
         "message": "Error validating access token",

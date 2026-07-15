@@ -123,7 +123,7 @@ async function updateScheduledPost(postGroupId, options = {}) {
 
     switch (response.status) {
       case 400:
-        if (data.error?.includes('past')) {
+        if (data.code === 'SCHEDULED_TIME_IN_PAST') {
           error.message = 'Cannot schedule in the past. Use a future datetime.';
         } else if (data.error?.includes('status')) {
           error.message = 'Post cannot be updated. It may be published, failed, or processing.';
@@ -290,7 +290,7 @@ def update_scheduled_post(
         error_message = data.get('error', f'HTTP {response.status_code}')
 
         if response.status_code == 400:
-            if 'past' in error_message.lower():
+            if data.get('code') == 'SCHEDULED_TIME_IN_PAST':
                 error_message = 'Cannot schedule in the past. Use a future datetime.'
             elif 'status' in error_message.lower():
                 error_message = 'Post cannot be updated. It may be published, failed, or processing.'
@@ -405,11 +405,13 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `"Scheduled time cannot be in the past"` | DateTime is before current time | Use a future datetime |
+| `"Scheduled time is in the past. Server time is <ISO> UTC."` (`code: "SCHEDULED_TIME_IN_PAST"`) | DateTime is 5+ minutes before server time, and the stricter behaviour is active (from **2026-08-25**) | Use a future datetime; compare the response's `serverTime` to your clock. Under 5 min late is clamped to now with a `SCHEDULED_TIME_COERCED` warning instead. See [Scheduling](./scheduling.md#past-scheduled-times) |
 | `"Cannot update post: post is currently in published status"` | Post already published | Cannot modify published posts |
 | `"Post group not found"` | Invalid ID or wrong user | Verify postGroupId and API key |
 | `"Invalid API key"` | Bad x-publora-key header | Check API key in dashboard |
 | `"Invalid scheduled time format"` | Malformed datetime | Use ISO 8601: `YYYY-MM-DDTHH:mm:ss.sssZ` |
+
+> **Heads-up:** a successful update can still carry `warnings` — `[{ code: "SCHEDULED_TIME_COERCED", requested, effective }]` means your time was in the past and the post was moved to `effective` (server time). Don't discard the warnings array; re-read the post with `GET /get-post` to see the stored `scheduledTime`.
 
 ### Checking Post Status Before Update
 

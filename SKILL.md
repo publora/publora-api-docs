@@ -209,7 +209,34 @@ Use ISO 8601 UTC format:
 2026-03-15T14:00:00Z      // Also correct
 ```
 
-Time must be in the future.
+Time must be in the future. A past time is never silently accepted:
+
+- **Less than 5 min in the past** (clock skew): clamped to server time, and the `200` response carries `warnings: [{ code: "SCHEDULED_TIME_COERCED", requested, effective }]`. This tolerance is permanent.
+- **5 min or more in the past**: clamped + warned today, but rejected with `400` / `SCHEDULED_TIME_IN_PAST` (body includes `serverTime`) from **2026-08-25**. Fix these before that date.
+
+A `200` can still mean the API adjusted your request — read `warnings`, don't discard it. `GET /get-post` returns the effective stored `scheduledTime` to confirm what was actually kept.
+
+### Retry Safety (Idempotency-Key)
+
+Send an optional `Idempotency-Key` header on `create-post` / `update-post`. A timeout never tells you whether the request landed — without a key, the retry **creates a second post** (and on `update-post` with `mediaUrls`, appends the media twice).
+
+```javascript
+const key = crypto.randomUUID();  // one key per logical operation — reuse it for every retry
+await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'sk_YOUR_API_KEY',
+    'Idempotency-Key': key
+  },
+  body: JSON.stringify({ content: 'Hello', platforms: ['twitter-123456789'] })
+});
+```
+
+- Same key + same body → the original response is replayed (no second post).
+- Same key + different body → `422` / `IDEMPOTENCY_KEY_CONFLICT`.
+- Same key still processing → `409` / `IDEMPOTENCY_IN_FLIGHT` — wait and retry the identical call, don't switch keys.
+- Keys are per-user and expire after 24h. Opt-in: without the header, behaviour is unchanged.
 
 ### Post Statuses
 
@@ -248,6 +275,14 @@ Common errors:
 - 401: Invalid API key
 - 400: Invalid parameters
 - 404: Resource not found
+
+Machine-readable `code` values (branch on `code`, not on the message text):
+- `SCHEDULED_TIME_IN_PAST` (400) — `scheduledTime` 5+ min in the past; body carries `serverTime`
+- `PLATFORM_SETTING_UNKNOWN` (400) — unknown `platformSettings` path; body carries the exact `field`
+- `IDEMPOTENCY_KEY_CONFLICT` (422) — key reused with a different body
+- `IDEMPOTENCY_IN_FLIGHT` (409) — same key still processing; retry the identical call
+
+Successful responses may carry a `warnings` array (e.g. `SCHEDULED_TIME_COERCED`) — surface it. Full reference: [Error Handling](docs/guides/error-handling.md).
 
 ## Resources
 

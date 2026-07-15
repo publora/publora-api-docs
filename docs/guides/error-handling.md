@@ -18,7 +18,8 @@ The Publora API uses standard HTTP status codes to indicate success or failure. 
 | `401` | Unauthorized | Missing or invalid API key |
 | `403` | Forbidden | Valid API key but insufficient permissions or plan limits reached |
 | `404` | Not Found | Resource does not exist or does not belong to your account |
-| `409` | Conflict | Duplicate or conflicting operation |
+| `409` | Conflict | Duplicate or conflicting operation, or an `Idempotency-Key` request that is still in flight |
+| `422` | Unprocessable Entity | An `Idempotency-Key` was reused with a different request body |
 | `500` | Internal Server Error | Something went wrong on Publora's side |
 
 ### Error Response Format
@@ -39,6 +40,42 @@ or
 }
 ```
 
+Both formats may also carry a machine-readable `code` field. Prefer branching on `code` over matching `error` text — messages may be reworded, codes are stable.
+
+### The API tells you, or refuses — it never silently rewrites your request
+
+Publora no longer quietly changes a request it cannot take literally. It either **warns** (2xx + `warnings[]`) or **refuses** (4xx + `code`).
+
+#### `warnings[]` on successful responses
+
+A `200` from `create-post` or `update-post` may include a `warnings` array. It is **omitted entirely when empty** — never assume the key exists. Each entry has at least `code` and `message`. Surface warnings to your users; do not treat them as failures.
+
+```json
+{
+  "success": true,
+  "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d",
+  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "warnings": [
+    {
+      "code": "SCHEDULED_TIME_COERCED",
+      "message": "Requested scheduled time 2026-03-15T13:59:00.000Z was in the past and was changed to server time 2026-03-15T14:00:00.000Z.",
+      "requested": "2026-03-15T13:59:00.000Z",
+      "effective": "2026-03-15T14:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### `scheduledTime` in the past
+
+| Situation | Behaviour |
+|---|---|
+| Less than 5 minutes in the past | **Always** clamped to server time + `SCHEDULED_TIME_COERCED` warning (tolerates clock skew). This tolerance is permanent — it does not change after the sunset. |
+| 5 minutes or more in the past, **before** the strict sunset (`2026-08-25`) | Clamped to server time + `SCHEDULED_TIME_COERCED` warning |
+| 5 minutes or more in the past, **on or after** the sunset (`2026-08-25`) | Rejected: `400` `SCHEDULED_TIME_IN_PAST` |
+
+**Migrate now:** if you see `SCHEDULED_TIME_COERCED` in a response, that same request will start failing with `400` after the sunset. Compare `requested` against the `serverTime`/`effective` value to detect clock skew in your own system. For the full narrative, see [Scheduling → Past scheduled times](/guides/scheduling#past-scheduled-times).
+
 ### Common Errors
 
 | Status | Error Message | Cause | Resolution |
@@ -58,6 +95,33 @@ or
 | `404` | `"Post group not found"` | The post group ID does not exist or does not belong to your account | Verify the ID and ensure you are using the correct API key |
 | `400` | `"Cannot update post: post is currently in {status} status"` | Attempting to modify a post that is in a non-editable status (e.g., `published`, `failed`) | Only `draft` and `scheduled` posts can be updated. The external API and dashboard have **different** update rules. The external API rejects any post not in `draft` or `scheduled` status. The dashboard controller rejects posts in `published` or `failed` status — meaning `partially_published` posts **can** be updated via the dashboard but **not** via the API. Neither checks `processingStatus`. Note: `processing` is not a value of the `status` field — it is tracked separately via the `processingStatus` field (values: `pending`, `processing`, `finished`). The `status` field values are: `draft`, `scheduled`, `published`, `failed`, `partially_published`. |
 
+### Scheduled-Time Errors
+
+| Status | Code | Error Message | Cause | Resolution |
+|---|---|---|---|---|
+| `400` | `SCHEDULED_TIME_IN_PAST` | `"Scheduled time is in the past. Server time is {ISO} UTC."` | `scheduledTime` was 5+ minutes in the past and strict mode is active (see the sunset table above). Response also includes `serverTime` (ISO 8601, the server's clock at the moment of the request). | Send a future time. If your time looked correct, compare it to `serverTime` — you likely have clock skew or a timezone/UTC bug. |
+| `200` | `SCHEDULED_TIME_COERCED` | *(not an error — a `warnings[]` entry)* | A past `scheduledTime` was clamped to server time. Entry fields: `code`, `message`, `requested`, `effective`. | None required, but fix the sending clock: after the strict sunset this same request returns `400`. |
+
+### platformSettings Errors
+
+| Status | Code | Error Message | Cause | Resolution |
+|---|---|---|---|---|
+| `400` | `PLATFORM_SETTING_UNKNOWN` | `"Unknown platformSettings path: {path}"` | An unknown platform key or an unknown nested field inside `platformSettings`. Previously such paths were silently dropped and the post published without the setting. The response includes `field` with the **exact** offending dotted path (e.g. `instagram.coverurl`). | Read `field`, fix the typo or remove the key. See the platformSettings schema for the supported paths per platform. |
+
+### Idempotency Errors
+
+Applies to `POST /create-post` and `PUT /update-post` when you send an `Idempotency-Key` header.
+
+The `code` field is the contract — branch on it, not on the message text.
+
+| Status | Code | Cause | Resolution |
+|---|---|---|---|
+| `422` | `IDEMPOTENCY_KEY_CONFLICT` | The same `Idempotency-Key` was reused with a **different** request body. Bodies are compared by a canonical hash, so key order and formatting do not matter — only actual values do. | Use a new key for a new request, or resend the equivalent original body to replay the stored response. |
+| `409` | `IDEMPOTENCY_IN_FLIGHT` | A request with this key is still being processed, or your claim on it was superseded by a concurrent request. Several distinct messages map to this one code — match on `code`. | Wait briefly and retry the identical request; once the original completes you receive its stored response. Do **not** switch to a new key — that risks a duplicate post. |
+| `400` | `IDEMPOTENCY_BODY_TOO_COMPLEX` | The request body nests deeper than 200 levels and cannot be hashed. | Flatten the payload. No real `platformSettings` / `mediaUrls` body reaches this depth — it usually signals a serialization bug. |
+
+> **Replays are not errors.** Resending an identical request with the same `Idempotency-Key` returns the **original** response — same status code, same body (including any `warnings[]`) — without performing the mutation again.
+
 ### Post Creation Errors
 
 | Status | Error Message | Cause | Resolution |
@@ -70,6 +134,7 @@ or
 | `400` | `"Platforms must be an array"` | The `platforms` field is not an array (e.g., a string or object) | Pass `platforms` as a JSON array of platform ID strings |
 | `400` | `"Invalid platformSettings JSON"` | The `platformSettings` field could not be parsed as valid JSON | Ensure `platformSettings` is a valid JSON object |
 | `400` | `"platformSettings must be an object"` | The `platformSettings` field is not a JSON object | Pass `platformSettings` as a JSON object, not an array or primitive |
+| `400` | `"Unknown platformSettings path: {path}"` | An unknown platform or nested key in `platformSettings` (code `PLATFORM_SETTING_UNKNOWN`, with the exact `field`) | See [platformSettings Errors](#platformsettings-errors) |
 
 ### Post Update Errors
 
@@ -77,6 +142,7 @@ or
 |---|---|---|---|
 | `400` | `"Either status or scheduledTime must be provided"` | An update-post request was sent without specifying `status` or `scheduledTime` | Include at least one of `status` or `scheduledTime` in the request body |
 | `400` | `"Status must be either 'draft' or 'scheduled'"` | The `status` field in an update-post request contains an invalid value | Set `status` to either `"draft"` or `"scheduled"` |
+| `422` / `409` / `400` | Idempotency errors | An `Idempotency-Key` was reused with a different body, is still in flight, or the body is too deeply nested | See [Idempotency Errors](#idempotency-errors) |
 
 ### Media Upload Errors
 
@@ -804,13 +870,17 @@ if result['failed']:
 
 3. **Use exponential backoff for retries.** Start at 1 second and double with each attempt. Cap at 3-5 retries to avoid infinite loops.
 
-4. **Monitor for partial failures.** A `200` response when creating a post does not guarantee all platforms will succeed. Poll the post group status after the scheduled time to detect partial failures.
+4. **Send an `Idempotency-Key` on every `create-post` / `update-post` you might retry.** A timeout does not tell you whether the post was created. Without a key, the retry double-posts (and on `update-post` with `mediaUrls`, double-appends the media). With one, the retry replays the original response.
 
-5. **Log error responses in full.** When debugging, log the entire response body, not just the error message. Additional fields may provide context.
+5. **Read `warnings[]` on successful responses.** A `200` can still mean the API changed something about your request — most often `SCHEDULED_TIME_COERCED`. Log warnings; do not discard them.
 
-6. **Handle `403` errors gracefully in your UI.** If a user hits a plan limit (returned as a structured `LimitExceededError`), parse the `metric`, `limit`, `used`, and `remaining` fields to show actionable guidance rather than a raw error.
+6. **Monitor for partial failures.** A `200` response when creating a post does not guarantee all platforms will succeed. Poll the post group status after the scheduled time to detect partial failures.
 
-7. **Validate inputs before sending.** Check that `scheduledTime` is in the future and in ISO 8601 format, platform IDs follow the `{platform}-{id}` format, and media counts are within limits. This avoids unnecessary `400` errors.
+7. **Log error responses in full.** When debugging, log the entire response body, not just the error message. Additional fields may provide context.
+
+8. **Handle `403` errors gracefully in your UI.** If a user hits a plan limit (returned as a structured `LimitExceededError`), parse the `metric`, `limit`, `used`, and `remaining` fields to show actionable guidance rather than a raw error.
+
+9. **Validate inputs before sending.** Check that `scheduledTime` is in the future and in ISO 8601 format, platform IDs follow the `{platform}-{id}` format, and media counts are within limits. This avoids unnecessary `400` errors.
 
 ## Common Issues
 
@@ -818,7 +888,10 @@ if result['failed']:
 |---|---|---|
 | `401` on every request | API key not set or incorrect | Ensure `x-publora-key` header is present with a valid key |
 | `403` but key is valid | Account has no active subscription, hit a usage limit, or account is on hold/inactive | Check subscription status, review the structured error response for limit details, or contact support |
-| `400` when scheduling | `scheduledTime` is in the past or malformed | Always send a future UTC time as `YYYY-MM-DDTHH:mm:ss.sssZ` |
+| `400` when scheduling | `scheduledTime` is malformed, or (code `SCHEDULED_TIME_IN_PAST`) 5+ minutes in the past with strict mode active | Always send a future UTC time as `YYYY-MM-DDTHH:mm:ss.sssZ`. Compare your clock against the `serverTime` in the error body. |
+| Post scheduled "now" instead of my requested time | The time was in the past and was clamped — the response carried a `SCHEDULED_TIME_COERCED` warning | Send a future time. This becomes a hard `400` after the `2026-08-25` strict sunset. |
+| `422` on retry | Same `Idempotency-Key` reused with a different body | Generate a fresh key per distinct request; reuse a key only to retry the *identical* request |
+| `409` on retry | The original request with that key is still processing | Wait and retry the identical request — do not issue a new key |
 | `404` when fetching a post | Post group ID is wrong or belongs to another account | Verify the ID and that you are using the correct API key |
 | Post group shows `partially_published` | Some platforms failed while others succeeded | Inspect individual platform post statuses for error details |
 | TikTok post fails with FPS error | Video frame rate below TikTok's minimum requirement | Re-encode the video with at least 24 FPS before uploading |

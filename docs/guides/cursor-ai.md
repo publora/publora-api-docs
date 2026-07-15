@@ -383,6 +383,8 @@ When Cursor generates code, ask for clarification:
 "How does the partial failure handling work?"
 ```
 
+> **Answer, so you can check Cursor's:** a `scheduledTime` in the past is not silently accepted. Under 5 minutes late (clock skew) it is clamped to server time and the 2xx response carries `warnings: [{ code: "SCHEDULED_TIME_COERCED", requested, effective }]`. Five minutes or more late is clamped and warned today, and returns `400 { code: "SCHEDULED_TIME_IN_PAST", serverTime }` from **2026-08-25**. Have Cursor surface `warnings` rather than dropping them. See [Scheduling -- past scheduled times](./scheduling.md#past-scheduled-times).
+
 ### 4. Request Tests
 
 Always ask for tests alongside implementation:

@@ -218,6 +218,9 @@ When an event occurs, Publora sends a POST request to your webhook URL:
     "postId": "507f1f77bcf86cd799439012",
     "postGroupId": "507f1f77bcf86cd799439011",
     "platform": "linkedin",
+    "platformId": "ABC123",
+    "postedId": "urn:li:share:7654321",
+    "permalink": null,
     "publishedAt": "2026-02-22T14:30:00.000Z"
   }
 }
@@ -243,9 +246,28 @@ When an event occurs, Publora sends a POST request to your webhook URL:
   "postId": "507f1f77bcf86cd799439012",
   "postGroupId": "507f1f77bcf86cd799439011",
   "platform": "linkedin",
+  "platformId": "ABC123",
+  "postedId": "urn:li:share:7654321",
+  "permalink": null,
   "publishedAt": "2026-02-22T14:30:00.000Z"
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `postId` | string | Publora's ID for the individual platform post |
+| `postGroupId` | string | Publora's ID for the parent post group |
+| `platform` | string | Platform name (e.g., `linkedin`) |
+| `platformId` | string/null | Raw platform account ID the post was published to — `null` when absent |
+| `postedId` | string/null | **The platform's own ID for the live post** — use this to map the event to the real post on the platform |
+| `permalink` | string/null | Public URL of the published post — `null` when unavailable |
+| `publishedAt` | string | ISO-8601 timestamp of when the event was emitted |
+
+> **Stable shape:** all seven keys are **always present** on `post.published`. Unavailable values are explicitly `null` rather than omitted, so no existence checks are needed. This holds on both delivery paths — the normal publish path and the recovered/reconciled publish path (where the scheduler re-emits a success it had already committed).
+
+> **`permalink` is not yet populated.** The field is delivered on every `post.published` event, but is currently `null` for essentially all posts pending a separate backfill. If you need the live post today, resolve it from `platform` + `platformId` + `postedId`.
+
+> **Publication identity:** `post.published` previously carried only Publora-internal IDs (`postId`, `postGroupId`), which gave receivers no way to locate the actual live post on the platform. `platformId`, `postedId` and `permalink` close that gap.
 
 #### post.failed
 
