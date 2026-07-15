@@ -51,7 +51,7 @@ In the Publora dashboard, connect the social platforms you want to post to:
 | Expiration | Never expires | Typically 1 hour |
 | Refresh needed | No | Yes (refresh token flow) |
 | How to get | Dashboard → API | OAuth authorization flow |
-| Format | `sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k...` (~70 chars) | `eyJhbG...` (JWT) |
+| Format | `sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab` (64 chars) | `eyJhbG...` (JWT) |
 
 **Key point:** You can generate up to 10 active API keys from the dashboard. Each key works independently and never expires.
 
@@ -110,10 +110,10 @@ These endpoints manage API keys and require **dashboard session authentication**
     "apiKey": {
       "_id": "65f8a1b2c3d4e5f6a7b8c9d0",
       "name": "My Key",
-      "keyPrefix": "sk_kzq5mjw_a1b2c3d4",
+      "keyPrefix": "sk_mrmbzomn",
       "createdAt": "2026-02-22T10:00:00.000Z",
       "lastUsedAt": null,
-      "rawKey": "sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k..."
+      "rawKey": "sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab"
     }
   }
   ```
@@ -126,7 +126,7 @@ These endpoints manage API keys and require **dashboard session authentication**
       {
         "_id": "65f8a1b2c3d4e5f6a7b8c9d0",
         "name": "My Key",
-        "keyPrefix": "sk_kzq5mjw_a1b2c3d4",
+        "keyPrefix": "sk_mrmbzomn",
         "createdAt": "2026-02-22T10:00:00.000Z",
         "lastUsedAt": "2026-02-23T14:30:00.000Z"
       }
@@ -146,7 +146,7 @@ These endpoints manage API keys and require **dashboard session authentication**
     "apiKey": {
       "_id": "65f8a1b2c3d4e5f6a7b8c9d0",
       "name": "Renamed Key",
-      "keyPrefix": "sk_kzq5mjw_a1b2c3d4",
+      "keyPrefix": "sk_mrmbzomn",
       "createdAt": "2026-02-22T10:00:00.000Z",
       "lastUsedAt": "2026-02-23T14:30:00.000Z"
     }
@@ -161,15 +161,14 @@ These endpoints manage API keys and require **dashboard session authentication**
 ### Key Format
 
 ```
-sk_kzq5mjw_a1b2c3d4e5f6g7h8i9j0.k1l2m3n4o5p6...
+sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab
 ```
 
 - Starts with `sk_` prefix
 - Contains a base36-encoded timestamp segment
-- Followed by an underscore and a random hex string
-- Then a dot separator and another random hex string
-- Format: `sk_<timestamp_base36>_<random_hex>.<random_hex>`
-- Total length: ~70 characters
+- Followed by a dot separator and one 52-character random hex string
+- Format: `sk_<timestamp_base36>.<52_hex_characters>`
+- Total length: currently 64 characters; it varies with the base36 timestamp length
 - Maximum of **10 active API keys** per user
 - **Name length:** Maximum 100 characters (enforced by the API)
 
@@ -226,7 +225,7 @@ For direct HTTP calls to `api.publora.com`:
 
 ```bash
 curl https://api.publora.com/api/v1/platform-connections \
-  -H "x-publora-key: sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k..."
+  -H "x-publora-key: sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab"
 ```
 
 ```javascript
@@ -255,7 +254,7 @@ For MCP clients connecting to `mcp.publora.com`:
       "type": "http",
       "url": "https://mcp.publora.com",
       "headers": {
-        "Authorization": "Bearer sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k..."
+        "Authorization": "Bearer sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab"
       }
     }
   }
@@ -266,11 +265,11 @@ For MCP clients connecting to `mcp.publora.com`:
 
 ### MCP Client Identification
 
-MCP clients send an additional header `x-publora-client: mcp` to identify themselves. This triggers an `mcpAccess` entitlement check on the server side. If the account does not have MCP access enabled, the server responds with `403 "MCP access is not enabled for this account"`.
+Publora's MCP server sets `x-publora-client: mcp` on its internal REST requests to the backend. This triggers an `mcpAccess` entitlement check. If the account does not have MCP access enabled, the backend responds with `403 "MCP access is not enabled for this account"`.
 
-You do not need to set this header manually — MCP-compatible clients (Claude Desktop, Cursor, etc.) send it automatically.
+Claude Desktop, Cursor, and other MCP clients do not send this REST header; they authenticate to `mcp.publora.com`, and Publora's MCP server adds it downstream. A direct REST caller may also set `x-publora-client`; the value `mcp` opts that request into the same entitlement check.
 
-The `x-publora-client` header value is stored as `req.apiUser.client` in the request context (defaults to `"api"` when not set). This value is available to all downstream route handlers for client-specific logic or logging.
+The backend stores any non-empty `x-publora-client` value verbatim as `req.apiUser.client`; when the header is absent it uses `"api"`.
 
 ### Internal Request Context (`req.apiUser`)
 
@@ -284,7 +283,7 @@ After successful authentication, the middleware attaches a `req.apiUser` object 
 | `billingOwnerUser` | `Object` | The user responsible for billing. Contains `{ _id, permissions, isAdmin, entitlements }`. May differ from `ownerUser` in workspace setups |
 | `keyPrefix` | `string` | The prefix portion of the API key used for lookup (falls back to `"legacy"` for keys without a dot separator) |
 | `isWorkspace` | `boolean` | `true` if acting on behalf of a managed user via `x-publora-user-id` |
-| `client` | `string` | Client identifier — `"mcp"` or `"api"` (default) |
+| `client` | `string` | Arbitrary client identifier copied from `x-publora-client`; `"api"` when absent. Publora's MCP server sends `"mcp"` |
 | `entitlements` | `Object` | Feature flags and plan capabilities for the billing owner |
 
 > **Note:** These fields are internal to the server — they are not returned in API responses. They are documented here for contributors and advanced integrators who may encounter them in error messages or logs.
@@ -295,14 +294,14 @@ After successful authentication, the middleware attaches a `req.apiUser` object 
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-export PUBLORA_API_KEY="sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k..."
+export PUBLORA_API_KEY="sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab"
 ```
 
 Or use a `.env` file (add to `.gitignore`):
 
 ```bash
 # .env
-PUBLORA_API_KEY=sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k...
+PUBLORA_API_KEY=sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab
 ```
 
 ### Step 2: Verify Your Key Works
@@ -599,7 +598,7 @@ async function publoraRequestWithRetry(endpoint, options = {}, maxRetries = 3) {
 - Commit keys to version control
 - Share keys in chat, email, or public forums
 - Use keys in client-side JavaScript (browsers)
-- Log full API keys (mask them: `sk_kzq5mjw_a1b2...****`)
+- Log full API keys (mask them: `sk_mrmbzomn.9647...****`)
 
 ### Key Storage
 
@@ -608,7 +607,7 @@ async function publoraRequestWithRetry(endpoint, options = {}, maxRetries = 3) {
 const apiKey = process.env.PUBLORA_API_KEY;
 
 // Bad: Hardcoded
-const apiKey = 'sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k...'; // Never do this!
+const apiKey = 'sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab'; // Never do this!
 ```
 
 ### Managing API Keys
@@ -632,7 +631,7 @@ You can generate multiple API keys — useful for different environments or appl
 | MCP Server URL | `https://mcp.publora.com` |
 | REST API Header | `x-publora-key: sk_...` |
 | MCP Header | `Authorization: Bearer sk_...` (recommended) or `x-publora-key: sk_...` |
-| Key Format | `sk_<timestamp_base36>_<random_hex>.<random_hex>` (~70 chars) |
+| Key Format | `sk_<timestamp_base36>.<52_hex_characters>` (currently 64 characters; varies with timestamp length) |
 | Key Expiration | Never (until revoked) |
 | Max Keys | 10 active keys per user |
 | Get Key | publora.com → API |

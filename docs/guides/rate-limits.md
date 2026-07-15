@@ -156,7 +156,7 @@ Platform-side posting limits are advisory, account-dependent, and may change wit
 ### What Publora enforces
 
 - Plan entitlements shown above (monthly posts, pending posts, connections, and scheduling horizon).
-- Media-URL ingestion: 60 URLs per rolling hour; `429 MEDIA_URL_RATE_LIMITED` includes `Retry-After`.
+- Media-URL ingestion: 60 URLs per fixed one-hour window; `429 MEDIA_URL_RATE_LIMITED` includes `Retry-After`.
 - MCP session limits documented by the MCP endpoint.
 
 Platform-side rate-limit failures are reported on the post. Do not assume Publora automatically retries or redistributes a failed platform publication.

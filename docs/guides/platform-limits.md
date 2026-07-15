@@ -223,7 +223,7 @@ Different platforms have different requirements for media. Some platforms are te
 
 Platform-side posting quotas are advisory, account-dependent, and may change without notice; they are not a Publora contract. Unsourced and conflicting posts-per-hour/day numbers are intentionally omitted.
 
-Publora itself enforces plan entitlements and the media-URL ingestion limit (60 URLs per rolling hour, returned as `429 MEDIA_URL_RATE_LIMITED` with `Retry-After`).
+Publora itself enforces plan entitlements and the media-URL ingestion limit (60 URLs per fixed one-hour window, returned as `429 MEDIA_URL_RATE_LIMITED` with `Retry-After`).
 
 ### Rate Limit Best Practices
 

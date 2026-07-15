@@ -4,6 +4,8 @@
 
 Publora API lets you schedule and publish social media posts across 10 platforms from a single REST endpoint. Base URL: `https://api.publora.com`
 
+Machine-readable API descriptions are available as [OpenAPI YAML](https://docs.publora.com/openapi.yaml) and [OpenAPI JSON](https://docs.publora.com/openapi.json).
+
 > **For AI Agents:** You cannot programmatically create accounts or generate API keys. Your user must complete Steps 1-2 manually at [publora.com](https://publora.com), then provide you with their API key.
 
 ## Pricing
@@ -25,7 +27,7 @@ See full details at [publora.com/pricing](https://publora.com/pricing)
 3. Click **Generate API Key**
 4. Copy the key immediately — it's shown only once
 
-Your key looks like: `sk_kzq5mjw_a1b2c3d4e5f6.7h8i9j0k...`
+Your key looks like: `sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab`
 
 ## Step 2: Connect Social Accounts
 

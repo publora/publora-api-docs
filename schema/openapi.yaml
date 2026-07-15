@@ -46,6 +46,15 @@ components:
       name: x-publora-key
       description: "API key from Settings > API Keys. Format: sk_timestamp.hexstring"
 
+  parameters:
+    XPubloraClient:
+      name: x-publora-client
+      in: header
+      required: false
+      description: "Optional client identifier accepted by every API-key-authenticated operation. Any non-empty value is preserved; `api` is used when absent. Setting `mcp` triggers the MCP access entitlement check."
+      schema:
+        type: string
+
   schemas:
     YouTubePlaylistReference:
       type: object
@@ -143,9 +152,28 @@ components:
           nullable: true
           description: "Timestamp of last successful post"
         lastError:
+          $ref: "#/components/schemas/ConnectionLastError"
+
+    ConnectionLastError:
+      type: object
+      nullable: true
+      description: "Last connection error, or null"
+      properties:
+        message:
           type: string
-          nullable: true
-          description: "Last error message if any"
+        occurredAt:
+          type: string
+          format: date-time
+
+    LinkedInUrnTranslation:
+      type: object
+      description: "Present only when LinkedIn translated an activity URN before processing the reaction"
+      required: [from, to]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
 
     ManagedUser:
       type: object
@@ -216,16 +244,27 @@ components:
           type: string
         platform:
           type: string
-        platformId:
+        postId:
           type: string
         event:
           type: string
           description: "Log event type (e.g., scheduled, processing, published, failed)"
-        message:
+        error:
           type: string
-        details:
+          nullable: true
+        httpStatus:
+          type: integer
+          nullable: true
+        retryCount:
+          type: integer
+          nullable: true
+        metadata:
           type: object
+          additionalProperties: true
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -234,7 +273,7 @@ components:
       properties:
         platform:
           type: string
-          enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram]
+          enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram, pinterest]
           example: "twitter"
         platformId:
           type: string
@@ -349,6 +388,8 @@ components:
 
 paths:
   /platform-connections:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: List connected social accounts
       description: Returns all social media accounts connected to your Publora account.
@@ -393,6 +434,8 @@ paths:
                 error: "Failed to fetch platform connections"
 
   /platform-limits:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: Get live per-platform posting limits
       description: |
@@ -446,14 +489,17 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /create-post:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Create and schedule a social media post
       description: |
         Create a post to be published across one or more social media platforms.
         Supports text, images, and video (1 video per post).
         The image count per post is platform-specific: Twitter/X, Bluesky, and
-        Mastodon allow up to 4; Instagram, Threads, LinkedIn, Facebook, and
-        Telegram allow up to 10. There is no separate "carousel" field — a
+        Mastodon allow up to 4; Instagram, LinkedIn, Facebook, and Telegram
+        allow up to 10; Threads allows up to 20. There is no separate
+        "carousel" field — a
         carousel is formed implicitly by attaching multiple images to one
         postGroupId (Instagram: 2-10 images = carousel, 1 image = single photo),
         in upload order. See the Media Uploads guide for the full matrix.
@@ -523,13 +569,21 @@ paths:
                     for the time actually stored.
 
                     Times less than 5 minutes in the past are always tolerated this
-                    way. From **2026-08-25**, a time 5 or more minutes in the past
-                    is rejected with `400` (`SCHEDULED_TIME_IN_PAST`) instead of
-                    being clamped; until then it is clamped with a warning. Send a
-                    future time to avoid both.
-                  example: "2026-03-01T14:00:00.000Z"
+                    way. Strict rejection for a time 5 or more minutes in the past
+                    is scheduled to begin on **2026-08-25**, unless production
+                    configuration overrides that date. Before strict mode it is
+                    clamped with a warning. Send a future time to avoid both.
+                  example: "2027-03-01T14:00:00.000Z"
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
+                mediaUrls:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: string
+                    format: uri
+                  description: "Public https URLs downloaded server-side. Images: 25 MB each; videos: 150 MB each; aggregate: 300 MB. Ingestion is all-or-nothing."
       responses:
         "200":
           description: Post created
@@ -647,6 +701,19 @@ paths:
               example:
                 error: "Idempotency key was already used with a different request body"
                 code: "IDEMPOTENCY_KEY_CONFLICT"
+        "429":
+          description: Media URL ingestion rate limit (60 URLs per fixed one-hour window)
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until retry
+          content:
+            application/json:
+              example:
+                error: "Media URL ingestion rate limit reached (60 URLs/hour). Retry later or use the presigned get-upload-url flow."
+                code: "MEDIA_URL_RATE_LIMITED"
+                retryAfterSec: 60
         "500":
           description: Internal server error
           content:
@@ -655,6 +722,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /get-post/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: Get post details and status
       description: Retrieve the details, platform statuses, and posted IDs for a post group.
@@ -724,13 +793,15 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /update-post/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     put:
       summary: Update post timing, status, or platform settings
       description: |
-        Modify the scheduled time, status, or platformSettings of an existing
+        Modify the scheduled time, status, platformSettings, or mediaUrls of an existing
         draft or scheduled post.
         Cannot update posts that are published, failed, pending, or processing.
-        At least one of status, scheduledTime, or platformSettings must be provided.
+        At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided.
         platformSettings are merged per-platform with existing settings —
         omitted fields are preserved.
         Updating a post group also updates all associated platform-specific posts.
@@ -781,7 +852,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: "At least one of status, scheduledTime, or platformSettings must be provided"
+              description: "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"
               properties:
                 status:
                   type: string
@@ -799,15 +870,24 @@ paths:
                     for the time actually stored.
 
                     Times less than 5 minutes in the past are always tolerated this
-                    way. From **2026-08-25**, a time 5 or more minutes in the past
-                    is rejected with `400` (`SCHEDULED_TIME_IN_PAST`) instead of
-                    being clamped; until then it is clamped with a warning.
+                    way. Strict rejection for a time 5 or more minutes in the past
+                    is scheduled to begin on **2026-08-25**, unless production
+                    configuration overrides that date. Before strict mode it is
+                    clamped with a warning.
 
                     The same check applies to the post's existing scheduledTime when
                     you move a post to `status: "scheduled"` without sending a new
                     time — a long-stale draft can therefore be rejected.
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
+                mediaUrls:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: string
+                    format: uri
+                  description: "Public https URLs downloaded server-side and appended to existing media. Images: 25 MB each; videos: 150 MB each; aggregate: 300 MB. Ingestion is all-or-nothing."
       responses:
         "200":
           description: Post updated
@@ -870,7 +950,7 @@ paths:
                 $ref: "#/components/schemas/Error"
               examples:
                 missingFields:
-                  value: { "error": "At least one of status, scheduledTime, or platformSettings must be provided" }
+                  value: { "error": "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" }
                 invalidStatus:
                   value: { "error": "Status must be either 'draft' or 'scheduled'" }
                 invalidTimeFormat:
@@ -948,6 +1028,26 @@ paths:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "Post group not found"
+        "429":
+          description: Media URL ingestion rate limit reached (60 URLs per fixed one-hour window)
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, code, retryAfterSec]
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [MEDIA_URL_RATE_LIMITED]
+                  retryAfterSec:
+                    type: integer
         "500":
           description: Server error
           content:
@@ -958,6 +1058,8 @@ paths:
                 error: "Failed to update post"
 
   /delete-post/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     delete:
       summary: Delete a scheduled post
       description: |
@@ -1011,16 +1113,86 @@ paths:
               example:
                 error: "Failed to delete post group"
 
+  /media/{mediaId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    delete:
+      summary: Delete an uploaded media file
+      description: |
+        Delete a media record and its stored object. If the media belonged to a
+        scheduled post, the post is demoted to draft and must be scheduled again.
+        Media cannot be removed while its post is publishing or after the group
+        has reached published or failed status.
+      operationId: deleteMedia
+      tags: [Media]
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Media deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  postGroupDemoted:
+                    type: boolean
+                  message:
+                    type: string
+                  groupAlreadyMissing:
+                    type: boolean
+                  mediaWasOrphan:
+                    type: boolean
+                  thumbnailCleared:
+                    type: boolean
+                  coverCleared:
+                    type: boolean
+        "400":
+          description: Invalid media ID, or media belongs to a published or failed post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Media file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Post is publishing or changed state concurrently; retry later
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to delete media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /get-upload-url:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get pre-signed URL for media upload
       description: |
-        Get a pre-signed S3 URL to upload images or videos.
+        Get a pre-signed S3 URL to upload images, videos, or PDF documents.
         Upload the file directly to S3 via HTTP PUT, then create a post.
         Upload URLs expire in 1 hour. The image count per post is
         platform-specific (up to 4 for Twitter/X, Bluesky, Mastodon; up to 10
         for Instagram, LinkedIn, Facebook, Telegram; up to 20 for Threads), or 1 video per
-        post. Attach multiple images to the same postGroupId to form a carousel.
+        post. Attach multiple images to the same postGroupId to form a carousel;
+        these post-media count rules do not apply to PDF document assets.
       operationId: getUploadUrl
       tags:
         - Media
@@ -1036,18 +1208,19 @@ paths:
           application/json:
             schema:
               type: object
-              required: [fileName, contentType, type, postGroupId]
+              required: [fileName, contentType, postGroupId]
               properties:
                 fileName:
                   type: string
                   example: "photo.jpg"
                 contentType:
                   type: string
-                  description: "MIME type (image/jpeg, image/png, video/mp4, etc.)"
+                  description: "MIME type. It must match an image/*, video/*, or application/pdf upload."
                   example: "image/jpeg"
                 type:
                   type: string
-                  enum: [image, video]
+                  enum: [image, video, document]
+                  description: "Optional media-type hint; inferred from contentType when omitted"
                   example: "image"
                 postGroupId:
                   type: string
@@ -1081,18 +1254,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                missingFileName:
-                  value: { "error": "fileName is required" }
-                missingContentType:
-                  value: { "error": "contentType is required" }
-                missingType:
-                  value: { "error": "type is required" }
-                missingPostGroupId:
-                  value: { "error": "postGroupId is required" }
-                invalidContentType:
-                  value: { "error": "Invalid content type" }
-                invalidType:
-                  value: { "error": "Invalid type" }
+                missingFields:
+                  value: { "error": "fileName, contentType, and postGroupId are required" }
+                invalidPostGroupId:
+                  value: { "error": "Invalid postGroupId" }
+                unsupportedContentType:
+                  value: { "error": "Only video, image, and PDF files are allowed" }
         "401":
           description: Invalid API key
           content:
@@ -1109,7 +1276,95 @@ paths:
                 serverError:
                   value: { "error": "Server error" }
 
+  /complete-media/{mediaFileId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    post:
+      summary: Probe and finalize an uploaded media file
+      description: |
+        Optionally run the server-side media probe immediately after uploading
+        bytes to the pre-signed URL. This call is not required: scheduling also
+        probes media that is still uploading.
+      operationId: completeMedia
+      tags: [Media]
+      parameters:
+        - name: mediaFileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Media probe completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, mediaFile]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mediaFile:
+                    type: object
+                    required: [_id]
+                    properties:
+                      _id:
+                        type: string
+                      type:
+                        type: string
+                        nullable: true
+                      mimeType:
+                        type: string
+                        nullable: true
+                      fileName:
+                        type: string
+                        nullable: true
+                      url:
+                        type: string
+                        format: uri
+                        nullable: true
+                      status:
+                        type: string
+                        nullable: true
+                      metadata:
+                        type: object
+                        nullable: true
+                        additionalProperties: true
+        "400":
+          description: Invalid media ID or uploaded media failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Media file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Media was deleted or failed concurrently while being probed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to complete media upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Media probe service or uploaded object is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /upload-instagram-cover:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Upload a custom Instagram Reel cover image
       description: |
@@ -1227,6 +1482,8 @@ paths:
                 error: "Failed to upload Instagram cover"
 
   /upload-youtube-thumbnail:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Upload a custom YouTube video thumbnail
       description: |
@@ -1338,6 +1595,8 @@ paths:
                 error: "Failed to upload YouTube thumbnail"
 
   /linkedin-post-statistics:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get LinkedIn post analytics
       description: |
@@ -1447,6 +1706,8 @@ paths:
                 error: "Failed to fetch post statistics"
 
   /linkedin-account-statistics:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get aggregated LinkedIn account analytics
       description: Get total metrics across all published LinkedIn posts for an account.
@@ -1552,6 +1813,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /linkedin-profile-summary:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get LinkedIn profile summary
       description: |
@@ -1644,12 +1907,21 @@ paths:
                           totalReshares:
                             type: integer
                             example: 30
+                          totalMembersReached:
+                            type: integer
+                            example: 12000
                   errors:
                     type: array
                     items:
-                      type: string
+                      type: object
+                      required: [metric, error]
+                      properties:
+                        metric:
+                          type: string
+                        error:
+                          type: string
                     description: "List of errors when partialData is true"
-                    example: ["Failed to fetch followers"]
+                    example: [{ "metric": "followers", "error": "Failed to fetch followers" }]
         "400":
           description: Invalid request
           content:
@@ -1691,6 +1963,8 @@ paths:
                 error: "All requests failed"
 
   /linkedin-followers:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get LinkedIn follower statistics
       description: |
@@ -1822,6 +2096,8 @@ paths:
                   value: { "error": "Failed to fetch followers statistics" }
 
   /linkedin-reactions:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Add a reaction to a LinkedIn post
       description: React to a LinkedIn post with LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, or ENTERTAINMENT.
@@ -1871,6 +2147,8 @@ paths:
                       object:
                         type: string
                         description: "LinkedIn post URN"
+                  urnTranslated:
+                    $ref: "#/components/schemas/LinkedInUrnTranslation"
         "400":
           description: Invalid request
           content:
@@ -1890,6 +2168,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "409":
+          description: The requested reaction already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, message, requestedReactionType]
+                properties:
+                  error:
+                    type: string
+                    enum: [REACTION_ALREADY_EXISTS]
+                  message:
+                    type: string
+                  requestedReactionType:
+                    type: string
         "500":
           description: Internal server error
           content:
@@ -1953,6 +2246,8 @@ paths:
                         type: string
                       object:
                         type: string
+                  urnTranslated:
+                    $ref: "#/components/schemas/LinkedInUrnTranslation"
         "400":
           description: Invalid request
           content:
@@ -1978,6 +2273,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /linkedin-reshare:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Reshare an existing LinkedIn post
       description: Reshare (repost) an existing LinkedIn post to your own feed with optional commentary. Works for personal and company-page connections (authored as the member or the organization automatically).
@@ -2069,6 +2366,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /list-posts:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: List posts with pagination and filters
       description: |
@@ -2118,7 +2417,7 @@ paths:
           description: "Filter by platform (case-insensitive prefix matching)"
           schema:
             type: string
-            enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram]
+            enum: [twitter, linkedin, instagram, threads, tiktok, youtube, facebook, bluesky, mastodon, telegram, pinterest]
         - name: sortBy
           in: query
           required: false
@@ -2243,6 +2542,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /test-connection/{platformId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Test platform connection health
       description: |
@@ -2297,8 +2598,7 @@ paths:
                     format: date-time
                     nullable: true
                   lastError:
-                    type: string
-                    nullable: true
+                    $ref: "#/components/schemas/ConnectionLastError"
         "400":
           description: Invalid platformId format
           content:
@@ -2319,6 +2619,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /post-logs/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: Get post publishing logs
       description: |
@@ -2363,6 +2665,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /webhooks:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: List all webhooks
       description: Retrieve all webhooks configured for your account.
@@ -2466,7 +2770,7 @@ paths:
                 invalidUrl:
                   value: { "error": "URL must use HTTPS" }
                 invalidEvents:
-                  value: { "error": "Invalid events: xyz" }
+                  value: { "error": "Invalid events" }
                 limitReached:
                   value: { "error": "Maximum of 10 webhooks per user" }
         "500":
@@ -2477,6 +2781,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /webhooks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     patch:
       summary: Update a webhook
       description: Update an existing webhook's name, URL, events, or active status.
@@ -2575,6 +2881,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /webhooks/{id}/regenerate-secret:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Regenerate webhook secret
       description: |
@@ -2617,6 +2925,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /linkedin-comments:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Add a comment to a LinkedIn post
       description: |
@@ -2636,7 +2946,7 @@ paths:
               properties:
                 postedId:
                   type: string
-                  description: "LinkedIn post URN (urn:li:share:*, urn:li:ugcPost:*, urn:li:activity:*)"
+                  description: "LinkedIn post URN (urn:li:share:*, urn:li:ugcPost:*, or urn:li:activity:*). Activity URNs are attempted directly, with same-ID ugcPost/share fallbacks for retryable LinkedIn target errors."
                   example: "urn:li:share:7123456789012345678"
                 message:
                   type: string
@@ -2784,6 +3094,8 @@ paths:
   # ============================================================================
 
   /workspace/users:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     get:
       summary: List managed users
       description: |
@@ -2897,6 +3209,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /workspace/users/attach:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Attach an existing user
       description: |
@@ -2991,6 +3305,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /workspace/users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     delete:
       summary: Detach a managed user
       description: |
@@ -3045,6 +3361,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /workspace/users/{userId}/api-key:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Generate API key for managed user
       description: |
@@ -3110,6 +3428,8 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /workspace/users/{userId}/connection-url:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
     post:
       summary: Get connection URL for managed user
       description: |
