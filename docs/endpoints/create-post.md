@@ -135,7 +135,7 @@ Nested reference objects are checked to their leaves — `youtube.playlist` and
 | `telegram` | `disableNotification`, `disableWebPagePreview`, `protectContent` |
 | `linkedin` | `repostEnabled`, `repostParentUrn`, `repostVisibility` |
 
-LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent. `CONNECTIONS` visibility is supported only for personal connections; scheduling a company-page repost with it returns `400` with `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"`.
+LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent. `CONNECTIONS` visibility is supported only for personal connections; scheduling a company-page repost with it returns `400` with `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"`. See [LinkedIn Repost Settings](#linkedin-repost-settings) for the full contract (commentary, media rules, error strings).
 
 Still accepted, unchanged:
 
@@ -261,6 +261,46 @@ When creating via the API, these defaults are applied automatically. If you prov
 > **YouTube** also accepts `tags`, `categoryId`, `madeForKids`, and a `playlist` object (`{ id, platformId }`) in addition to `privacy`/`title`. A `playlist` can be set directly on `create-post`. Nested objects are validated to their leaves: `playlist` accepts only `id`/`platformId` and `thumbnail` only `mediaId`/`id`/`url`/`path` — any other nested key (e.g. `youtube.thumbnail.mediaID`) returns `400` / `PLATFORM_SETTING_UNKNOWN` rather than silently clearing the value. A custom `thumbnail` **cannot** be set on `create-post` — the thumbnail upload requires a `postGroupId`, so create the post first and set the thumbnail via `update-post`. See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings) for the full field reference.
 
 > **Instagram** also accepts `coverUrl` (alias: `cover_url`) — a custom cover image for Reels. Provide a **publicly accessible http(s) URL to a JPEG image** (Instagram fetches it server-side at publish time), or [upload a cover file](upload-instagram-cover.md) (JPEG/PNG/WebP up to 8 MB) and use the URL it returns. Non-JPEG or non-http(s) URLs are rejected with `400`. An empty string clears the custom cover. Ignored for Stories and image posts. See [Instagram → Platform-Specific Settings](../platforms/instagram.md#platform-specific-settings).
+
+## LinkedIn Repost Settings
+
+Set `platformSettings.linkedin.repostParentUrn` to schedule a **repost** (reshare) of an existing LinkedIn post instead of a regular post. The group's `content` becomes the reshare commentary shown above the reposted post (the normal LinkedIn 3,000-character content limit applies); empty content is allowed for a plain repost.
+
+```json
+{
+  "content": "My commentary on this great post.",
+  "platforms": ["linkedin-Tz9W5i6ZYG"],
+  "scheduledTime": "2026-08-01T14:00:00.000Z",
+  "platformSettings": {
+    "linkedin": {
+      "repostParentUrn": "urn:li:share:7123456789012345678",
+      "repostVisibility": "PUBLIC"
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `repostParentUrn` | string | URN of the post to reshare — `urn:li:share:<id>` or `urn:li:ugcPost:<id>` (**not** `urn:li:activity:<id>`). Empty string = normal post (repost off) |
+| `repostVisibility` | string | `PUBLIC` (default) or `CONNECTIONS`. Lowercase input is normalized to uppercase. `CONNECTIONS` is only valid for personal accounts — company (organization) pages are rejected at intake (see [the accepted tree](#unknown-platformsettings-paths)) and are always forced to `PUBLIC` at publish time |
+| `repostEnabled` | boolean | Optional explicit toggle. `true` requires a non-empty `repostParentUrn`; `false` requires an empty one. When omitted, a non-empty `repostParentUrn` enables the repost |
+
+**Rules:**
+
+- **Media is forbidden on repost groups.** Scheduling a repost group with attached media fails validation with code `MEDIA_TYPE_NOT_SUPPORTED`: *"LinkedIn reposts cannot include media — remove the attached files or turn off the repost setting"*.
+- **Publish-time failures:** if the parent post was deleted, made private, or is not reshareable, the scheduled post fails permanently with *"LinkedIn rejected the repost — the original post may have been deleted, made private, or is not reshareable."*
+
+Field-level validation errors (400):
+
+| Error | Cause |
+|-------|-------|
+| `"platformSettings.linkedin.repostParentUrn must be a LinkedIn post URN like urn:li:share:<id> or urn:li:ugcPost:<id>"` | Invalid URN shape (activity URNs are rejected) |
+| `"platformSettings.linkedin.repostVisibility must be one of: PUBLIC, CONNECTIONS"` | Invalid visibility value |
+| `"platformSettings.linkedin.repostParentUrn is required when repostEnabled is true"` | `repostEnabled: true` without a parent URN |
+| `"platformSettings.linkedin.repostParentUrn must be empty when repostEnabled is false"` | `repostEnabled: false` with a parent URN set |
+
+> **Tip:** To repost **immediately** without scheduling, use the dedicated [LinkedIn Reshare endpoint](linkedin-reshare.md) (`POST /linkedin-reshare`) instead.
 
 ## Examples
 
@@ -390,6 +430,8 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 400 | `"Invalid scheduled time format"` | `scheduledTime` is not a valid ISO 8601 datetime |
 | 400 | `"Scheduled time is in the past. Server time is <ISO> UTC."` | `code: "SCHEDULED_TIME_IN_PAST"`, `serverTime: "<ISO>"`. `scheduledTime` is 5+ minutes in the past while strict mode is active; the default transition is scheduled for **2026-08-25** but configuration can override it. |
 | 400 | `"Unknown platformSettings path: <path>"` | `code: "PLATFORM_SETTING_UNKNOWN"`, `field: "<exact.path>"`. Unknown platform or nested key; nothing is persisted. See [Unknown platformSettings paths](#unknown-platformsettings-paths) |
+| 400 | `"platformSettings.linkedin.*"` validation errors | Invalid LinkedIn repost settings (bad URN shape, bad visibility, `repostEnabled`/`repostParentUrn` mismatch) — see [LinkedIn Repost Settings](#linkedin-repost-settings) |
+| 400 | `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"` | `repostVisibility: "CONNECTIONS"` while the scheduled group targets a LinkedIn company-page connection |
 | 400 | `"Invalid platformSettings JSON"` | `platformSettings` was provided as a string that could not be parsed as valid JSON |
 | 400 | `"Idempotency-Key request body is too deeply nested"` | `code: "IDEMPOTENCY_BODY_TOO_COMPLEX"`. Body nested more than 200 levels deep while using `Idempotency-Key` |
 | 400 | `"mediaUrls must be an array of public https URLs"` | `mediaUrls` is present but not an array |

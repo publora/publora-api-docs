@@ -202,6 +202,7 @@ components:
         linkedin:
           type: object
           additionalProperties: false
+          description: "LinkedIn repost (reshare) settings. When a repost is enabled, the group's content becomes the reshare commentary (3,000-char limit) and media is forbidden — scheduling a repost group with media fails validation with code MEDIA_TYPE_NOT_SUPPORTED."
           properties:
             repostEnabled:
               type: boolean

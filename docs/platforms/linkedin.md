@@ -4,7 +4,7 @@ Post to LinkedIn programmatically using the Publora REST API. A simpler alternat
 
 ## LinkedIn API Overview
 
-Publora provides a unified REST API for professional content publishing to LinkedIn, including text posts, media attachments (images and videos), analytics retrieval (impressions, reactions, comments), and reaction management. No need to manage LinkedIn OAuth flows, handle the LinkedIn API partner program requirements, or implement complex share creation endpoints.
+Publora provides a unified REST API for professional content publishing to LinkedIn, including text posts, media attachments (images and videos), analytics retrieval (impressions, reactions, comments), reaction management, comments, and reshares (reposts). No need to manage LinkedIn OAuth flows, handle the LinkedIn API partner program requirements, or implement complex share creation endpoints.
 
 ### Why Use Publora Instead of LinkedIn Marketing API?
 
@@ -44,6 +44,7 @@ Where `{profileId}` is your LinkedIn profile identifier assigned during account 
 | Analytics | Yes | IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT |
 | Reactions | Yes | LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT |
 | Comments | Yes | Create, delete, reply (raw input up to 10,000 characters; 1,250 after mention processing) |
+| Reshares (Reposts) | Yes | Immediate or scheduled, with optional commentary (3,000 characters max) |
 | Mentions | Yes | @mention people and organizations |
 
 ## API Limits
@@ -456,6 +457,33 @@ curl -X POST https://api.publora.com/api/v1/linkedin-reshare \
 ```
 
 See the [LinkedIn Reshare endpoint reference](../endpoints/linkedin-reshare.md) for the full parameter and error details.
+
+### Schedule a Reshare
+
+Use [create-post](../endpoints/create-post.md#linkedin-repost-settings) with `platformSettings.linkedin.repostParentUrn` to schedule a repost for a future time. The post content becomes the reshare commentary, and media is not allowed on repost groups.
+
+```javascript
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    content: 'My commentary on this great post.',
+    platforms: ['linkedin-987654321'],
+    scheduledTime: '2026-08-01T14:00:00.000Z',
+    platformSettings: {
+      linkedin: {
+        repostParentUrn: 'urn:li:share:7434685316856377344',
+        repostVisibility: 'PUBLIC'
+      }
+    }
+  })
+});
+```
+
+> **Note:** If the parent post was deleted, made private, or has resharing disabled, the scheduled post fails at publish time with *"LinkedIn rejected the repost — the original post may have been deleted, made private, or is not reshareable."*
 
 ## Examples
 

@@ -2,6 +2,11 @@
 
 Reshare (repost) an existing LinkedIn post to your own feed, with optional commentary. Works for both **personal profile** and **company page** connections.
 
+There are two ways to repost on LinkedIn via Publora:
+
+1. **Immediate reshare** — `POST /linkedin-reshare` (this page). The repost is published right away.
+2. **Scheduled reshare** — set `platformSettings.linkedin.repostParentUrn` on [create-post](create-post.md) / [update-post](update-post.md). The repost goes through the normal scheduling pipeline (see [Scheduled Reshares](#scheduled-reshares) below).
+
 ## Reshare a Post
 
 ```
@@ -19,8 +24,8 @@ POST https://api.publora.com/api/v1/linkedin-reshare
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`). Determines who authors the reshare — a personal connection reshares as the member, a company-page connection reshares as the organization. |
-| `parent` | string | Yes | URN of the post to reshare. Must be a `urn:li:share:<id>` or `urn:li:ugcPost:<id>`. |
+| `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123` — the `linkedin-` prefix is accepted and stripped). Determines who authors the reshare — a personal connection reshares as the member, a company-page connection reshares as the organization. |
+| `parent` | string | Yes | URN of the post to reshare. Must be a `urn:li:share:<id>` or `urn:li:ugcPost:<id>` — **not** a `urn:li:activity:` URN (see [parent Format](#parent-format)). |
 | `commentary` | string | No | Text added above the reshared post. Max **3000** characters. Defaults to empty (a plain reshare with no added text). |
 | `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (case-insensitive), default `PUBLIC`. Organization/company-page reshares must use `PUBLIC`; `CONNECTIONS` is rejected. |
 
@@ -111,6 +116,16 @@ await axios.post(
 );
 ```
 
+### parent Format
+
+Use `urn:li:share:xxx` or `urn:li:ugcPost:xxx` — **not** `urn:li:activity:xxx`.
+
+The `urn:li:activity:` URN is what appears in LinkedIn post URLs (e.g. `linkedin.com/feed/update/urn:li:activity:123`), but it is rejected by this endpoint with a 400 error.
+
+To get the correct URN:
+- For posts created via Publora, use the `postedId` field from the [get-post](get-post.md) response
+- The activity ID and share ID are typically the same number — try replacing `urn:li:activity:` with `urn:li:share:` (e.g. `urn:li:activity:7451373349668282369` → `urn:li:share:7451373349668282369`)
+
 ## Errors
 
 | Status | Error | Cause |
@@ -135,9 +150,36 @@ await axios.post(
 | 404 | `"LinkedIn connection not found"` | No LinkedIn account with that `platformId` for this user |
 | 500 | `"Failed to create LinkedIn reshare"` | Server error while creating the reshare |
 
-> **Note:** The error response for a failed LinkedIn call includes `details` and `status` fields: `{ "error": "Failed to create LinkedIn reshare", "details": { ... }, "status": <HTTP status> }`. The `details` field contains the LinkedIn API error response, and `status` reflects the HTTP status returned by LinkedIn.
+> **Note:** The error response for a failed LinkedIn call includes a `details` **string** with the underlying LinkedIn error message: `{ "error": "Failed to create LinkedIn reshare", "details": "<LinkedIn error message>" }` (unlike the reactions endpoint, there is no separate `status` field in the body).
 
 > **Note:** Error status codes from the LinkedIn API may be forwarded directly (e.g., 403 if the post's author disabled resharing, 429 on rate limits), so you may receive error codes other than those listed above.
+
+## Scheduled Reshares
+
+To schedule a repost for a future time instead of publishing immediately, use the normal scheduling pipeline with LinkedIn platform settings:
+
+```javascript
+const response = await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    content: 'My commentary on this great post.',
+    platforms: ['linkedin-Tz9W5i6ZYG'],
+    scheduledTime: '2026-08-01T14:00:00.000Z',
+    platformSettings: {
+      linkedin: {
+        repostParentUrn: 'urn:li:share:7123456789012345678',
+        repostVisibility: 'PUBLIC'
+      }
+    }
+  })
+});
+```
+
+The post `content` becomes the reshare commentary. **Media is not allowed on repost groups.** See [Create Post → LinkedIn Repost Settings](create-post.md#linkedin-repost-settings) for the full field reference and validation rules.
 
 
 ---
