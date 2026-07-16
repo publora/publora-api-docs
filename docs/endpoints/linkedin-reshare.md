@@ -26,10 +26,12 @@ POST https://api.publora.com/api/v1/linkedin-reshare
 |-----------|------|----------|-------------|
 | `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123` — the `linkedin-` prefix is accepted and stripped). Determines who authors the reshare — a personal connection reshares as the member, a company-page connection reshares as the organization. |
 | `parent` | string | Yes | URN of the post to reshare. Must be a `urn:li:share:<id>` or `urn:li:ugcPost:<id>` — **not** a `urn:li:activity:` URN (see [parent Format](#parent-format)). |
-| `commentary` | string | No | Text added above the reshared post. Max **3000** characters. Defaults to empty (a plain reshare with no added text). |
+| `commentary` | string | No | Text added above the reshared post. Max **3000** characters (checked both on the raw input and again after mention/text formatting). Defaults to empty (a plain reshare with no added text). Supports the `@{urn:li:person:ID\|Name}` / `@{urn:li:organization:ID\|Name}` mention syntax — same rules as posts, see the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md). |
 | `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (case-insensitive), default `PUBLIC`. Organization/company-page reshares must use `PUBLIC`; `CONNECTIONS` is rejected. |
 
 > **Note:** The reshare is authored automatically as the correct entity for the connection — `urn:li:person:*` for a personal profile, `urn:li:organization:*` for a company page. You do not pass the author yourself.
+
+> **Mentions in commentary:** Person mentions must use LinkedIn's **native member id** (e.g. `Dk968RHxiO`), not the `ACoAA…` web-profile ids from linkedin.com URLs — those are rejected with a `400` error. See the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md) for where to find native ids and the name-matching rules.
 
 ### Response (HTTP 201 Created)
 
@@ -138,6 +140,8 @@ To get the correct URN:
 | 400 | `"parent must be a valid LinkedIn post URN (urn:li:share:<id> or urn:li:ugcPost:<id>)"` | `parent` is not a `share`/`ugcPost` URN |
 | 400 | `"commentary must be a string"` | `commentary` is not a string |
 | 400 | `"commentary cannot exceed 3000 characters"` | `commentary` is longer than 3000 characters |
+| 400 | `"commentary exceeds 3000 characters after mention/text formatting — shorten the text"` | `commentary` fits the raw limit but exceeds 3000 characters once mention syntax is converted and reserved characters are escaped |
+| 400 | `"LinkedIn cannot render mentions that use web-profile ids (urn:li:person:ACoAA…). Use the native member id LinkedIn returns to Publora…"` | A person mention in `commentary` uses a web-profile `ACoAA…` id instead of the native member id |
 | 400 | `"visibility must be a string"` | `visibility` is not a string |
 | 400 | `"visibility must be one of: PUBLIC, CONNECTIONS"` | `visibility` is not a valid value |
 | 400 | `"LinkedIn organization reposts cannot use CONNECTIONS visibility; choose PUBLIC"` | A company-page connection requested member-only visibility |

@@ -165,7 +165,7 @@ const response = await fetch('https://api.publora.com/api/v1/linkedin-comments',
   },
   body: JSON.stringify({
     postedId: 'urn:li:ugcPost:7429953213384187904',
-    message: 'Excellent analysis @{urn:li:person:ACoAABcD1234EfG|Jane Smith}!',
+    message: 'Excellent analysis @{urn:li:person:Dk968RHxiO|Jane Smith}!',
     platformId: 'linkedin-ABC123'
   })
 });
@@ -179,12 +179,14 @@ You can also mention organizations:
 @{urn:li:organization:98765432|Acme Corp Inc}
 ```
 
-For details on finding URN IDs and name matching requirements, see the [LinkedIn Mentions Guide](linkedin-mentions.md).
+> **Important:** Person mentions must use LinkedIn's **native member id** (short form, e.g. `Dk968RHxiO` — the same value as a connection's `platformId` without the `linkedin-` prefix). The long `ACoAA…` web-profile ids from linkedin.com URLs do not work — Publora rejects them with a `400` error: *"LinkedIn cannot render mentions that use web-profile ids (urn:li:person:ACoAA…). Use the native member id LinkedIn returns to Publora…"* (previously these failed with an opaque `403` from LinkedIn).
+
+For details on finding native member ids and name matching requirements, see the [LinkedIn Mentions Guide](linkedin-mentions.md).
 
 ## Important Notes
 
 - **Character limit:** Comments are limited to 1,250 characters (counted after mention syntax is converted to display names)
-- **Mentions:** Use `@{urn:li:person:ID|Name}` or `@{urn:li:organization:ID|Company}` syntax. The URN must be valid — invalid IDs cause a `400` error from LinkedIn
+- **Mentions:** Use `@{urn:li:person:ID|Name}` or `@{urn:li:organization:ID|Company}` syntax. Person IDs must be native member ids — web-profile `ACoAA…` ids are rejected with a `400` error at intake
 - **Network visibility:** You can only comment on posts visible to your LinkedIn account
 - **URN format:** Use `urn:li:share:xxx` or `urn:li:ugcPost:xxx` format — **not** `urn:li:activity:xxx` from URLs. Using `urn:li:activity:` may work for plain text comments but will return **403 Forbidden** when mentions are included. To convert: replace `urn:li:activity:` with `urn:li:share:` (the numeric ID is usually the same)
 - **MCP tool note:** When using the Publora MCP tool for deleting comments, the tool description only mentions URN format for `commentId`. The REST API accepts both URN and numeric ID formats.
