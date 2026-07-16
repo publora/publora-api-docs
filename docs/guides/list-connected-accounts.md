@@ -30,7 +30,7 @@ x-publora-key: YOUR_API_KEY
       "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
       "profileUrl": "https://twitter.com/yourhandle",
       "accessTokenExpiresAt": null,
-      "tokenStatus": "unknown",
+      "tokenStatus": "valid",
       "tokenExpiresIn": null,
       "lastSuccessfulPost": "2026-02-20T14:30:00.000Z",
       "lastError": null
@@ -70,10 +70,10 @@ x-publora-key: YOUR_API_KEY
 
 | Status | Meaning | Action Required |
 |--------|---------|-----------------|
-| `valid` | Token valid, won't expire within 7 days | None |
-| `expiring_soon` | Token expires within 7 days | Reconnect soon |
+| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring; YouTube/TikTok have no stored refresh expiry or it is at least 30 days away; other expiring OAuth credentials have at least 7 days left. A Bluesky row with a stored username is reported as valid by this endpoint, which does not re-check the app password. | None |
+| `expiring_soon` | YouTube/TikTok refresh credential expires in under 30 days, or another expiring OAuth access token expires in under 7 days | Reconnect soon |
 | `expired` | Token has expired | Reconnect required |
-| `unknown` | Platform uses non-expiring tokens | None |
+| `unknown` | Stored expiry data is malformed; for Bluesky in this endpoint, the projected connection has no username. Missing YouTube/TikTok `refreshTokenExpiresAt` is `valid`. | Inspect the connection and reconnect if necessary |
 
 ## Platform ID Formats
 

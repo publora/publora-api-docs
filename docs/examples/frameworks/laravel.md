@@ -63,6 +63,7 @@ final class SchedulePubloraPost implements ShouldQueue
         public string $content,
         public array $platforms,
         public string $requestId,
+        public string $scheduledTime,
     ) {}
 
     public function handle(Publora $publora): void
@@ -70,13 +71,20 @@ final class SchedulePubloraPost implements ShouldQueue
         $publora->request('POST', 'create-post', [
             'content' => $this->content,
             'platforms' => $this->platforms,
-            'scheduledTime' => now('UTC')->addMinutes(5)->toIso8601String(),
+            'scheduledTime' => $this->scheduledTime,
         ], "laravel-{$this->requestId}");
     }
 }
+
+SchedulePubloraPost::dispatch(
+    $content,
+    $platforms,
+    $requestId,
+    now('UTC')->addMinutes(5)->toIso8601String(),
+);
 ```
 
-Queue retries must reuse the same idempotency key for the same logical request.
+Compute `scheduledTime` before dispatching the job. Queue retries must reuse both the same timestamp and the same idempotency key; recomputing the timestamp changes the request body and returns `422 IDEMPOTENCY_KEY_CONFLICT`.
 
 ## Webhook route
 

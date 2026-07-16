@@ -27,7 +27,7 @@ See full details at [publora.com/pricing](https://publora.com/pricing)
 3. Click **Generate API Key**
 4. Copy the key immediately — it's shown only once
 
-Your key looks like: `sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab`
+Dashboard keys look like: `sk_mrmbzomn_1a2b3c4d.964793af0123456789abcdef0123456789abcdef0123456789ab`
 
 ## Step 2: Connect Social Accounts
 

@@ -196,7 +196,8 @@ Publora returns:
 ```json
 {
   "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+  "scheduledTime": "{{Publish Time ISO (effective)}}"
 }
 ```
 

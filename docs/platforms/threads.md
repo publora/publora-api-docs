@@ -148,7 +148,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -170,7 +170,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -183,7 +183,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Just shipped a major update to our API. Faster response times, better error messages, and new endpoints for batch operations.",
     "platforms": ["threads-55667788"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -202,7 +202,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with an Image Carousel
@@ -407,7 +407,7 @@ The actual migration took three months. We ran both systems in parallel, compari
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -435,7 +435,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -448,7 +448,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "We just completed a major infrastructure migration and I want to share what we learned. Moving from a monolithic architecture to microservices is not as straightforward as the blog posts make it sound.\n\nFirst, we had to map every single dependency between our services. This alone took two weeks. We discovered circular dependencies we never knew existed and had to refactor several core modules before we could even begin the migration.\n\nThe actual migration took three months. We ran both systems in parallel, comparing outputs in real-time. When we finally cut over, we had 99.97% uptime throughout the process. The key was incremental rollout and comprehensive monitoring at every step.",
     "platforms": ["threads-55667788"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -473,7 +473,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 Multi-part Threads publishing is currently disabled. Long content is not automatically split, and numbering semantics are not a public contract until threading is re-enabled.

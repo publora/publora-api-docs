@@ -146,7 +146,7 @@ When rescheduling a post (changing `scheduledTime`), the update flow performs tw
 
 If either check fails, the request returns a **403** error with a `LimitExceededError` message describing which limit was hit.
 
-> **Note:** The limits service may automatically adjust the `scheduledTime` to comply with minimum interval constraints between posts. If this happens, the limits service `scheduledTime` takes priority over the user-provided time. The response will contain the adjusted time in the `postGroup.scheduledTime` field — always use the returned value rather than assuming the requested time was used as-is.
+> **Note:** There is no minimum-interval adjustment. A schedule-horizon violation returns `403`; only the documented past-time compatibility ramp can clamp a time, with a `SCHEDULED_TIME_COERCED` warning.
 
 ### Helper Functions
 
@@ -239,7 +239,7 @@ Generate the key **once per logical update** and reuse it across retries. Genera
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `scheduledTime` | string/null | **Always present.** The *effective* time actually stored, after any past-time clamping or limits-service adjustment. `null` if the post has no scheduled time. Trust this over the time you sent. |
+| `scheduledTime` | string/null | **Always present.** The effective stored time after any permitted past-time clamp. `null` if the post has no scheduled time. |
 | `postGroup.scheduledTime` | string | The same value; included only when the post has a scheduled time set. |
 | `warnings` | array | Present only when something was adjusted — e.g. a `SCHEDULED_TIME_COERCED` entry. See [Past scheduled times](#past-scheduled-times). |
 | `mediaValidationStatus` | string | Present as `"pending"` only when media validation had not completed by the time the response was sent. |
@@ -499,7 +499,7 @@ When a **403** limit error is returned, the response body is a structured JSON o
 
 > **Note:** For `SCHEDULE_HORIZON_REACHED`, the `used`, `requested`, and `remaining` fields are `null` since this limit is date-based rather than count-based.
 
-> **Note:** The response may include additional context fields depending on the error code. These can include `scheduledTime`, `scope`, `blockedPlatforms`, `channelBreakdown`, `disallowedPlatforms`, and `allowedPlatforms`. These fields are spread from the error context and provide extra details about why the limit was exceeded.
+> **Note:** Additional top-level context depends on the code: `scheduledTime`/`maxScheduledDate` for the schedule horizon; `limitScope` and (for connection scope) `blockedPlatforms` for monthly posts; workspace fields for the scheduled queue; and platform allowlist fields for availability checks.
 
 > **Note (low priority):** When a `LimitExceededError` is triggered, the API also sends a limit-reached notification email to the account owner as a side effect. This is an internal behavior and does not affect the API response.
 

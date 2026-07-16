@@ -90,8 +90,9 @@ Publora supports Telegram-specific post options that control message delivery an
 |--------|-------------|---------------|
 | **Disable link preview** | Prevents Telegram from generating link previews for URLs in the message | `disableWebPagePreview` |
 | **Silent notification** | Sends the message without triggering a notification sound on recipients' devices | `disableNotification` |
-| **Caption above media** | Places the caption above the photo/video instead of below (only applies when media is attached) | `showCaptionAboveMedia` |
 | **Protect content** | Prevents recipients from forwarding, saving, or copying the message content | `protectContent` |
+
+"Caption above media" is not currently configurable. `showCaptionAboveMedia` is a latent read in the internal MTProto publisher, but there is no dashboard setter, persisted post-group field, or reachable product flow that supplies it. It is not an accepted REST `platformSettings.telegram` key; sending it through the API returns `400 PLATFORM_SETTING_UNKNOWN`.
 
 ### Using Post Options via API
 
@@ -113,7 +114,6 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
       telegram: {
         disableNotification: true,      // Send silently
         disableWebPagePreview: true,    // No link previews
-        showCaptionAboveMedia: false,   // Caption below media (default)
         protectContent: true            // Prevent forwarding/saving
       }
     }
@@ -122,7 +122,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -143,7 +143,6 @@ response = requests.post(
             'telegram': {
                 'disableNotification': True,
                 'disableWebPagePreview': True,
-                'showCaptionAboveMedia': False,
                 'protectContent': True
             }
         }
@@ -152,7 +151,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Option Details
@@ -170,13 +169,6 @@ When enabled, recipients will receive the message without a notification sound. 
 - Posting during off-hours without disturbing subscribers
 - High-frequency update channels
 - Non-urgent announcements
-
-#### Caption Above Media (`showCaptionAboveMedia`)
-
-When enabled and media is attached, the caption text appears above the image/video instead of below. This option only applies when the post includes media. Useful for:
-- Emphasizing the text content over the visual
-- Creating a headline-style presentation
-- Matching specific visual preferences
 
 #### Protect Content (`protectContent`)
 
@@ -214,7 +206,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -248,7 +240,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -261,7 +253,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "*Product Update v2.5*\n\nWe have shipped the following improvements:\n\n- _Faster API response times_ (avg 45ms)\n- New `batch` endpoint for bulk operations\n- Improved error messages with `error_code` field\n\n> This update is backward compatible. No migration needed.\n\nFull changelog: [docs.example.com/changelog](https://docs.example.com/changelog)",
     "platforms": ["telegram-1001234567890"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -292,7 +284,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with an Image
@@ -314,7 +306,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -336,7 +328,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -349,7 +341,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "*New Dashboard Preview*\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.",
     "platforms": ["telegram-1001234567890"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -368,7 +360,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** To attach media to a Telegram post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -392,7 +384,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -414,7 +406,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -427,7 +419,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "*Feature Demo*\n\nWatch our 60-second demo of the new collaboration tools.",
     "platforms": ["telegram-1001234567890"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -446,7 +438,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks

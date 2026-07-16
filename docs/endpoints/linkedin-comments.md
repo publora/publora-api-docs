@@ -20,7 +20,7 @@ POST https://api.publora.com/api/v1/linkedin-comments
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN: `urn:li:share:xxx`, `urn:li:ugcPost:xxx`, or `urn:li:activity:xxx` |
-| `message` | string | Yes | The comment text. Supports mentions using `@{urn:li:person:ID\|Name}` or `@{urn:li:organization:ID\|Company}` syntax (see [Mentions in Comments](#mentions-in-comments)) |
+| `message` | string | Yes | Raw input up to 10,000 characters. After mention syntax is converted, the text sent to LinkedIn must be at most 1,250 characters. |
 | `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`) |
 | `parentComment` | string | No | Parent comment URN for threaded replies |
 
@@ -244,7 +244,8 @@ For posts created via Publora, prefer the exact `postedId` returned by [get-post
 | 400 | `"platformId must be a string"` | platformId is not a string type |
 | 400 | `"postedId must be a valid LinkedIn URN"` | Not a valid LinkedIn URN format |
 | 400 | `"message cannot be empty"` | Message is an empty string |
-| 400 | `"message cannot exceed 1250 characters"` | Message exceeds LinkedIn's character limit |
+| 400 | `"comment text cannot exceed 10000 characters"` | Raw input exceeds the defensive pre-processing cap |
+| 400 | `"comment text cannot exceed 1250 characters after mention processing"` | Converted LinkedIn comment text exceeds the platform limit |
 | 400 | `"parentComment must be a valid LinkedIn URN"` | parentComment is not a valid URN format |
 | 400 | `"Invalid platformId"` | platformId format is invalid |
 | 401 | `"API key is required"` | No `x-publora-key` header provided |

@@ -16,7 +16,7 @@ GET https://api.publora.com/api/v1/platform-connections
 | `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `mcp`). Used for MCP access gating. |
 
-> **Server-to-server only:** The `x-publora-key`, `x-publora-user-id`, and `x-publora-client` headers are not included in the server's CORS `Access-Control-Allow-Headers`. Browser-based requests that send these custom headers will fail the CORS preflight check. Use this API from a backend server or serverless function, not directly from client-side JavaScript.
+> **Browser usage:** CORS permits the Publora headers above, but only requests from origins in Publora's deployment allowlist are accepted. An arbitrary integrator origin can still fail preflight. Keep the API key on a backend or serverless function; exposing it in client-side JavaScript leaks the credential.
 
 ## Response
 
@@ -31,7 +31,7 @@ GET https://api.publora.com/api/v1/platform-connections
       "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
       "profileUrl": "https://twitter.com/yourhandle",
       "accessTokenExpiresAt": null,
-      "tokenStatus": "unknown",
+      "tokenStatus": "valid",
       "tokenExpiresIn": null,
       "lastSuccessfulPost": "2026-02-20T14:30:00.000Z",
       "lastError": null
@@ -77,20 +77,20 @@ GET https://api.publora.com/api/v1/platform-connections
 | `profileImageUrl` | string/null | Profile image URL. Returns `null` if not available. |
 | `profileUrl` | string/null | URL to the user's profile on the platform. Can be null if not available for the platform. |
 | `accessTokenExpiresAt` | string/null | Token expiration timestamp (null = no expiration) |
-| `tokenStatus` | string | Current token health: `valid`, `expiring_soon`, `expired`, or `unknown` |
+| `tokenStatus` | string | Current credential health: `valid`, `expiring_soon`, `expired`, or `unknown`; see platform-specific rules below |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration. Possible formats: `"7d 3h"` (days and hours), `"5h"` (hours only, when less than one day remains), `"< 1h"` (less than one hour remaining), `"expired"` (token already expired), or `null` (no expiration). |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post to this platform |
 | `lastError` | object/null | Last error that occurred when posting to this platform. When present, contains: `message` (string — error description) and `occurredAt` (string — ISO 8601 timestamp of when the error occurred). |
-| `subscriptionType` | string/null | Platform subscription tier where applicable (e.g., `"premium"` for X, `"premium_plus"` for X premium-plus). `null` when the platform doesn't expose a subscription type or when not detected. |
+| `subscriptionType` | string/null | Platform tier where available (X publishing recognizes exact stored values `"Premium"` and `"PremiumPlus"`). `null` when not detected. |
 
 ## Token Status Values
 
 | Status | Meaning |
 |--------|---------|
-| `valid` | Token is valid and won't expire in less than 7 days |
-| `expiring_soon` | Token expires in less than 7 days (strictly less than) - consider reconnecting |
+| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring. YouTube/TikTok are also `valid` when `refreshTokenExpiresAt` is absent or at least 30 days away. For Bluesky, this endpoint's projected connection data marks a stored username as `valid`; it does not re-check the app password. |
+| `expiring_soon` | YouTube/TikTok refresh token expires in under 30 days, or another OAuth platform's access token expires in under 7 days |
 | `expired` | Token has expired - reconnect required |
-| `unknown` | Platform doesn't use expiring tokens (e.g., Twitter, Bluesky) |
+| `unknown` | Stored expiry data is malformed. For Bluesky in this endpoint, it means the projected connection has no username. A missing YouTube/TikTok `refreshTokenExpiresAt` is `valid`, not `unknown`. |
 
 > **Note:** Pinterest has OAuth connection routes in the dashboard, but no `test-connection` validator is implemented. Calling `test-connection` for a Pinterest connection will return `"Unknown platform: pinterest"`.
 

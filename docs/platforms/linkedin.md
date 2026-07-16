@@ -43,7 +43,7 @@ Where `{profileId}` is your LinkedIn profile identifier assigned during account 
 | Videos | Yes | MP4 format |
 | Analytics | Yes | IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT |
 | Reactions | Yes | LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT |
-| Comments | Yes | Create, delete, reply (1,250 characters max) |
+| Comments | Yes | Create, delete, reply (raw input up to 10,000 characters; 1,250 after mention processing) |
 | Mentions | Yes | @mention people and organizations |
 
 ## API Limits
@@ -294,7 +294,7 @@ Publora supports creating and deleting comments on LinkedIn posts programmatical
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123` or `urn:li:ugcPost:123`) |
-| `message` | string | Yes | Comment text (max 1,250 characters) |
+| `message` | string | Yes | Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters |
 | `platformId` | string | Yes | Your LinkedIn platform ID (e.g., `linkedin-ABC123`) |
 | `parentComment` | string | No | Comment URN for nested replies |
 
@@ -416,7 +416,9 @@ Reshare (repost) an existing LinkedIn post to your own feed, with optional comme
 | `platformId` | string | Yes | Your LinkedIn platform ID (e.g., `linkedin-ABC123`) |
 | `parent` | string | Yes | URN of the post to reshare (`urn:li:share:<id>` or `urn:li:ugcPost:<id>`) |
 | `commentary` | string | No | Text added above the reshare (max 3,000 characters) |
-| `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (case-insensitive). Defaults to `PUBLIC` |
+| `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (case-insensitive). Defaults to `PUBLIC`. `CONNECTIONS` is personal-profile-only. |
+
+For a company-page connection, `CONNECTIONS` returns `400`: `"LinkedIn organization reposts cannot use CONNECTIONS visibility; choose PUBLIC"`.
 
 **JavaScript**
 ```javascript
@@ -476,7 +478,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -498,7 +500,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -511,7 +513,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Excited to announce our Series A funding! We are building the future of social media management for developer teams. More details coming soon.",
     "platforms": ["linkedin-987654321"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -530,7 +532,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with an Image
@@ -552,7 +554,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -574,7 +576,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -587,7 +589,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Our team just wrapped up an incredible hackathon weekend. Here are some highlights from the event!",
     "platforms": ["linkedin-987654321"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -606,7 +608,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** To attach media to a LinkedIn post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -761,7 +763,7 @@ Beyond post-level statistics, Publora provides additional LinkedIn analytics end
 | Element | Limit |
 |---------|-------|
 | Post body | 3,000 characters |
-| Comment | 1,250 characters (validated by Publora; returns 400 error: `"message cannot exceed 1250 characters"`) |
+| Comment | 1,250 characters after mention processing (raw input cap 10,000; see the exact errors in [LinkedIn Comments](../endpoints/linkedin-comments.md)) |
 
 
 ---

@@ -179,8 +179,8 @@ In addition to the standard fields (`code`, `error`, `message`, `metric`, `limit
 | `disallowedPlatforms` | `PLATFORM_NOT_AVAILABLE` | Array of platforms in the request that are not available on the current plan |
 | `allowedPlatforms` | `PLATFORM_NOT_AVAILABLE` | Array of platforms that are available on the current plan |
 | `projectedUsed` | `CHANNEL_LIMIT_REACHED` | The projected usage count if the operation were to proceed |
-| `blockedPlatforms` | `POST_LIMIT_REACHED`, `SCHEDULED_POST_LIMIT_REACHED` | Array of objects with `platformSelection`, `used`, and `remaining` fields. Present when scope is connection-level |
-| `scope` | Various | The scope of the limit (e.g., `"account"`, `"connection"`) |
+| `blockedPlatforms` | `POST_LIMIT_REACHED` | Per-connection `{ platformSelection, used, remaining }` entries; present only for connection-scoped monthly-post limits |
+| `limitScope` | `POST_LIMIT_REACHED` | Monthly-post scope: `"account"` or `"connection"` |
 | `scheduledTime` | `SCHEDULE_HORIZON_REACHED` | The requested scheduled time that exceeded the horizon |
 | `maxScheduledDate` | `SCHEDULE_HORIZON_REACHED` | The latest allowed scheduled date for the current plan |
 
@@ -190,7 +190,7 @@ In addition to the standard fields (`code`, `error`, `message`, `metric`, `limit
 |---|---|---|
 | `"Multi-part threads (nested replies) are temporarily blocked while we wait for Meta to approve additional permissions for our app."` | Multi-part threads (content >500 chars or with `---` separators) are temporarily disabled due to Threads API access requirements | Keep content under 500 characters without `---` separators. Use carousel posts for multiple images. Contact support@publora.com for updates. |
 
-**Note:** Single posts (under 500 characters) and carousel posts on Threads continue to work normally. Only multi-part threads (where content is automatically split into multiple connected replies) are temporarily restricted.
+**Note:** Single posts (under 500 characters) and carousel posts on Threads continue to work normally. Multi-part requests are blocked, and no automatic split occurs while `supportsThreading` is false.
 
 ### Post-Level Errors (Partial Failures)
 
@@ -202,39 +202,52 @@ When checking a post group's status, each individual platform post has its own `
 {
   "success": true,
   "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d",
+  "status": "partially_published",
+  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "platformSettings": {},
+  "platforms": ["twitter-123456", "tiktok-789012", "linkedin-ABCDEF"],
   "posts": [
     {
+      "_id": "664f1a2b3c4d5e6f7a8b9c01",
       "platform": "twitter",
       "platformId": "123456",
       "status": "published",
       "content": "Check out our latest product launch!",
-      "postedId": "1234567890123456789"
+      "postedId": "1234567890123456789",
+      "permalink": null
     },
     {
+      "_id": "664f1a2b3c4d5e6f7a8b9c02",
       "platform": "tiktok",
       "platformId": "789012",
       "status": "failed",
+      "content": "Check out our latest product launch!",
+      "postedId": null,
+      "permalink": null,
       "error": {
-        "code": "PLATFORM_VALIDATION_ERROR",
-        "message": "Video FPS is below minimum requirement",
-        "platformStatusCode": null,
+        "code": "RATE_LIMITED",
+        "message": "Rate limit exceeded",
+        "platformStatusCode": 429,
         "platformError": null,
         "failedAt": "2026-03-15T14:01:12.000Z",
-        "retryable": false
+        "retryable": true
       }
     },
     {
+      "_id": "664f1a2b3c4d5e6f7a8b9c03",
       "platform": "linkedin",
       "platformId": "ABCDEF",
       "status": "published",
       "content": "Check out our latest product launch!",
-      "postedId": "urn:li:share:7000000000000000000"
+      "postedId": "urn:li:share:7000000000000000000",
+      "permalink": null
     }
-  ]
+  ],
+  "media": []
 }
 ```
 
-**Note:** The `content` and `status` fields exist on each individual post within the `posts` array, not at the post group level. The top-level response only contains `success`, `postGroupId`, and `posts`.
+**Note:** Top-level `status` is the aggregate post-group status. Each `posts[].status` is the outcome for one platform target. The top-level response also includes `success`, `postGroupId`, `scheduledTime`, `platformSettings`, `platforms`, and `media`; `content` remains per-platform inside `posts[]`.
 
 > **`error` field format:** The `error` field on individual platform posts is a structured object, not a plain string. The `get-post` endpoint returns the full error object with fields: `code`, `message`, `platformStatusCode`, `platformError`, `failedAt`, and `retryable`.
 

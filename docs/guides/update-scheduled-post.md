@@ -50,6 +50,7 @@ x-publora-key: YOUR_API_KEY
 {
   "success": true,
   "message": "Post updated successfully",
+  "scheduledTime": "2026-03-15T14:00:00.000Z",
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",

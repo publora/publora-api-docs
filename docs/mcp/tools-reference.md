@@ -2,7 +2,7 @@
 
 Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
-> **Note:** Most tools return the full `{ success, ... }` backend API response as shown in the examples below. `list_connections` returns a different response shape (an array without the `success` wrapper) because the underlying API endpoint uses a different response format. The MCP server does not do any post-processing on responses. The response examples below reflect the actual format returned by each tool.
+> **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
 ## Posts Tools
 
@@ -109,7 +109,7 @@ Create and schedule a post to one or more platforms.
 | `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
 | `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request replays the original response without creating another post. |
 
-> **MCP vs REST difference:** `scheduledTime` is optional in the MCP schema — omit it to create a **draft**. Publishable media-required platforms (Instagram, TikTok, YouTube) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached. Pinterest is connect-only: passing media may satisfy registry validation, but it cannot be published because scheduler dispatch is not implemented.
+> **Draft behavior:** `scheduledTime` is optional in both MCP and REST — omit it to create a **draft**. Publishable media-required platforms (Instagram, TikTok, YouTube) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached. Pinterest is connect-only: passing media may satisfy registry validation, but it cannot be published because scheduler dispatch is not implemented.
 
 > **Use `idempotencyKey` whenever a retry is possible.** An agent that retries after a network timeout has no way to know whether the first `create_post` landed — without a key it creates a **second post**. Pass a fresh unique key (e.g. a UUID) per distinct post; on retry, resend the *same* key with the *same* arguments and Publora replays the original result instead of posting again. Reusing a key with different arguments returns `422` `IDEMPOTENCY_KEY_CONFLICT`; retrying while the first call is still running returns `409` `IDEMPOTENCY_IN_FLIGHT` (wait and retry the identical call — do not switch keys).
 
@@ -148,6 +148,7 @@ Create and schedule a post to one or more platforms.
 >   }
 > }
 > ```
+> For LinkedIn repost settings, `CONNECTIONS` is personal-profile-only. A company-page repost must use `PUBLIC` or scheduling returns `400`.
 > YouTube custom thumbnails are **not** settable here (they need the separate multipart thumbnail endpoint, which MCP does not expose).
 
 **Example prompts:**
@@ -196,7 +197,8 @@ asyncio.run(schedule_post())
 ```json
 {
   "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+  "scheduledTime": "2026-07-20T09:00:00.000Z"
 }
 ```
 
@@ -280,20 +282,26 @@ async def get_post_details():
 {
   "success": true,
   "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+  "status": "scheduled",
+  "scheduledTime": "2026-07-20T14:30:00.000Z",
+  "platformSettings": {},
+  "platforms": ["linkedin-abc123"],
   "posts": [
     {
-      "platformId": "linkedin-abc123",
+      "_id": "67a1b2c3d4e5f6a7b8c9d0e2",
       "platform": "linkedin",
-      "status": "scheduled",
+      "platformId": "abc123",
       "content": "Excited to share our latest update!",
+      "status": "scheduled",
       "postedId": null,
-      "error": null
+      "permalink": null
     }
-  ]
+  ],
+  "media": []
 }
 ```
 
-> **Note:** The `get_post` response returns per-platform post fields (`platform`, `platformId`, `content`, `status`, `postedId`, `error`) — not `scheduledTime`. The `scheduledTime` is a post-group-level field available via `list_posts`.
+> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`; internal thread-part IDs are not exposed.
 
 ---
 
@@ -350,6 +358,7 @@ async def reschedule_post():
 {
   "success": true,
   "message": "Post updated successfully",
+  "scheduledTime": "2026-03-01T15:00:00.000Z",
   "postGroup": {
     "_id": "67a1b2c3d4e5f6a7b8c9d0e1",
     "status": "scheduled",
@@ -360,7 +369,7 @@ async def reschedule_post():
 
 > **Successful responses may carry `warnings`.** When present, `warnings` is an array of `{ code, message, ... }` objects (e.g. `SCHEDULED_TIME_COERCED`, which also carries `requested` and `effective`). The key is omitted entirely when there are no warnings. Surface these to the user — the call succeeded, but the API changed something about the request. Full list: [Error Handling](../guides/error-handling.md).
 
-> **Note:** The `scheduledTime` field in the response is only included when the post has a scheduled time set. Draft posts without a scheduled time will omit this field.
+> **Note:** Top-level `scheduledTime` is always present and is `null` for drafts. The nested `postGroup.scheduledTime` is conditional and appears only when a scheduled time is set.
 
 > **Note:** Only posts with status `draft` or `scheduled` can be updated. Attempting to update a post in any other status (e.g., `published`, `failed`, `partially_published`) returns a `400` error: `"Cannot update post: post is currently in {status} status"`.
 
@@ -423,12 +432,12 @@ Get a presigned URL to upload media files.
 | `contentType` | string | Yes | MIME type (e.g., `image/jpeg`, `video/mp4`) |
 | `type` | string | Yes | Media type: `image` or `video` |
 
-**Supported formats:**
+**Upload-layer acceptance:**
 
 | Type | Formats |
 |------|---------|
-| Images | JPEG, PNG, GIF, WebP |
-| Videos | MP4, MOV, AVI, WebM |
+| Images | The MCP tool accepts an `image/*` MIME string; scheduling applies the target platform's format allowlist |
+| Videos | The MCP tool accepts a `video/*` MIME string; scheduling applies the target platform's format allowlist |
 
 > **⚠ Attaching media demotes a scheduled post to draft.** Calling `get_upload_url` on an already-`scheduled` post demotes it back to `draft` (`postGroupDemoted: true` in the response). Attach media on a **draft**, then schedule with `update_post`. Companion media tools: **`complete_media`** (finalize/validate an uploaded `mediaId` — optional, the scheduling gate probes lazily) and **`delete_media`** (remove one attached media file; also demotes a scheduled post). Media attached via `mediaUrls` needs neither.
 
@@ -526,20 +535,22 @@ asyncio.run(list_connections())
 **Response example:**
 
 ```json
-[
-  {
+{
+  "connections": [
+    {
     "platformId": "twitter-123456789",
     "username": "@yourcompany",
     "displayName": "Your Company",
     "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
     "profileUrl": null,
-    "tokenStatus": "unknown",
+    "tokenStatus": "valid",
     "tokenExpiresIn": null,
     "accessTokenExpiresAt": null,
     "lastSuccessfulPost": null,
-    "lastError": null
-  },
-  {
+    "lastError": null,
+    "subscriptionType": "Premium"
+    },
+    {
     "platformId": "linkedin-Tz9W5i6ZYG",
     "username": "Your Company Page",
     "displayName": "Your Company",
@@ -549,9 +560,11 @@ asyncio.run(list_connections())
     "tokenExpiresIn": "82d 4h",
     "accessTokenExpiresAt": "2026-06-15T12:00:00.000Z",
     "lastSuccessfulPost": "2026-03-10T09:30:00.000Z",
-    "lastError": null
-  }
-]
+    "lastError": null,
+    "subscriptionType": null
+    }
+  ]
+}
 ```
 
 **Response fields:**
@@ -568,6 +581,7 @@ asyncio.run(list_connections())
 | `accessTokenExpiresAt` | string/null | ISO 8601 timestamp when the access token expires |
 | `lastSuccessfulPost` | string/null | ISO 8601 timestamp of the last successful post via this connection |
 | `lastError` | object/null | Last error details: `{ message: string, occurredAt: string }` |
+| `subscriptionType` | string/null | Detected platform subscription tier when available (used for X Premium/PremiumPlus limits) |
 
 ---
 
@@ -656,7 +670,7 @@ Post a comment on a LinkedIn post.
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123456` or `urn:li:ugcPost:123456`) |
 | `platformId` | string | Yes | Platform connection ID |
-| `message` | string | Yes | Comment text (max 1,250 characters). Supports mentions: `@{urn:li:person:ID\|Name}` or `@{urn:li:organization:ID\|Company}` |
+| `message` | string | Yes | Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports mentions: `@{urn:li:person:ID\|Name}` or `@{urn:li:organization:ID\|Company}` |
 | `parentComment` | string | No | Parent comment URN for nested replies |
 
 **Example prompts:**

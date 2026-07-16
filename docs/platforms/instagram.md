@@ -108,7 +108,7 @@ Instagram supports a `platformSettings` object to control video behavior:
 |---------|--------|---------|-------------|
 | `videoType` | `"REELS"`, `"STORIES"` | `"REELS"` | Determines how videos are published |
 | `coverUrl` | http(s) URL string | — | Custom cover image for Reels (alias: `cover_url`). Must resolve to a **JPEG image**. Two ways to set it: (1) [upload a file](../endpoints/upload-instagram-cover.md) (JPEG/PNG/WebP, up to 8 MB — Publora hosts it and converts to JPEG) and use the returned URL, or (2) pass your own **publicly accessible** JPEG URL, which Instagram fetches server-side when the Reel is created. When set, it takes precedence over frame-based cover selection (`videoTimestamp`). Send an empty string to clear. Non-JPEG or non-http(s) URLs are rejected with `400`. Settable on both `create-post` and `update-post`. Ignored for Stories and images. |
-| `videoTimestamp` | number (milliseconds) | — | Selects the video cover frame at the specified timestamp. **Important:** This must be set at the **top level** of the post group request body (not nested under `platformSettings.instagram`). The `thumbOffset` name under `platformSettings.instagram` has no effect. **Note:** This setting is only available via the dashboard `updatePostGroup` endpoint, not via the `create-post` API. For API-based cover control, use `coverUrl` instead. |
+| `videoTimestamp` | number (milliseconds) | — | Dashboard-only top-level field for frame selection; it is not accepted by the REST create/update contract. Sending `thumbOffset` under `platformSettings.instagram` returns `400 PLATFORM_SETTING_UNKNOWN`. API callers should use `coverUrl`. |
 
 ## Examples
 
@@ -131,7 +131,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -153,7 +153,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -166,7 +166,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Sunset views from the office rooftop. #startup #views",
     "platforms": ["instagram-11223344"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -185,7 +185,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** Instagram requires media on every post. First create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`. For carousels, upload multiple files to the same `postGroupId`.
@@ -393,7 +393,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -420,7 +420,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -438,7 +438,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       }
     }
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -462,7 +462,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks
@@ -474,7 +474,7 @@ console.log(response.data);
 - **Reel is the default**: When posting a video, Publora defaults to publishing it as a Reel. Set `videoType: "STORIES"` to post as a Story instead.
 - **Custom Reels cover**: Set `platformSettings.instagram.coverUrl` to a publicly accessible JPEG URL to control the Reel's cover/thumbnail. Instagram downloads the image itself, so private or expiring URLs will fail at publish time. See [Platform-Specific Settings](#platform-specific-settings).
 - **Stories disappear**: Stories are ephemeral and will disappear after 24 hours. This is standard Instagram behavior.
-- **Image aspect ratios**: Instagram supports aspect ratios between 4:5 (portrait) and 1.91:1 (landscape). Images outside this range may be cropped.
+- **Image aspect ratios**: Instagram images must be between 4:5 and 1.91:1. Scheduling rejects files outside that range with `MEDIA_ASPECT_RATIO_INVALID`; Publora does not silently crop them.
 - **Caption hashtags**: Hashtags are included in the caption text. There is no separate hashtags field.
 
 ## Character Limits

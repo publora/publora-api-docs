@@ -18,13 +18,13 @@ POST https://api.publora.com/api/v1/create-post
 | `Idempotency-Key` | No | Opt-in duplicate protection. A client-generated unique string. Retrying with the **same key and same body** replays the original response instead of creating a second post. See [Idempotency](#idempotency). |
 | `Content-Type` | Yes | `application/json` |
 
-> **Note:** The API does not include `x-publora-key` or `x-publora-user-id` in CORS allowed headers, so requests from browser-based clients will fail preflight checks. This API is designed for server-to-server use only.
+> **Browser usage:** CORS permits `x-publora-key`, `x-publora-user-id`, `x-publora-client`, and `Idempotency-Key`, but only requests from origins in Publora's deployment allowlist are accepted. An arbitrary integrator origin can still fail preflight. Even from an allowed origin, embedding a secret API key in client-side code exposes it; prefer a server-side proxy.
 
 ## Request Body
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `content` | string | Yes | Post text content (cannot be empty or whitespace-only). Must be a string — non-string truthy values (numbers, objects) will pass validation but cause unexpected behavior. |
+| `content` | string | Conditional | Normally required and non-empty. It may be omitted or empty when a targeted LinkedIn connection has repost intent through `platformSettings.linkedin.repostEnabled: true` or a non-empty `repostParentUrn`; the repost settings must still form a valid parent/enable combination. Non-string truthy values (numbers, objects) can pass the initial content gate but cause unexpected behavior. |
 | `platforms` | string[] | Yes | Array of `<lowercase-prefix>-<id>` connection IDs. The ID cannot contain whitespace, `/`, `?`, or `#`; colons are allowed (e.g., `twitter-123456789`, `bluesky-did:plc:abc123`). |
 | `scheduledTime` | string | No | ISO 8601 UTC datetime. If omitted, the post is created as a `draft`. A time in the past is **never silently accepted** — it is either clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response, or rejected with `400 SCHEDULED_TIME_IN_PAST`. See [Past scheduled times](#past-scheduled-times). |
 | `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. The accepted keys are `tiktok`, `instagram`, `youtube`, `threads`, `telegram`, and `linkedin`. **Any unknown top-level platform or unknown nested key is rejected with `400 PLATFORM_SETTING_UNKNOWN` and nothing is persisted** — see [Unknown platformSettings paths](#unknown-platformsettings-paths) for the exact accepted tree. Each platform key must map to a plain object. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
@@ -48,7 +48,7 @@ Use the `postGroupId` to track, update, or delete the post.
 |-------|----------------|-------------|
 | `success` | Yes | `true` on a 200 |
 | `postGroupId` | Yes | Post group ID — use it to track, update, or delete the post |
-| `scheduledTime` | Yes | The **effective** scheduled time actually stored (ISO 8601 UTC), or `null` for a draft. Trust this over the value you sent — it may differ (past-time clamping, plan-horizon adjustment). |
+| `scheduledTime` | Yes | The **effective** scheduled time actually stored (ISO 8601 UTC), or `null` for a draft. Trust this over the value you sent — a permitted past-time clamp may change it; a plan-horizon violation is rejected rather than adjusted. |
 | `warnings` | No | Present only when the request was accepted with a caveat. Array of `{ code, message, requested, effective }`. |
 | `media` | No | Per-URL ingestion results, present only when `mediaUrls` was supplied |
 
@@ -135,7 +135,7 @@ Nested reference objects are checked to their leaves — `youtube.playlist` and
 | `telegram` | `disableNotification`, `disableWebPagePreview`, `protectContent` |
 | `linkedin` | `repostEnabled`, `repostParentUrn`, `repostVisibility` |
 
-LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent and `PUBLIC` or `CONNECTIONS` visibility.
+LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent. `CONNECTIONS` visibility is supported only for personal connections; scheduling a company-page repost with it returns `400` with `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"`.
 
 Still accepted, unchanged:
 
@@ -467,8 +467,8 @@ Some limit errors include additional context fields:
 |-------|-----------|-------------|
 | `scheduledTime` | `SCHEDULE_HORIZON_REACHED` | The requested scheduled time that exceeded the horizon |
 | `maxScheduledDate` | `SCHEDULE_HORIZON_REACHED` | The furthest date allowed by the current plan |
-| `scope` | `POST_LIMIT_REACHED`, `SCHEDULED_POST_LIMIT_REACHED` | Present when the limit is connection-scoped (e.g., `"connection"`). When connection-scoped, top-level `used` and `remaining` are `null` — per-connection values are in `blockedPlatforms` only. |
-| `blockedPlatforms` | `POST_LIMIT_REACHED`, `SCHEDULED_POST_LIMIT_REACHED` | Array of objects with `platformSelection`, `used`, and `remaining` fields. Present when scope is connection-level |
+| `limitScope` | `POST_LIMIT_REACHED` | `"account"` or `"connection"`, matching the plan's monthly-post scope |
+| `blockedPlatforms` | `POST_LIMIT_REACHED` | Per-connection `{ platformSelection, used, remaining }` entries; present only for a connection-scoped monthly-post rejection |
 | `overLimitBy` | `CONNECTIONS_OVER_LIMIT` | Number of connections over the plan limit |
 | `disallowedPlatforms` | `PLATFORM_NOT_AVAILABLE` | Array of platform names not available on the current plan |
 | `allowedPlatforms` | `PLATFORM_NOT_AVAILABLE` | Array of platform names available on the current plan |
@@ -502,7 +502,7 @@ draft → scheduled → published
 
 > **Note:** Individual platform records (ScheduledPost) have their own statuses including `pending` and `processing`, which reflect per-platform delivery state. The post group `status` field above is a rollup and does not include `processing`. A separate `processingStatus` field on the post group tracks whether the post is currently being processed. Possible `processingStatus` values are: `pending`, `processing`, `finished`.
 
-> **Note:** The `processingStatus` field is available in the [get-post](get-post.md) response but is **not** included in [list-posts](list-posts.md) responses.
+> **Note:** `processingStatus` is internal and is not returned by get-post or list-posts.
 
 
 ---

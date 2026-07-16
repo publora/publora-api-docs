@@ -30,7 +30,7 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Affected surface:** REST, MCP, and scheduled LinkedIn publishing.
 - **Tag:** Additive.
 - **Changes:** Added `POST /linkedin-reshare`, the `linkedin_create_reshare` MCP tool (the 14th active tool), and `platformSettings.linkedin` with `repostEnabled`, `repostParentUrn`, and `repostVisibility` as the sixth accepted settings branch.
-- **Migration action:** No change is required for existing callers. New integrations should use a `urn:li:share:*` or `urn:li:ugcPost:*` parent and `PUBLIC` or `CONNECTIONS` visibility.
+- **Migration action:** No change is required for existing callers. New integrations should use a `urn:li:share:*` or `urn:li:ugcPost:*` parent. `CONNECTIONS` visibility is personal-profile-only; use `PUBLIC` for company-page reposts.
 
 ### Correctness-release documentation — publora-api-docs #21
 

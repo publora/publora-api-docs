@@ -37,7 +37,7 @@ Where `{accountId}` is your Mastodon account ID assigned during account connecti
 | Type | Supported | Limits |
 |------|-----------|--------|
 | Text | Yes | 500 characters |
-| Images | Yes | JPEG, PNG, GIF, WebP, up to 4 per post |
+| Images | Yes | JPEG, PNG, GIF, WebP, HEIF, HEIC, AVIF; up to 4 per post |
 | Videos | Yes | MP4, WebM, MOV formats |
 | Visibility | Yes | Public by default |
 
@@ -66,7 +66,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -88,7 +88,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -101,7 +101,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Hello fediverse! We just shipped a major update to our open-source project. Check out the changelog at https://example.com/changelog #opensource #fediverse",
     "platforms": ["mastodon-109876543210"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -120,7 +120,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with Media
@@ -142,7 +142,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** To attach media to a Mastodon post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -166,7 +166,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -179,7 +179,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "New feature alert: our dashboard now supports dark mode! Here is a side-by-side comparison. #ui #darkmode",
     "platforms": ["mastodon-109876543210"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -198,7 +198,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with a Video
@@ -220,7 +220,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -242,7 +242,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -255,7 +255,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Quick demo of our new real-time collaboration feature. Multiple users editing the same document simultaneously!",
     "platforms": ["mastodon-109876543210"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -274,7 +274,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks
@@ -282,9 +282,9 @@ console.log(response.data);
 - **mastodon.social only**: New connections are limited to the mastodon.social instance (the OAuth flow uses a hardcoded instance URL). The test-connection validator attempts to extract the instance URL from the connection's `profileUrl` field, but `profileUrl` is never set during Mastodon connection creation, so it always falls back to mastodon.social. Support for other instances may be added in the future.
 - **Public by default**: All posts made through Publora are published with public visibility. They will appear on the federated timeline.
 - **Up to 4 images**: A maximum of 4 images can be attached to a single post. Publora enforces this limit at scheduling time via `postValidationService.js` and will reject posts that exceed it before they reach the Mastodon API.
-- **Image formats**: Mastodon accepts JPEG, PNG, GIF, and WebP natively. Publora validates image formats via `postValidationService.js` to ensure only supported formats are attached. No format conversion is performed — all supported formats are passed through as-is.
+- **Image formats**: Publora's validator accepts JPEG, PNG, GIF, WebP, HEIF, HEIC, and AVIF for Mastodon. The publisher passes supported media through rather than converting it.
 - **MP4, WebM, and MOV for videos**: Mastodon accepts MP4, WebM, and MOV video formats. Publora accepts all three as input, but the scheduler currently reports the MIME type as `video/mp4` to Mastodon regardless of the actual format. MP4 uploads work correctly; WebM and MOV files may experience processing issues due to the mismatched MIME type.
-- **500-character limit**: Mastodon enforces a strict 500-character limit. Publora will return an error if your content exceeds this. Unlike X/Twitter and Threads, Mastodon does not auto-thread.
+- **500-character limit**: Mastodon enforces a strict 500-character limit. Publora will return an error if your content exceeds this. Mastodon and Meta Threads do not auto-thread in Publora; only X/Twitter threading is currently enabled.
 - **Hashtags**: Hashtags in Mastodon are part of the post body and count toward the character limit. They become clickable and searchable on the platform.
 - **Content warnings**: Mastodon supports content warnings (CW), but this feature is not currently available through the Publora API.
 - **Federation delay**: Because Mastodon is federated, posts may take a few seconds to propagate to other instances in the fediverse.
@@ -302,12 +302,12 @@ console.log(response.data);
 
 | Media Type | Max Size | Max Count | Supported Formats |
 |------------|----------|-----------|-------------------|
-| Images | 16 MB | 4 per post | JPEG, PNG, GIF, WebP |
+| Images | 16 MB | 4 per post | JPEG, PNG, GIF, WebP, HEIF, HEIC, AVIF |
 | Videos | ~99 MB | 1 per post | MP4, WebM, MOV |
 
 | Video Constraint | Limit |
 |------------------|-------|
-| Duration | No platform-enforced limit |
+| Duration | 86,400 seconds (24 hours) |
 
 ### Rate Limits
 
@@ -320,7 +320,7 @@ console.log(response.data);
 
 - Character limits vary by Mastodon instance; mastodon.social uses 500 characters, but some instances allow 5,000+
 - Publora currently connects to mastodon.social only (posting is hardcoded to this instance)
-- Unlike X/Twitter and Threads, Mastodon does not support auto-threading
+- Mastodon and Meta Threads do not support auto-threading in the current Publora capability set; X/Twitter threading remains enabled
 - Max image count (4) and video count (1) limits are enforced by Publora at scheduling time via `postValidationService.js`
 
 ## What you can't do through the REST API

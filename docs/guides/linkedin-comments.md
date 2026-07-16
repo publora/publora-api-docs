@@ -21,7 +21,7 @@ Publora allows you to create and delete comments on any LinkedIn post visible to
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123` or `urn:li:ugcPost:123`) |
-| `message` | string | Yes | Comment text (max 1,250 characters). Supports `@{urn:li:person:ID\|Name}` mention syntax |
+| `message` | string | Yes | Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports `@{urn:li:person:ID\|Name}` mention syntax. |
 | `platformId` | string | Yes | Your LinkedIn platform ID (e.g., `linkedin-ABC123`) |
 | `parentComment` | string | No | Comment URN for nested replies |
 

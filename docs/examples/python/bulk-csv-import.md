@@ -47,6 +47,8 @@ def import_from_csv(csv_file):
                 'platforms': platforms,
                 'scheduledTime': row['scheduled_time']
             }
+            if row.get('media_url'):
+                payload['mediaUrls'] = [row['media_url']]
 
             # Create the post
             response = requests.post(
@@ -64,7 +66,7 @@ def import_from_csv(csv_file):
             if response.ok:
                 result['postGroupId'] = response.json()['postGroupId']
             else:
-                result['error'] = response.json().get('message', 'Unknown error')
+                result['error'] = response.json().get('error', 'Unknown error')
 
             results.append(result)
             print(f"{'✓' if response.ok else '✗'} {result['content']}")
@@ -163,6 +165,8 @@ def import_csv_advanced(csv_file, dry_run=False, delay_ms=500):
 
         if row.get('scheduled_time'):
             payload['scheduledTime'] = row['scheduled_time']
+        if row.get('media_url'):
+            payload['mediaUrls'] = [row['media_url']]
 
         response = requests.post(
             f'{BASE_URL}/create-post',
@@ -180,7 +184,7 @@ def import_csv_advanced(csv_file, dry_run=False, delay_ms=500):
             result['postGroupId'] = response.json()['postGroupId']
             print(f"  [{i}/{len(rows)}] ✓ Created: {result['postGroupId']}")
         else:
-            result['error'] = response.json().get('message', 'Unknown error')
+            result['error'] = response.json().get('error', 'Unknown error')
             print(f"  [{i}/{len(rows)}] ✗ Failed: {result['error']}")
 
         results.append(result)

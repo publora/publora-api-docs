@@ -1,6 +1,6 @@
 # Upload Media
 
-Upload images and videos to attach to posts. Uses pre-signed S3 URLs for direct uploads.
+Upload images, videos, or PDF documents to attach to posts. Uses pre-signed S3 URLs for direct uploads.
 
 ## Endpoint
 
@@ -24,9 +24,9 @@ POST https://api.publora.com/api/v1/get-upload-url
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `fileName` | string | Yes | Name of the file (e.g., `photo.jpg`). The filename is sanitized before use: whitespace is trimmed, spaces are replaced with underscores, and special characters (except underscores, dots, and hyphens) are removed. For example, `my photo (1).jpg` becomes `my_photo_1.jpg`. |
-| `contentType` | string | Yes | MIME type (e.g., `image/jpeg`, `video/mp4`). The API route does **not** validate this parameter — any MIME type string is accepted. |
-| `postGroupId` | string | Yes | The post group to attach this media to. **Security note:** The API does not verify that the `postGroupId` belongs to the requesting user. This is a known limitation. |
-| `type` | string | No | Media type: `"image"` or `"video"`. Determines the S3 key prefix. **Warning:** Omitting `type` means the field will be absent from the media record, which causes the AWS SDK `PutObjectCommand` to fail with an error. The S3 key prefix is also derived from this field, so omitting it means neither the `"image"` nor `"video"` branch executes. Always include this parameter. |
+| `contentType` | string | Yes | MIME type. Must begin with `image/` or `video/`, or equal `application/pdf`; otherwise the API returns `400 "Only video, image, and PDF files are allowed"`. |
+| `postGroupId` | string | Yes | The post group to attach this media to. The attach helper verifies that it belongs to the effective API user. |
+| `type` | string | No | `"image"`, `"video"`, or `"document"`. When omitted, the API infers it from `contentType` (including PDF → `document`). |
 
 ## Response
 
@@ -50,18 +50,18 @@ POST https://api.publora.com/api/v1/get-upload-url
 
 ### Dashboard vs API Differences
 
-The dashboard uses a different endpoint (`/media/generate-upload-url`) with different behavior:
-
-> **Note:** The `/media/generate-upload-url` endpoint is deprecated and not actively used in the current codebase. It is documented here for reference only.
+The dashboard actively uses a session-authenticated endpoint (`/media/generate-upload-url`) with a closely related response:
 
 | Aspect | API (`/api/v1/get-upload-url`) | Dashboard (`/media/generate-upload-url`) |
 |--------|-------------------------------|------------------------------------------|
-| **Required fields** | `fileName`, `contentType`, `postGroupId` | `fileName`, `contentType` (no `postGroupId` required) |
-| **Optional fields** | `type` | `metadata` (object), `type` (`"image"` or `"video"`) |
-| **Validation** | No `contentType` validation | Validates `contentType` starts with `image/` or `video/`; returns `"Only video and image files are allowed"` (400) if invalid |
-| **Error message** | `"fileName, contentType, and postGroupId are required"` | `"fileName and contentType are required"` |
-| **Response format** | `{ success, uploadUrl, fileUrl, mediaId }` | `{ uploadUrl, key }` (no `success`, `fileUrl`, or `mediaId`) |
+| **Required fields** | `fileName`, `contentType`, `postGroupId` | `fileName`, `contentType`, `postGroupId` |
+| **Optional fields** | `type` (inferred when omitted) | `metadata` (object), `type` (inferred when omitted) |
+| **Validation** | Accepts `image/*`, `video/*`, or `application/pdf` | Accepts `image/*`, `video/*`, or `application/pdf` |
+| **Missing-field errors** | `"fileName, contentType, and postGroupId are required"` | `"fileName and contentType are required"`, or `"postGroupId is required"` |
+| **Response format** | `{ success, uploadUrl, fileUrl, mediaId }` | `{ uploadUrl, key, mediaId }` |
 | **Auth** | API key (`x-publora-key`) | Session cookie |
+
+Either route may also return `postGroupDemoted` and `message` when attaching the new asset demotes a scheduled group to draft.
 
 ## Upload Flow
 
@@ -90,16 +90,17 @@ If you create a post with `scheduledTime` set immediately, the scheduler may att
 
 ## Supported Formats
 
-> **Note:** The formats listed below are what the publishing platforms accept, not what the upload endpoint enforces. The `get-upload-url` API route accepts any `contentType` value without validation.
+The upload endpoint validates the broad MIME family; platform-specific formats and limits are enforced when the post is scheduled.
 
 | Type | Formats | Max Size |
 |------|---------|----------|
-| Image | JPEG, PNG, GIF, WebP | No enforced limit (pre-signed URL) |
-| Video | MP4, MOV, AVI, MKV, WebM | No enforced limit (pre-signed URL) |
+| Image | Any `image/*` at upload; platform validator decides publishability | No shared presigned-upload cap |
+| Video | Any `video/*` at upload; platform validator decides publishability | No shared presigned-upload cap |
+| Document | `application/pdf` | Platform/document rules apply |
 
 **Note:** The 512 MB per file limit applies only to the server-side multipart upload endpoint (`process-video`), not to pre-signed URL uploads. Individual platforms may impose their own size limits at publish time.
 
-**Note:** WebP images are automatically converted to JPEG for platforms that don't support WebP (LinkedIn, Telegram, Bluesky).
+**Note:** Upload acceptance does not promise that a platform publisher will accept the same file; consult the platform limits before scheduling.
 
 ## Examples
 
@@ -393,7 +394,7 @@ The `sessionId` is returned for future use, but the SSE progress endpoint (`/pro
 
 ## Cleaning Up Abandoned Uploads
 
-If a `POST /get-upload-url` call succeeds but the subsequent `PUT` to the presigned S3 URL is cancelled or fails, the MediaFile record is persisted to the post group. An abandoned upload would otherwise leave a broken reference that blocks re-scheduling with `MEDIA_DIMENSIONS_UNVERIFIED`.
+If a `POST /get-upload-url` call succeeds but the subsequent `PUT` to the presigned S3 URL is cancelled or fails, the MediaFile record is persisted to the post group. An abandoned upload would otherwise leave a broken reference that blocks re-scheduling with `MEDIA_NOT_READY`.
 
 Two REST endpoints handle this by API key:
 
@@ -441,7 +442,7 @@ https://your-bucket.s3.amazonaws.com/images/1710500000000-product-photo.jpg
 | TikTok | Up to 35 | 1 per post | Images: JPEG, PNG, WebP; video: MP4, MOV, WebM, min 23 FPS |
 | YouTube | -- | 1 per post | MP4, streaming upload |
 | Facebook | Multiple | 1 per post | Carousel support |
-| Bluesky | Up to 4 | 1 per post | WebP auto-converted, alt text |
+| Bluesky | Up to 4 | 1 per post | WebP auto-converted; alt text is not settable through REST |
 | Mastodon | Up to 4 | 1 per post | Standard limits |
 | Telegram | Multiple | 1 per post | 1024 char caption max (bot) |
 

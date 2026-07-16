@@ -218,18 +218,7 @@ Threads-side quotas are advisory, account-dependent, and not a Publora numeric c
 
 ### Partial Thread Failure
 
-If some posts succeed but others fail:
-
-```json
-{
-  "status": "partially_published",
-  "error": "Thread partially published: 3/5 posts. Error: Rate limit exceeded",
-  "publishedIds": ["123", "456", "789"],
-  "headPostId": "123"
-}
-```
-
-Published posts remain live. Publora tracks which parts succeeded.
+Multi-part Threads publishing is disabled. The dormant internal controller can track per-part `publishedIds` and a `headPostId`, but that return value is not a public API shape or contract. Public `get-post` returns one `posts[]` target for the Threads connection and exposes only its single `postedId`; it never returns the internal per-part ID array.
 
 ### Common Errors
 
@@ -313,4 +302,4 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 ---
 
-*Post multi-part threads to Meta's Threads with a single API call using [Publora](https://publora.com).*
+*Multi-part Meta Threads publishing is currently unavailable; this URL preserves non-operational background reference for a possible future re-enable.*

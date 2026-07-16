@@ -58,34 +58,55 @@ components:
   schemas:
     YouTubePlaylistReference:
       type: object
+      nullable: true
+      additionalProperties: false
+      default: { id: "", platformId: "" }
       description: "Reference to a YouTube playlist for platformSettings.youtube.playlist. Send empty strings for both fields to clear the playlist."
       properties:
         id:
           type: string
+          nullable: true
+          default: ""
           description: "YouTube playlist id"
           example: "PLxxxxxxxx"
         platformId:
           type: string
+          nullable: true
+          default: ""
           description: "Compound YouTube platform id from platforms; must match the single selected YouTube channel"
           example: "youtube-UCxxxxxxxx"
     YouTubeThumbnailReference:
       type: object
+      nullable: true
+      additionalProperties: false
       description: "Reference to a Publora-tracked custom thumbnail for platformSettings.youtube.thumbnail. Send an empty url to clear the thumbnail. Set via update-post only (the upload requires a postGroupId)."
       properties:
         mediaId:
           type: string
+          nullable: true
           description: "Publora media id returned by the YouTube thumbnail upload endpoint"
           example: "665f..."
+        id:
+          type: string
+          nullable: true
+          description: "REST alias for mediaId"
         url:
           type: string
+          nullable: true
           description: "Publora-hosted thumbnail URL returned by the upload endpoint"
           example: "https://media.publora.com/..."
+        path:
+          type: string
+          nullable: true
+          description: "REST alias for url"
     PlatformSettingsInput:
       type: object
+      additionalProperties: false
       description: "Per-platform settings for tiktok, instagram, youtube, threads, telegram, and linkedin. Unknown platform or nested paths are rejected with 400 PLATFORM_SETTING_UNKNOWN. Merged with defaults on create-post and with existing settings on update-post (omitted fields are preserved)."
       properties:
         instagram:
           type: object
+          additionalProperties: false
           properties:
             videoType:
               type: string
@@ -96,18 +117,104 @@ components:
               type: string
               description: "Custom Reels cover image (alias: cover_url). Publicly accessible http(s) URL to a JPEG — Instagram fetches it server-side at publish time. Empty string clears the custom cover. Invalid URLs are rejected with 400. Ignored for Stories and image posts."
               example: "https://cdn.example.com/covers/reel-cover.jpg"
+            cover_url:
+              type: string
+              description: "REST alias for coverUrl; normalized to coverUrl before storage"
+              example: "https://cdn.example.com/covers/reel-cover.jpg"
+            shareToFeed:
+              type: boolean
+              description: "For Reels, false prevents sharing the Reel to the main feed"
         tiktok:
           type: object
-          description: "TikTok settings (viewerSetting, allowComments, allowDuet, allowStitch, commercialContent, brandOrganic, brandedContent)"
+          additionalProperties: false
+          properties:
+            viewerSetting:
+              type: string
+              enum: [PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, FOLLOWER_OF_CREATOR, SELF_ONLY]
+              default: PUBLIC_TO_EVERYONE
+            allowComments:
+              type: boolean
+              default: true
+            allowDuet:
+              type: boolean
+              default: false
+            allowStitch:
+              type: boolean
+              default: false
+            commercialContent:
+              type: boolean
+              default: false
+            brandOrganic:
+              type: boolean
+              default: false
+            brandedContent:
+              type: boolean
+              default: false
         youtube:
           type: object
-          description: "YouTube settings (privacy, title, tags, categoryId, madeForKids, playlist; thumbnail is settable via update-post only)"
+          additionalProperties: false
+          properties:
+            privacy:
+              type: string
+              enum: [private, public, unlisted]
+              default: public
+            title:
+              type: string
+              default: ""
+            madeForKids:
+              type: boolean
+              default: false
+            tags:
+              description: "Video tags. REST accepts an array or a comma-separated string and caps the normalized combined tag budget at 500 characters."
+              oneOf:
+                - type: array
+                  items:
+                    type: string
+                - type: string
+            categoryId:
+              type: string
+              description: "Optional YouTube snippet.categoryId"
+            playlist:
+              $ref: "#/components/schemas/YouTubePlaylistReference"
+            thumbnail:
+              $ref: "#/components/schemas/YouTubeThumbnailReference"
         threads:
           type: object
-          description: "Threads settings (replyControl)"
+          additionalProperties: false
+          properties:
+            replyControl:
+              type: string
+              enum: [everyone, accounts_you_follow, mentioned_only, ""]
+              default: ""
         telegram:
           type: object
-          description: "Telegram settings (disableNotification, disableWebPagePreview, protectContent — booleans)"
+          additionalProperties: false
+          properties:
+            disableNotification:
+              type: boolean
+              default: false
+            disableWebPagePreview:
+              type: boolean
+              default: false
+            protectContent:
+              type: boolean
+              default: false
+        linkedin:
+          type: object
+          additionalProperties: false
+          properties:
+            repostEnabled:
+              type: boolean
+              default: false
+            repostParentUrn:
+              type: string
+              default: ""
+              description: "Canonical urn:li:share:* or urn:li:ugcPost:* parent. Required when repostEnabled is true; an empty value means a normal post."
+            repostVisibility:
+              type: string
+              enum: [PUBLIC, CONNECTIONS, ""]
+              default: ""
+              description: "Repost visibility. CONNECTIONS is personal-profile-only; company-page reposts must use PUBLIC."
     PlatformConnection:
       type: object
       properties:
@@ -223,7 +330,8 @@ components:
           type: array
           items:
             type: string
-            enum: [post.scheduled, post.published, post.failed, token.expiring]
+            enum: [post.scheduled, post.published, post.failed, post.demoted, token.expiring]
+            description: "token.expiring is defined and subscribable but is not currently dispatched; do not depend on it"
           example: ["post.published", "post.failed"]
         isActive:
           type: boolean
@@ -248,16 +356,18 @@ components:
           type: string
         event:
           type: string
-          description: "Log event type (e.g., scheduled, processing, published, failed)"
+          enum: [scheduled, processing, publish_attempted, publish_succeeded, publish_failed, publish_retry, status_changed, media_finalize_succeeded, media_finalize_failed, linkedin_document_upload_succeeded, linkedin_document_upload_failed]
+          description: "Stable PostLog event type"
         error:
           type: string
-          nullable: true
+          description: "Optional; omitted when no error was stored"
         httpStatus:
           type: integer
           nullable: true
+          description: "Optional; may be null or omitted when not applicable"
         retryCount:
           type: integer
-          nullable: true
+          description: "Optional; omitted when no value was stored"
         metadata:
           type: object
           additionalProperties: true
@@ -385,6 +495,21 @@ components:
             `SCHEDULED_TIME_IN_PAST` only. Current server time (UTC) when the
             request was rejected — compare against your clock to diagnose skew.
           example: "2026-03-01T14:02:11.412Z"
+
+    MediaUrlRateLimitError:
+      type: object
+      required: [error, code, retryAfterSec]
+      properties:
+        error:
+          type: string
+          example: "Media URL ingestion rate limit reached (60 URLs/hour). Retry later or use the presigned get-upload-url flow."
+        code:
+          type: string
+          enum: [MEDIA_URL_RATE_LIMITED]
+        retryAfterSec:
+          type: integer
+          description: "Seconds until this fixed-window limit may be retried"
+          example: 60
 
 paths:
   /platform-connections:
@@ -545,11 +670,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [content, platforms]
+              required: [platforms]
               properties:
                 content:
                   type: string
-                  description: Post text content
+                  description: "Normally required and non-empty. May be omitted or empty only when a targeted LinkedIn connection has repost intent via platformSettings.linkedin.repostEnabled=true or a non-empty repostParentUrn; repost validation still requires a valid parent/setting combination."
                   example: "Excited to share our new product launch! 🚀 #launch"
                 platforms:
                   type: array
@@ -657,16 +782,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "403":
-          description: Subscription required or free plan limit
+          description: Access entitlement or plan limit denied; inspect the returned code/error rather than matching an example string
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-              examples:
-                noSub:
-                  value: { "error": "Subscription required" }
-                freeLimit:
-                  value: { "error": "Free plan limit reached" }
         "409":
           description: |
             An earlier request with this `Idempotency-Key` is still in flight.
@@ -710,6 +830,8 @@ paths:
               description: Seconds until retry
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUrlRateLimitError"
               example:
                 error: "Media URL ingestion rate limit reached (60 URLs/hour). Retry later or use the presigned get-upload-url flow."
                 code: "MEDIA_URL_RATE_LIMITED"
@@ -755,6 +877,10 @@ paths:
                     example: true
                   postGroupId:
                     type: string
+                  status:
+                    type: string
+                    enum: [draft, scheduled, published, failed, partially_published]
+                    description: "Post-group status. Always present."
                   scheduledTime:
                     type: string
                     format: date-time
@@ -785,6 +911,20 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Post"
+                  media:
+                    type: array
+                    description: "Attached media inventory in post-group order. Always present; empty when none is attached."
+                    items:
+                      type: object
+                      properties:
+                        mediaId: { type: string }
+                        sourceFileName: { type: string, nullable: true }
+                        fileName: { type: string, nullable: true }
+                        type: { type: string, nullable: true }
+                        mimeType: { type: string, nullable: true }
+                        status: { type: string }
+                        failureReason: { type: string, nullable: true }
+                        url: { type: string, nullable: true }
         "404":
           description: Post not found
           content:
@@ -800,7 +940,9 @@ paths:
       description: |
         Modify the scheduled time, status, platformSettings, or mediaUrls of an existing
         draft or scheduled post.
-        Cannot update posts that are published, failed, pending, or processing.
+        Only post groups whose status is draft or scheduled can be updated. `pending`
+        and `processing` belong to separate processing/per-platform state, not
+        to the post-group status enum.
         At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided.
         platformSettings are merged per-platform with existing settings —
         omitted fields are preserved.
@@ -1038,16 +1180,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [error, code, retryAfterSec]
-                properties:
-                  error:
-                    type: string
-                  code:
-                    type: string
-                    enum: [MEDIA_URL_RATE_LIMITED]
-                  retryAfterSec:
-                    type: integer
+                $ref: "#/components/schemas/MediaUrlRateLimitError"
         "500":
           description: Server error
           content:
@@ -1601,7 +1734,7 @@ paths:
       summary: Get LinkedIn post analytics
       description: |
         Retrieve analytics for a LinkedIn post: impressions, reach, reactions, comments, reshares.
-        Results are cached for 30 minutes. Use queryTypes: "ALL" to get all 5 metrics at once.
+        Results are cached for 2 hours. Use queryTypes: "ALL" to get all 5 metrics at once.
       operationId: getLinkedInPostStatistics
       tags:
         - LinkedIn Analytics
@@ -1679,12 +1812,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                missingPostedId:
+                missingFields:
                   value:
-                    error: "postedId is required"
-                missingPlatformId:
-                  value:
-                    error: "platformId is required"
+                    error: "postedId and platformId are required"
                 invalidQueryType:
                   value:
                     error: "Invalid queryType. Must be one of: IMPRESSION, MEMBERS_REACHED, RESHARE, REACTION, COMMENT"
@@ -1703,7 +1833,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               example:
-                error: "Failed to fetch post statistics"
+                error: "Failed to fetch LinkedIn post statistics"
 
   /linkedin-account-statistics:
     parameters:
@@ -1932,7 +2062,7 @@ paths:
                 missingPlatformId:
                   value: { "error": "platformId is required" }
                 invalidDateRange:
-                  value: { "error": "Invalid dateRange format" }
+                  value: { "error": "dateRange must be an object" }
         "401":
           description: Invalid API key
           content:
@@ -1960,7 +2090,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               example:
-                error: "All requests failed"
+                error: "Failed to fetch LinkedIn profile data"
 
   /linkedin-followers:
     parameters:
@@ -2093,7 +2223,7 @@ paths:
                 $ref: "#/components/schemas/Error"
               examples:
                 fetchFailed:
-                  value: { "error": "Failed to fetch followers statistics" }
+                  value: { "error": "Failed to fetch LinkedIn followers statistics" }
 
   /linkedin-reactions:
     parameters:
@@ -2156,12 +2286,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                missingPostedId:
-                  value: { "error": "postedId is required" }
-                missingPlatformId:
-                  value: { "error": "platformId is required" }
+                missingFields:
+                  value: { "error": "postedId, reactionType, and platformId are required" }
                 invalidReactionType:
-                  value: { "error": "Invalid reactionType" }
+                  value: { "error": "reactionType must be one of: LIKE, PRAISE, EMPATHY, INTEREST, APPRECIATION, ENTERTAINMENT" }
         "404":
           description: LinkedIn connection not found
           content:
@@ -2255,10 +2383,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                missingPostedId:
-                  value: { "error": "postedId is required" }
-                missingPlatformId:
-                  value: { "error": "platformId is required" }
+                missingFields:
+                  value: { "error": "postedId and platformId are required" }
         "404":
           description: LinkedIn connection not found
           content:
@@ -2305,7 +2431,7 @@ paths:
                   type: string
                   enum: [PUBLIC, CONNECTIONS]
                   default: PUBLIC
-                  description: "Optional visibility (case-insensitive). Defaults to PUBLIC."
+                  description: "Optional visibility (case-insensitive). Defaults to PUBLIC. CONNECTIONS is personal-profile-only; organization/company-page reshares must use PUBLIC."
                   example: "PUBLIC"
       responses:
         "201":
@@ -2341,6 +2467,8 @@ paths:
                   value: { "error": "commentary cannot exceed 3000 characters" }
                 invalidVisibility:
                   value: { "error": "visibility must be one of: PUBLIC, CONNECTIONS" }
+                organizationConnectionsVisibility:
+                  value: { "error": "LinkedIn organization reposts cannot use CONNECTIONS visibility; choose PUBLIC" }
                 missingOrganizationId:
                   value: { "error": "LinkedIn company connection is missing organizationId. Please reconnect the LinkedIn page." }
         "401":
@@ -2723,8 +2851,8 @@ paths:
                   type: array
                   items:
                     type: string
-                    enum: [post.scheduled, post.published, post.failed, token.expiring]
-                  description: "Events to subscribe to"
+                    enum: [post.scheduled, post.published, post.failed, post.demoted, token.expiring]
+                  description: "Events to subscribe to. token.expiring is defined but not currently dispatched; post.demoted fires when an attach/detach returns a scheduled group to draft."
                   example: ["post.published", "post.failed"]
       responses:
         "201":
@@ -2811,7 +2939,8 @@ paths:
                   type: array
                   items:
                     type: string
-                    enum: [post.scheduled, post.published, post.failed, token.expiring]
+                    enum: [post.scheduled, post.published, post.failed, post.demoted, token.expiring]
+                    description: "token.expiring is defined and subscribable but is not currently dispatched"
                 isActive:
                   type: boolean
       responses:
@@ -2931,7 +3060,8 @@ paths:
       summary: Add a comment to a LinkedIn post
       description: |
         Post a comment on a LinkedIn post. Supports replies to existing comments
-        via the parentComment parameter. Maximum comment length is 1250 characters.
+        via the parentComment parameter. Raw input may be up to 10000 characters;
+        after mention processing, the text sent to LinkedIn must be at most 1250 characters.
         Supports @mentions using @{urn:li:person:ID|Name} or @{urn:li:organization:ID|Company} syntax.
       operationId: createLinkedInComment
       tags:
@@ -2950,7 +3080,7 @@ paths:
                   example: "urn:li:share:7123456789012345678"
                 message:
                   type: string
-                  description: "Comment text (max 1250 characters). Supports mentions: @{urn:li:person:ID|Name} or @{urn:li:organization:ID|Company}"
+                  description: "Raw comment input (max 10000 characters); after mention conversion, the sent text is limited to 1250 characters. Supports @{urn:li:person:ID|Name} and organization mentions."
                   example: "Great insights @{urn:li:person:ACoAABcD1234EfG|Jane Smith}! Thanks for sharing."
                 platformId:
                   type: string
@@ -2996,8 +3126,10 @@ paths:
                   value: { "error": "postedId must be a valid LinkedIn URN" }
                 emptyMessage:
                   value: { "error": "message cannot be empty" }
-                messageTooLong:
-                  value: { "error": "message cannot exceed 1250 characters" }
+                rawMessageTooLong:
+                  value: { "error": "comment text cannot exceed 10000 characters" }
+                processedMessageTooLong:
+                  value: { "error": "comment text cannot exceed 1250 characters after mention processing" }
         "404":
           description: LinkedIn connection not found
           content:

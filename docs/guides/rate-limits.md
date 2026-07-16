@@ -143,7 +143,7 @@ Each Publora plan enforces limits on monthly posts, scheduled (pending) posts, a
 
 **Key details:**
 
-- **Starter plan** limits are **account-wide** (15 posts total across all connections, max 3 connections, `scheduledPosts: 3`, `scheduleHorizonDays: 7`). Paid plans count limits **per connection** (e.g., 100 posts per LinkedIn connection + 100 posts per Twitter connection).
+- **Monthly-post scope:** Starter's 15 monthly posts are account-wide; paid-plan `monthlyPosts` are counted per connection (for example, 100 for one LinkedIn connection and 100 for one Twitter connection). The active `scheduledPosts` queue limit is workspace-wide on every plan, not per connection. Connection count and schedule horizon are separate plan limits.
 - **Starter plan includes API and MCP access** (`apiAccess: true`, `mcpAccess: true`) — the free tier can use the REST API and MCP server (3 connected accounts, 15 posts/month account-wide).
 - **Starter plan can post to any of the 10 platforms** (no platform restriction).
 
@@ -184,7 +184,8 @@ x-publora-key: sk_YOUR_API_KEY
 ```json
 {
   "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1"
+  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+  "scheduledTime": "<FUTURE_ISO_8601_UTC>"
 }
 ```
 
@@ -210,12 +211,14 @@ x-publora-key: sk_YOUR_API_KEY
       "platform": "twitter",
       "platformId": "123456",
       "status": "published",
+      "postedId": "1234567890123456789",
       "permalink": "https://twitter.com/user/status/123456"
     },
     {
       "platform": "linkedin",
       "platformId": "ABC123",
       "status": "published",
+      "postedId": "urn:li:share:7000000000000000000",
       "permalink": "https://linkedin.com/posts/..."
     }
   ],
@@ -238,7 +241,7 @@ x-publora-key: sk_YOUR_API_KEY
 {
   "success": true,
   "connections": [
-    { "platformId": "twitter-123456789", "username": "myaccount", "displayName": "My Account", "tokenStatus": "unknown" },
+    { "platformId": "twitter-123456789", "username": "myaccount", "displayName": "My Account", "tokenStatus": "valid" },
     { "platformId": "linkedin-ABC123", "username": "My Company", "displayName": "My Company", "tokenStatus": "valid" },
     { "platformId": "threads-789012", "username": "mythreads", "displayName": "My Threads", "tokenStatus": "valid" }
   ]

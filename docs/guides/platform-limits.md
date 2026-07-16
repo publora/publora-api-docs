@@ -63,7 +63,7 @@ All platforms have character limits for text content. Some platforms have differ
 
 1. **Design for the lowest common denominator** when cross-posting. If posting to Twitter and Threads, keep content under 280 characters.
 
-2. **Use threading** for long-form content on Twitter/X and Threads rather than truncating.
+2. **Use threading** for long-form content on Twitter/X. Meta Threads multi-part publishing is disabled, so keep its content within the single-post limit.
 
 3. **Front-load important information** since most platforms truncate visible content with a "see more" link.
 
@@ -83,7 +83,7 @@ Image requirements vary significantly across platforms. Pay particular attention
 | **LinkedIn** | 36,152,320 pixels primary gate; 50 MB ceiling | 10 (multi-image) | JPEG, PNG, GIF, WebP |
 | **YouTube** | - | 0 | Video only for uploads |
 | **Facebook** | 10 MB | 10 | JPEG, PNG, GIF, BMP, TIFF, WebP, AVIF, HEIF, HEIC |
-| **Mastodon** | 16 MB | 4 | JPEG, PNG, GIF, WebP (instance-configurable) |
+| **Mastodon** | 16 MB | 4 | JPEG, PNG, GIF, WebP, HEIF, HEIC, AVIF (instance-configurable) |
 | **Bluesky** | exactly 2,000,000 bytes | 4 | JPEG, PNG, WebP |
 | **Telegram** | 10 MB | 10 | JPEG, PNG, GIF, WebP, BMP |
 | **Pinterest** | 20 MB | 1 | JPEG, PNG — connect-only; not publishable |
@@ -100,12 +100,9 @@ Image requirements vary significantly across platforms. Pay particular attention
 
 ### Server-Side Upload Limits
 
-The multipart upload endpoint enforces server-side limits in addition to platform-specific limits:
+The dashboard-only `/media/process-video` multipart endpoint accepts one `video` file per request and caps it at 512 MB.
 
-- **Maximum 4 files** per upload request
-- **Maximum 512 MB** per file
-
-Presigned URL uploads bypass these server-side limits -- use presigned URLs for larger files.
+Presigned API uploads do not share that dashboard multipart cap; platform limits still apply.
 
 ### Image Processing in Publora
 
@@ -136,7 +133,7 @@ Video restrictions through APIs are often significantly more restrictive than na
 | **Telegram (Bot API)** | 24 hours | 50 MB | MP4, MOV, AVI, MKV, WebM |
 | **Pinterest** | 15 min | 2 GB | MP4, MOV — connect-only; not publishable |
 
-*Mastodon video duration is limited only by file size (~99 MB default).
+*Mastodon video has a 24-hour package cap and an instance-configurable file-size limit (~99 MB default).
 
 ### Platform-Specific Video Restrictions
 

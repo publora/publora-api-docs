@@ -1,6 +1,6 @@
 # Media Uploads
 
-This guide covers how to upload images and videos to Publora using pre-signed S3 URLs, and how to attach media to your scheduled posts.
+This guide covers how to upload images, videos, and PDF document assets to Publora using pre-signed S3 URLs, and how to attach post media to your scheduled posts.
 
 ## How It Works
 
@@ -24,14 +24,17 @@ Media is automatically attached to the post group via the `postGroupId` you prov
 
 ### Supported Formats
 
-| Type | Formats |
+| Upload family | Accepted by `get-upload-url` |
 |---|---|
-| Images | JPEG, PNG, GIF, WebP |
-| Videos | MP4, MOV, AVI, MKV, WebM |
+| Images | Any `image/*` MIME type |
+| Videos | Any `video/*` MIME type |
+| Documents | `application/pdf` |
+
+These are the upload-family gates. Scheduling applies the destination platform's stricter image/video format and count allowlists; PDF files are document assets, not ordinary post-media carousel items.
 
 ### Limits
 
-- **Upload size:** Presigned API uploads have no shared Publora server-side size cap; the destination platform limit applies (for example, YouTube 256 GB and Facebook 2 GB). The dashboard-only `/media/process-video` multipart route has a separate 512 MB multer cap.
+- **Upload size:** The public presigned flow signs one S3 `PutObject`, so its effective upload ceiling is 5 GB before any lower destination-platform limit applies. Platform tables describe validation limits, not a multipart upload capability: files larger than 5 GB are not currently uploadable through the public API. The dashboard-only `/media/process-video` route has a separate 512 MB multer cap.
 - **Per post:** Twitter/X, Bluesky, and Mastodon allow up to **4 images**; Instagram allows **10**, Threads **20**, and LinkedIn, Facebook, and Telegram **10**. Video posts are limited to **1 video** per post. These limits are validated at the scheduling gate.
 - **Instagram restriction:** Instagram does not allow mixing images and videos in the same post. A post must contain either all images or a single video. This is validated at scheduling time.
 - **Threads carousels:** Up to **20 images** (video items in carousels are not currently supported by Publora; standalone video posts work normally)
@@ -762,7 +765,7 @@ console.log('Carousel post scheduled!');
 | Problem | Cause | Solution |
 |---|---|---|
 | S3 upload returns `403 Forbidden` | Pre-signed URL expired or `Content-Type` mismatch | Request a fresh upload URL and ensure the `Content-Type` header matches exactly |
-| `400` when uploading media | Missing required fields (`fileName`, `contentType`, `postGroupId`) | Ensure all required fields are provided. Note: `type` (`"image"` or `"video"`) is effectively required -- while the API does not explicitly validate it, omitting it causes a downstream error during processing. Always include it. |
+| `400` when uploading media | Missing `fileName`, `contentType`, or `postGroupId`, or an unsupported upload family | Supply the three required fields. `type` is optional: when omitted, the API infers `image`, `video`, or `document` from `contentType`. |
 | WebP image looks different after posting | Auto-conversion to JPEG for incompatible platforms | Upload as JPEG directly if quality consistency is critical |
 | Video post fails on TikTok | Video does not meet TikTok requirements (FPS, format, duration) | Check video metadata -- ensure proper FPS, supported codec, and acceptable duration |
 | Upload is slow for large files | File being read entirely into memory | Use streaming upload for large video files |

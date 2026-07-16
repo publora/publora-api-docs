@@ -1,6 +1,6 @@
 # Webhooks
 
-Receive real-time notifications when posts are published, fail, or when tokens are expiring.
+Receive real-time post lifecycle notifications, including scheduled, published, failed, and media-demotion events. `token.expiring` is defined and subscribable but is not currently dispatched, so do not depend on it for token monitoring.
 
 ## Endpoints
 
@@ -65,7 +65,7 @@ POST https://api.publora.com/api/v1/webhooks
 {
   "name": "Production Notifications",
   "url": "https://your-app.com/webhooks/publora",
-  "events": ["post.published", "post.failed", "token.expiring"]
+  "events": ["post.published", "post.failed", "post.demoted"]
 }
 ```
 
@@ -78,7 +78,7 @@ POST https://api.publora.com/api/v1/webhooks
     "_id": "65f8a1b2c3d4e5f6a7b8c9d0",
     "name": "Production Notifications",
     "url": "https://your-app.com/webhooks/publora",
-    "events": ["post.published", "post.failed", "token.expiring"],
+    "events": ["post.published", "post.failed", "post.demoted"],
     "secret": "a1b2c3d4e5f6...your-signing-secret...x9y0z1",
     "isActive": true,
     "createdAt": "2026-02-22T10:00:00.000Z"
@@ -97,7 +97,8 @@ POST https://api.publora.com/api/v1/webhooks
 | `post.scheduled` | Post was scheduled |
 | `post.published` | Post was successfully published |
 | `post.failed` | Post failed to publish |
-| `token.expiring` | Platform token is expiring soon |
+| `post.demoted` | A scheduled post was returned to draft after media changed |
+| `token.expiring` | Defined and subscribable, but not currently dispatched; do not build flows that depend on it |
 
 ---
 
@@ -212,6 +213,7 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 
 ```json
 {
+  "version": "1",
   "event": "post.published",
   "timestamp": "2026-02-22T14:30:00.000Z",
   "data": {
@@ -226,18 +228,32 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 }
 ```
 
+`version` is currently the string `"1"`. The HMAC covers the raw bytes of this complete envelope: `{ version, event, timestamp, data }`.
+
 ### Event-Specific Data
 
 #### post.scheduled
 
 ```json
 {
-  "postId": "507f1f77bcf86cd799439012",
   "postGroupId": "507f1f77bcf86cd799439011",
-  "platform": "linkedin",
-  "scheduledAt": "2026-02-23T09:00:00.000Z"
+  "scheduledTime": "2026-02-23T09:00:00.000Z",
+  "platforms": ["linkedin-ABC123", "twitter-123456789"]
 }
 ```
+
+#### post.demoted
+
+```json
+{
+  "postGroupId": "507f1f77bcf86cd799439011",
+  "reason": "media_changed",
+  "changeType": "attach",
+  "mediaFileId": "507f1f77bcf86cd799439013"
+}
+```
+
+`changeType` is `attach` or `detach`. The event is emitted when that media change demotes a scheduled group back to draft.
 
 #### post.published
 
@@ -285,6 +301,8 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 ```
 
 #### token.expiring
+
+> **Planned shape:** this event is defined and can be selected when creating a webhook, but no production code currently dispatches it. Do not depend on receiving it.
 
 ```json
 {
@@ -338,9 +356,6 @@ app.post('/webhooks/publora', express.raw({ type: 'application/json' }), (req, r
       break;
     case 'post.failed':
       // Alert your team, retry logic, etc.
-      break;
-    case 'token.expiring':
-      // Notify user to reconnect
       break;
   }
 

@@ -103,7 +103,7 @@ GET https://api.publora.com/api/v1/post-logs/:postGroupId
 | `platform` | string/undefined | Platform name (twitter, linkedin, etc.). May be absent for group-level events. |
 | `event` | string | Event type (see table below) |
 | `error` | string or absent | Error message (for failed events). Absent from the response when there is no error (not `null`). |
-| `httpStatus` | number or absent | HTTP status code from platform. Absent from the response when not applicable (not `null`). |
+| `httpStatus` | number/null/absent | HTTP status code from the platform. Scheduler-created logs may store it explicitly as `null`; other logs may omit it when not applicable. |
 | `retryCount` | number or absent | Number of retry attempts. Absent if no retries have occurred -- do not assume it defaults to 0. |
 | `metadata` | object or absent | Additional event data. Absent from the response when there is no metadata (not `null`). |
 | `createdAt` | string | Event timestamp |
@@ -119,7 +119,12 @@ GET https://api.publora.com/api/v1/post-logs/:postGroupId
 | `publish_attempted` | Publish request sent to platform |
 | `publish_succeeded` | Successfully published |
 | `publish_failed` | Publishing failed |
+| `publish_retry` | A publish retry was recorded |
 | `status_changed` | Post status changed |
+| `media_finalize_succeeded` | Attached media finalization succeeded |
+| `media_finalize_failed` | Attached media finalization failed |
+| `linkedin_document_upload_succeeded` | LinkedIn PDF/document upload succeeded |
+| `linkedin_document_upload_failed` | LinkedIn PDF/document upload failed |
 
 ## Examples
 

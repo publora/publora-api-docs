@@ -26,7 +26,7 @@ processingStatus field:  pending --> processing --> finished
 
 - `scheduledTime` must be in **ISO 8601 UTC format** (e.g., `2026-03-15T14:30:00.000Z`). An invalid format returns a `400 "Invalid scheduled time format"` error.
 - A `scheduledTime` that is in the past or exactly equal to `now` (`scheduledTime <= now`) is **never silently accepted**. See [Past scheduled times](#past-scheduled-times) below -- the API either clamps it and warns you, or rejects it.
-- **Starter plan** users can have a maximum of **3 pending (scheduled) posts** at any time. This counts individual platform-level posts, not post groups. A single post group targeting 3 platforms counts as 3 scheduled posts toward this limit. Pro and Premium plan `scheduledPosts` limits are per-connection (100 and 500 respectively), not account-wide like Starter's limit of 3.
+- The `scheduledPosts` limit counts active platform-level posts across the whole workspace for every plan. A post group targeting 3 platforms consumes 3 slots; it is not a per-connection limit.
 - **Schedule horizon:** Starter plan users can schedule up to **7 days** in advance. Pro and Premium plans have no horizon limit.
 - **Monthly post limits:** Starter allows **15 posts/month** (account-wide), Pro allows **100 posts/month per connection**, Premium allows **500 posts/month per connection**. Note: scheduled posts are counted per-platform post, not per post group. A single post group targeting 3 platforms counts as 3 posts toward your limit.
 - **Starter plan can post to any of the 10 platforms** (no platform restriction).
@@ -49,6 +49,7 @@ The 5-minute tolerance for clock skew is permanent. The 5-minutes-or-more case i
 {
   "success": true,
   "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d",
+  "scheduledTime": "2026-03-15T14:30:02.104Z",
   "warnings": [
     {
       "code": "SCHEDULED_TIME_COERCED",
@@ -100,7 +101,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 });
 
 const data = await response.json();
-// Response: { success: true, postGroupId: "664f1a2b3c4d5e6f7a8b9c0d" }
+// Response: { success: true, postGroupId: "664f1a2b3c4d5e6f7a8b9c0d", scheduledTime: "2026-03-15T14:30:00.000Z" }
 console.log('Post group created:', data.postGroupId);
 ```
 
@@ -123,7 +124,7 @@ response = requests.post(
 )
 
 data = response.json()
-# Response: { "success": true, "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d" }
+# Response: { "success": true, "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d", "scheduledTime": "2026-03-15T14:30:00.000Z" }
 print(f"Post group created: {data['postGroupId']}")
 ```
 
@@ -208,11 +209,11 @@ const scheduleResponse = await fetch(
 );
 
 const scheduled = await scheduleResponse.json();
-// Response: { message: "Post updated successfully", postGroup: { _id: "...", status: "scheduled", scheduledTime: "2026-03-20T09:00:00.000Z" } }
+// Response: { success: true, message: "Post updated successfully", scheduledTime: "2026-03-20T09:00:00.000Z", postGroup: { _id: "...", status: "scheduled", scheduledTime: "2026-03-20T09:00:00.000Z" } }
 console.log('Now scheduled:', scheduled.postGroup.status); // "scheduled"
 ```
 
-> **Note:** The `update-post` response includes `message: "Post updated successfully"` and a `postGroup` object containing `_id`, `status`, and optionally `scheduledTime` (present when the post is scheduled).
+> **Note:** The `update-post` response always includes top-level `scheduledTime` (`null` for a draft), plus `message: "Post updated successfully"` and a `postGroup` object containing `_id`, `status`, and optionally its nested `scheduledTime` when scheduled.
 
 **Python (requests)**
 
@@ -494,7 +495,7 @@ console.log(`Successfully scheduled ${results.length} posts for the week.`);
 
 | Problem | Cause | Solution |
 |---|---|---|
-| `400 "Invalid scheduled time format"` | The `scheduledTime` is not valid ISO 8601 | Ensure the time is formatted as `YYYY-MM-DDTHH:mm:ss.sssZ`. Note: past times are silently rounded up to `now` rather than rejected |
+| `400 "Invalid scheduled time format"` | The `scheduledTime` is not valid ISO 8601 | Use `YYYY-MM-DDTHH:mm:ss.sssZ`. Past times follow the warned clamp/strict-rejection policy above; they are never silently rounded. |
 | `403` limit exceeded | More than 3 pending posts on the Starter plan, or monthly limit reached | Wait for existing posts to publish, delete some, or upgrade your plan. The response includes a structured `LimitExceededError` with `metric`, `limit`, `used`, and `remaining` fields |
 | Post stuck in `scheduled` status | The scheduled time has not arrived yet | Check the `scheduledTime` field -- the scheduler runs every minute |
 | `400 "Cannot update post: post is currently in {status} status"` | Trying to reschedule a post that is in a non-editable status | Only `draft` and `scheduled` posts can be updated |

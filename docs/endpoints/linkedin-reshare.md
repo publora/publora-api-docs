@@ -22,7 +22,7 @@ POST https://api.publora.com/api/v1/linkedin-reshare
 | `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`). Determines who authors the reshare — a personal connection reshares as the member, a company-page connection reshares as the organization. |
 | `parent` | string | Yes | URN of the post to reshare. Must be a `urn:li:share:<id>` or `urn:li:ugcPost:<id>`. |
 | `commentary` | string | No | Text added above the reshared post. Max **3000** characters. Defaults to empty (a plain reshare with no added text). |
-| `visibility` | string | No | One of `PUBLIC` or `CONNECTIONS`. Case-insensitive. Defaults to `PUBLIC`. |
+| `visibility` | string | No | `PUBLIC` or `CONNECTIONS` (case-insensitive), default `PUBLIC`. Organization/company-page reshares must use `PUBLIC`; `CONNECTIONS` is rejected. |
 
 > **Note:** The reshare is authored automatically as the correct entity for the connection — `urn:li:person:*` for a personal profile, `urn:li:organization:*` for a company page. You do not pass the author yourself.
 
@@ -125,6 +125,7 @@ await axios.post(
 | 400 | `"commentary cannot exceed 3000 characters"` | `commentary` is longer than 3000 characters |
 | 400 | `"visibility must be a string"` | `visibility` is not a string |
 | 400 | `"visibility must be one of: PUBLIC, CONNECTIONS"` | `visibility` is not a valid value |
+| 400 | `"LinkedIn organization reposts cannot use CONNECTIONS visibility; choose PUBLIC"` | A company-page connection requested member-only visibility |
 | 400 | `"Invalid platformId"` | `platformId` format is invalid |
 | 400 | `"LinkedIn company connection is missing organizationId. Please reconnect the LinkedIn page."` | Company-page connection has no stored organization id — reconnect the page |
 | 401 | `"API key is required"` | No `x-publora-key` header provided |

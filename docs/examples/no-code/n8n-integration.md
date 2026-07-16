@@ -447,9 +447,9 @@ return [{ json: { action, message, statusCode } }];
 
 | Status | Meaning | Solution |
 |--------|---------|----------|
-| 400 | Bad request | Check JSON syntax and required fields |
+| 400 | Bad request (including an unknown platform ID) | Check JSON syntax, required fields, and IDs from platform-connections |
 | 401 | Unauthorized | Verify API key in credentials |
-| 404 | Not found | Check platform IDs exist |
+| 404 | Resource not found | Check post-group or webhook resource IDs |
 | 429 | Rate limited | Add Wait node between requests |
 
 ---
@@ -514,7 +514,8 @@ const connections = $input.first().json.connections;
 
 console.log('Platform IDs:');
 connections.forEach(conn => {
-  console.log(`  ${conn.platform}: ${conn.platformId} (${conn.username})`);
+  const platform = conn.platformId.split('-', 1)[0];
+  console.log(`  ${platform}: ${conn.platformId} (${conn.username})`);
 });
 
 return connections.map(conn => ({ json: conn }));

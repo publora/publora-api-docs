@@ -53,7 +53,8 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "postedId": "urn:li:share:7654321",
       "permalink": null
     }
-  ]
+  ],
+  "media": []
 }
 ```
 
@@ -67,8 +68,9 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 | `platforms` | array | The effective platform list stored on the group (compound `platform-platformId` form) |
 | `platformSettings` | object | The stored per-platform settings (`{}` if none were stored) |
 | `posts` | array | One entry per platform target (see below) |
+| `media` | array | Attached media inventory in group order; always present and empty when none is attached |
 
-> **Read-after-write:** `scheduledTime`, `platforms` and `platformSettings` echo **what the server actually stored**, not what you sent. The server may adjust your requested schedule time — see [past scheduled times](../guides/scheduling.md#past-scheduled-times) — and previously there was no way to verify that from the API. Read these back whenever the exact stored values matter.
+> **Read-after-write:** `scheduledTime`, `platforms` and `platformSettings` echo **what the server actually stored**, not what you sent. A permitted past-time clamp may change `scheduledTime`; schedule-horizon violations are rejected, not adjusted. See [past scheduled times](../guides/scheduling.md#past-scheduled-times).
 
 ### Per-platform fields (`posts[]`)
 
@@ -88,7 +90,7 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 
 > **Note:** With `.lean()`, the `error` field may be **absent** (undefined) for non-failed posts if the error subdocument was never populated — it will not necessarily be `null`. When a post has failed, the `error` field contains an error object with details about the failure.
 
-> **Note:** For draft and scheduled posts, `postedId` is `null` (present, but empty) since the post has not yet been published to the platform. Only published posts carry a non-null `postedId`.
+> **Note:** For draft and scheduled posts, `postedId` is `null` (present, but empty) since the post has not yet been published to the platform. Published posts normally carry a non-null `postedId`; a partially published X thread is the exception where a `failed` target can retain the head tweet ID in `postedId`.
 
 > **Note:** The `platformId` field returns the raw platform ID (e.g., `"123456789"`), not the compound format used by list-posts (e.g., `"twitter-123456789"`). See the [list-posts](./list-posts) endpoint for details on this difference.
 

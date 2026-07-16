@@ -55,8 +55,7 @@ from datetime import timedelta
 from .publora import Publora
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
-def schedule_post(self, content, platform_ids, request_id):
-    scheduled_time = (timezone.now() + timedelta(minutes=5)).isoformat()
+def schedule_post(self, content, platform_ids, request_id, scheduled_time):
     return Publora().request(
         "POST",
         "create-post",
@@ -67,9 +66,13 @@ def schedule_post(self, content, platform_ids, request_id):
         },
         idempotency_key=f"django-{request_id}",
     )
+
+def enqueue_scheduled_post(content, platform_ids, request_id):
+    scheduled_time = (timezone.now() + timedelta(minutes=5)).isoformat()
+    schedule_post.delay(content, platform_ids, request_id, scheduled_time)
 ```
 
-Reuse the same idempotency key when Celery retries the same logical operation.
+Compute `scheduled_time` before enqueueing it. Celery retries must reuse both the same timestamp and the same idempotency key; recomputing the timestamp changes the request body and returns `422 IDEMPOTENCY_KEY_CONFLICT`.
 
 ## Django webhook view
 

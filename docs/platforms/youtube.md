@@ -239,7 +239,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -267,7 +267,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -286,7 +286,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       }
     }
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -311,7 +311,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** YouTube requires a video. First create the post, then upload the video using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -341,7 +341,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -369,7 +369,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -388,7 +388,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       }
     }
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -413,7 +413,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Upload with Auto-Generated Title
@@ -439,7 +439,7 @@ const data = await response.json();
 // Note: title defaults to an empty string at post creation — the publisher service may derive one from content at publish time. Include platformSettings.youtube.title to set a custom one
 // Description will be the full content
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -462,7 +462,7 @@ response = requests.post(
 data = response.json()
 # Note: title defaults to an empty string at post creation — the publisher service may derive one from content at publish time. Include platformSettings.youtube.title to set a custom one
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -475,7 +475,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Weekly Vlog: What I learned shipping 3 features in 5 days. This week was intense but incredibly productive. We managed to ship the new analytics dashboard, the team collaboration feature, and a complete redesign of the onboarding flow.",
     "platforms": ["youtube-UCxxxxxxxx"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -495,7 +495,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 
 // Note: title defaults to an empty string at post creation — the publisher service may derive one from content at publish time. Include platformSettings.youtube.title to set a custom one
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks

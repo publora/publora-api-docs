@@ -184,6 +184,7 @@ const response = await fetch('https://api.publora.com/api/v1/webhooks', {
     'x-publora-key': 'sk_YOUR_API_KEY'
   },
   body: JSON.stringify({
+    name: 'Production Notifications',
     url: 'https://your-server.com/webhook',
     events: ['post.published', 'post.failed']
   })
@@ -258,7 +259,8 @@ Available events:
 - `post.scheduled` - Post was scheduled
 - `post.published` - Post was successfully published
 - `post.failed` - Post failed to publish
-- `token.expiring` - Platform token is about to expire
+- `post.demoted` - Scheduled post returned to draft after media attach/detach
+- `token.expiring` - Defined and subscribable, but not currently dispatched; do not depend on it
 
 ## Error Handling
 

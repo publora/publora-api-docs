@@ -39,7 +39,7 @@ Where `{openId}` is the TikTok `open_id` assigned during account connection via 
 |------|-----------|--------|
 | Text only | No | TikTok requires media (a video or photo) |
 | Images | Yes | Photo carousel, up to 35 images (JPEG, PNG, WebP) |
-| Videos | Yes | MP4, MOV, WebM, AVI, MKV formats (Publora upload layer); TikTok's API may reject formats other than MP4/MOV/WebM, minimum 23 FPS |
+| Videos | Yes | MP4, MOV, or WebM; minimum 23 FPS |
 
 ## Platform-Specific Settings
 
@@ -128,7 +128,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -161,7 +161,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -185,7 +185,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       }
     }
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -215,7 +215,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** TikTok requires media — a video or a photo carousel. First create the post, then upload your media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -250,7 +250,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -283,7 +283,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -307,7 +307,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       }
     }
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -337,14 +337,14 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks
 
 - **Media required**: TikTok does not support text-only posts; attach either a photo carousel (up to 35 images) or one video.
 - **Minimum 23 FPS**: Videos must have a frame rate of at least 23 frames per second. Videos below this threshold will be rejected by TikTok.
-- **Supported formats**: Publora's upload layer accepts MP4, MOV, WebM, AVI, and MKV video formats. However, TikTok's own API may reject formats other than MP4, MOV, and WebM, so those three are recommended for reliable publishing.
+- **Supported formats**: Publora's scheduling validator accepts MP4, MOV, and WebM. A presigned URL can be issued for a broader `video/*` MIME type, but that upload-layer acceptance does not make AVI or MKV publishable.
 - **Commercial content disclosure**: If your video promotes a brand or is part of a paid partnership, you must set the appropriate commercial content flags. Failing to do so may violate TikTok's community guidelines.
 - **Brand content dependencies**: Setting `commercialContent` to `true` requires at least one of `brandOrganic` or `brandedContent` to also be `true`. Publora will return a validation error if `commercialContent` is enabled without specifying which type applies.
 - **Viewer setting restrictions**: Some viewer settings may limit the interaction options available. For example, `SELF_ONLY` posts cannot receive comments from others.
@@ -392,7 +392,7 @@ These limits apply specifically to the TikTok Content Posting API and may differ
 | Maximum duration | **10 minutes (600 seconds)** -- actual limit is fetched dynamically from TikTok's creator info API and may vary per account | 60 minutes |
 | Minimum duration | 3 seconds | 3 seconds |
 | Maximum file size | 4 GB | 4 GB |
-| Supported formats | MP4, MOV, WebM (TikTok API); AVI, MKV also accepted by Publora upload layer | MP4, MOV, WebM |
+| Supported formats | MP4, MOV, WebM | MP4, MOV, WebM |
 | Minimum frame rate | 23 FPS | 23 FPS |
 
 ### Rate Limits
@@ -401,7 +401,7 @@ TikTok-side posting quotas are account-dependent, may change without notice, and
 
 ### Publishing Notes
 
-- **Video or photo**: TikTok accepts a single video (MP4, MOV, WebM), or a photo carousel of up to 35 images (JPEG, PNG, WebP). Other image formats are transcoded automatically where possible.
+- **Video or photo**: TikTok accepts a single video (MP4, MOV, WebM), or a photo carousel of up to 35 images (JPEG, PNG, WebP). Other image formats fail scheduling validation with `400 MEDIA_TYPE_NOT_SUPPORTED`.
 - **Privacy is account-dependent**: The viewer settings available to an account are set by TikTok from that account's configuration (see [Viewer Settings](#viewer-settings)). Public accounts can post at any level, including `PUBLIC_TO_EVERYONE`.
 - **Rate limits**: TikTok-side quotas are advisory, account-dependent, and may change; Publora does not contractually enforce a posts-per-day number.
 

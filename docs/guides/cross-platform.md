@@ -72,7 +72,7 @@ Publora applies sensible defaults for platform-specific settings:
 - **TikTok:** Default privacy and interaction settings are applied automatically.
 - **Instagram:** Video posts are published as **Reels** by default. Set `videoType: "STORIES"` to post as a Story instead. An optional `coverUrl` (public JPEG URL) sets a custom Reels cover.
 - **YouTube:** Videos are set to **public** visibility by default.
-- **LinkedIn:** Repost settings can specify the parent post URN and `PUBLIC` or `CONNECTIONS` visibility.
+- **LinkedIn:** Repost settings can specify the parent post URN and `PUBLIC` or `CONNECTIONS` visibility. `CONNECTIONS` is personal-profile-only; company-page reposts must use `PUBLIC` and otherwise return `400`.
 
 ### Response Status Code
 

@@ -440,7 +440,7 @@ LinkedIn analytics may take **up to 24 hours** to fully populate. Querying immed
 
 ### Caching
 
-Publora caches analytics for 30 minutes to improve performance and reduce LinkedIn API calls. The `cached` field in the response indicates if data was served from cache.
+Publora caches post analytics for 2 hours to reduce LinkedIn API calls. The `cached` field indicates if data was served from cache.
 
 ### Finding the postedId
 

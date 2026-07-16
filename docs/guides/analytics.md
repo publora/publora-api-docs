@@ -117,7 +117,7 @@ curl -X POST https://api.publora.com/api/v1/linkedin-post-statistics \
 }
 ```
 
-Results are cached for 30 minutes. `cached: true` means the data was served from cache.
+Post statistics are cached for 2 hours. `cached: true` means the data was served from cache.
 
 ### Get a Single Metric
 
@@ -490,7 +490,7 @@ LinkedIn analytics take time to populate. Wait at least 24 hours after publishin
 
 ### 2. Use Caching Wisely
 
-Results are cached for 30 minutes (TOTAL) or 15 minutes (DAILY). The `cached` field in the response tells you if data was served from cache.
+Account statistics are cached for 2 hours (`TOTAL`) or 1 hour (`DAILY`). The `cached` field tells you if data was served from cache.
 
 ### 3. Calculate Engagement Rate
 

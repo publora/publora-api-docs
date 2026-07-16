@@ -67,7 +67,7 @@ When `period="daily"`, returns daily follower growth data:
 }
 ```
 
-Results are cached for 30 minutes. `cached: true` means the data was served from cache.
+Results are cached for 2 hours. `cached: true` means the data was served from cache.
 
 ## Examples
 

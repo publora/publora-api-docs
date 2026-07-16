@@ -195,10 +195,10 @@ When validation errors occur, the API returns a `400` status code with a structu
 
 | Code | Description | Resolution |
 |---|---|---|
-| `CONTENT_TOO_LONG` | Content exceeds the platform's character limit | Shorten the content or use threading where supported. **Note:** On threading-capable platforms (Twitter, Threads) with threading enabled, this is a **warning** (content will be auto-threaded). On other platforms or when threading is disabled, it is an **error**. |
+| `CONTENT_TOO_LONG` | Content exceeds the platform's character limit | Shorten the content or use threading where supported. **Note:** On Twitter/X with threading enabled, this is a **warning** and content is auto-threaded. Meta Threads has `supportsThreading: false`, so over-limit content remains an **error**. |
 | `CONTENT_TOO_SHORT` | Content is below the minimum required length | Add more content |
 | `CONTENT_REQUIRED` *(reserved — not currently emitted)* | Text content is required but missing | Add text content to the post |
-| `CONTENT_OR_MEDIA_REQUIRED` *(reserved — not currently emitted)* | Either text or media is needed | Add content or attach media |
+| `CONTENT_OR_MEDIA_REQUIRED` | Either text or media is needed | Add content or attach media |
 | `THREAD_PART_TOO_LONG` | A single thread part exceeds the platform's per-part character limit | Break the thread part into smaller segments. (This code is defined in the `@publora/platform-limits` package. Threading validation may occur in a separate service.) |
 | `INVALID_PLATFORM_CONTENT` | Content contains elements not supported by the platform | Remove unsupported content elements. (This error code is defined in the codebase but not currently emitted by the validation service.) |
 
@@ -211,7 +211,9 @@ When validation errors occur, the API returns a `400` status code with a structu
 | `MEDIA_COUNT_EXCEEDED` | Too many media files attached | Reduce the number of files |
 | `MEDIA_TYPE_NOT_SUPPORTED` | File format not supported by the platform | Convert to a supported format |
 | `MEDIA_DIMENSIONS_INVALID` | Image dimensions outside allowed range | Resize the image |
-| `IMAGES_NOT_SUPPORTED` *(reserved — not currently emitted)* | Platform does not accept images (YouTube) | Use a video instead |
+| `MEDIA_ASPECT_RATIO_INVALID` | Media aspect ratio is outside a platform's hard range | Crop or re-encode within the documented range |
+| `IMAGES_NOT_SUPPORTED` | Platform does not accept attached images (for example, YouTube) | Use a video instead |
+| `DOCUMENTS_NOT_SUPPORTED` | Target does not support an attached PDF/document | Remove the document or target LinkedIn |
 
 ### Video Errors
 
@@ -277,17 +279,18 @@ When posting to Instagram without media:
 }
 ```
 
-### Validation Error: Video Required for TikTok
+### Validation Error: Video Required for YouTube
 
-When scheduling TikTok without required media:
+When scheduling YouTube with an image instead of a required video:
 
 **Request:**
 
 ```json
 {
   "content": "New product announcement!",
-  "platforms": ["tiktok-789"],
-  "media": [{ "type": "image", "url": "https://..." }]
+  "platforms": ["youtube-789"],
+  "mediaUrls": ["https://example.com/photo.jpg"],
+  "scheduledTime": "<FUTURE_ISO_8601_UTC>"
 }
 ```
 
@@ -305,12 +308,19 @@ When scheduling TikTok without required media:
         "message": "YouTube requires a video",
         "field": "video",
         "severity": "error"
+      },
+      {
+        "platform": "youtube",
+        "code": "IMAGES_NOT_SUPPORTED",
+        "message": "YouTube does not support image posts",
+        "field": "media",
+        "severity": "error"
       }
     ],
     "warnings": [],
     "summary": {
       "affectedPlatforms": ["youtube"],
-      "errorCount": 1,
+      "errorCount": 2,
       "warningCount": 0
     }
   }

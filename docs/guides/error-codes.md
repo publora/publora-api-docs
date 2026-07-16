@@ -32,7 +32,7 @@ These top-level codes are `LimitExceededError` responses with HTTP 403.
 | `SCHEDULE_HORIZON_REACHED` | The requested time is farther ahead than the plan permits | No, unchanged | Choose an earlier time or upgrade |
 | `SCHEDULED_POST_LIMIT_REACHED` | The active scheduled-post queue is full | After capacity frees | Wait for or delete an existing scheduled post, or upgrade |
 | `POST_LIMIT_REACHED` | The monthly account/connection post allowance is exhausted | After reset or upgrade | Wait for `periodEnd` or upgrade |
-| `PLATFORM_NOT_AVAILABLE` | The plan does not allow one or more selected platforms | No, unchanged | Remove the platforms listed in `context.disallowedPlatforms` or upgrade |
+| `PLATFORM_NOT_AVAILABLE` | The plan does not allow one or more selected platforms | No, unchanged | Remove the platforms listed in the top-level `disallowedPlatforms` array or upgrade |
 
 ## Media completion codes
 

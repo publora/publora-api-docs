@@ -154,10 +154,16 @@ The MCP server returns one of these two 401 responses if the request is missing 
 | `API key required. Use Authorization: Bearer sk_<your_key> or x-publora-key header.` | No `Authorization` or `x-publora-key` header at all. |
 | `Malformed API key. Publora keys start with sk_ and are 20-200 characters long.` | A key was sent, but it doesn't match the expected shape (e.g. you pasted the placeholder `sk_YOUR_API_KEY`, or the value is truncated). |
 
-Both responses include:
+Both responses include a `docs` field in the JSON body. The authentication challenge depends on the deployment and failure:
 
-- A `docs` field in the JSON body pointing back to this documentation site.
-- A `WWW-Authenticate: Bearer realm="publora", error="invalid_token", error_description="..."` header (RFC 6750). Inspect it with `curl -v` for the actionable message:
+| Request/deployment | `WWW-Authenticate` |
+|---|---|
+| Missing key, OAuth-enabled deployment (including public `mcp.publora.com`) | Bearer challenge pointing to the protected-resource metadata |
+| Missing key, static-key-only deployment | Absent |
+| Malformed key, either mode | Absent |
+| Well-formed but invalid key, either mode | Absent |
+
+Inspect the JSON body with:
 
 ```bash
 curl -v -X POST https://mcp.publora.com \
@@ -386,11 +392,11 @@ If persistent:
 
 ## Plan Limit Errors
 
-### "Post limit reached" / "Schedule limit reached"
+### "Post limit reached" / "Scheduled post limit reached"
 
 **Cause:** You have exceeded a plan-based limit (monthly posts, connections, scheduled posts, or schedule horizon).
 
-**Note:** The MCP server wraps Publora API limit errors and returns them in the `.error` field of the response (e.g., `"Post limit reached"`, `"Schedule limit reached"`). The underlying API uses HTTP `403 Forbidden`, but MCP clients will see the descriptive error string, not the HTTP status code.
+**Note:** MCP surfaces the full API error in the tool exception. Match stable codes such as `POST_LIMIT_REACHED` or `SCHEDULED_POST_LIMIT_REACHED`; the corresponding API `error` values are `"Post limit reached"` and `"Scheduled post limit reached"`.
 
 **Solutions:**
 
@@ -407,7 +413,7 @@ If persistent:
 
 ### "Unknown MCP server" or "auth required" Error
 
-**Cause:** mcporter expects the Claude Desktop / Cursor-compatible top-level config key `mcpServers` (not `servers`). With the wrong key, the file fails schema validation and mcporter falls back to treating the server as needing OAuth — which Publora MCP does not support.
+**Cause:** mcporter expects the Claude Desktop / Cursor-compatible top-level config key `mcpServers` (not `servers`). With the wrong key, the file fails schema validation and mcporter falls back to OAuth. Publora MCP supports OAuth, but its consent page is interactive, so a headless mcporter process cannot complete that flow.
 
 **Solution 1: Use the correct config file shape**
 

@@ -40,7 +40,7 @@ Where `{did}` is your Bluesky Decentralized Identifier (DID), assigned during ac
 | Text | Yes | 300 characters |
 | Images | Yes | Up to 4 per post, all images converted to JPEG before upload |
 | Videos | Yes | MP4 format |
-| Alt text | Yes | Supported for images |
+| Alt text | No via REST | The API media model does not persist the `alt` field read by the publisher |
 | Rich text | Yes | Hashtags and URLs auto-detected |
 
 ## Rich Text Facets
@@ -72,7 +72,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -94,7 +94,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -107,7 +107,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Just launched our new API documentation! Check it out at https://docs.example.com #devtools #api",
     "platforms": ["bluesky-did:plc:abc123xyz"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -128,7 +128,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 console.log(response.data);
 ```
 
-### Post with an Image and Alt Text
+### Create an Image-post Draft
 
 **JavaScript (fetch)**
 
@@ -141,14 +141,13 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
-    platforms: ['bluesky-did:plc:abc123xyz'],
-    altTexts: ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
+    platforms: ['bluesky-did:plc:abc123xyz']
   })
 });
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** To attach media to a Bluesky post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -166,14 +165,13 @@ response = requests.post(
     },
     json={
         'content': 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
-        'platforms': ['bluesky-did:plc:abc123xyz'],
-        'altTexts': ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
+        'platforms': ['bluesky-did:plc:abc123xyz']
     }
 )
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -184,10 +182,9 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic",
-    "platforms": ["bluesky-did:plc:abc123xyz"],
-    "altTexts": ["Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time"]
+    "platforms": ["bluesky-did:plc:abc123xyz"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -197,8 +194,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Our new dashboard is live! Here is a preview of the analytics view. #buildinpublic',
-  platforms: ['bluesky-did:plc:abc123xyz'],
-  altTexts: ['Screenshot of the analytics dashboard showing charts for user growth, engagement rate, and revenue over time']
+  platforms: ['bluesky-did:plc:abc123xyz']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -207,7 +203,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with Multiple Images
@@ -223,17 +219,13 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: 'Before and after our office renovation. What a transformation!',
-    platforms: ['bluesky-did:plc:abc123xyz'],
-    altTexts: [
-      'Office space before renovation showing old desks and dim lighting',
-      'Office space after renovation with modern furniture and bright natural light'
-    ]
+    platforms: ['bluesky-did:plc:abc123xyz']
   })
 });
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -249,17 +241,13 @@ response = requests.post(
     },
     json={
         'content': 'Before and after our office renovation. What a transformation!',
-        'platforms': ['bluesky-did:plc:abc123xyz'],
-        'altTexts': [
-            'Office space before renovation showing old desks and dim lighting',
-            'Office space after renovation with modern furniture and bright natural light'
-        ]
+        'platforms': ['bluesky-did:plc:abc123xyz']
     }
 )
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -270,13 +258,9 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "Before and after our office renovation. What a transformation!",
-    "platforms": ["bluesky-did:plc:abc123xyz"],
-    "altTexts": [
-      "Office space before renovation showing old desks and dim lighting",
-      "Office space after renovation with modern furniture and bright natural light"
-    ]
+    "platforms": ["bluesky-did:plc:abc123xyz"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -286,11 +270,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: 'Before and after our office renovation. What a transformation!',
-  platforms: ['bluesky-did:plc:abc123xyz'],
-  altTexts: [
-    'Office space before renovation showing old desks and dim lighting',
-    'Office space after renovation with modern furniture and bright natural light'
-  ]
+  platforms: ['bluesky-did:plc:abc123xyz']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -299,26 +279,26 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks
 
 - **App password required**: You must use a Bluesky app password, not your main account password. Generate one at Settings > App Passwords in the Bluesky app.
-- **All images converted to JPEG**: All uploaded images (including PNG, WebP, GIF, and other formats) are converted to JPEG via sharp before uploading. JPEG is the only format sent to Bluesky regardless of the input format.
+- **Accepted image formats**: JPEG, PNG, and WebP pass scheduling validation; the publisher converts those accepted inputs to JPEG before upload.
 - **Up to 4 images**: A maximum of 4 images can be attached to a single post.
 - **Rich text auto-detection**: Publora automatically detects hashtags (`#tag`) and URLs in your content and creates the correct Bluesky facets with proper byte offsets. You do not need to do any special formatting.
 - **Byte offset precision**: Bluesky facets use byte offsets, not character offsets. This means multi-byte characters (emojis, CJK characters, etc.) are handled correctly by Publora, but if you are debugging, be aware of this distinction.
 - **Alt text mapping**: The Bluesky publisher reads an `alt` property from media objects, but the API media model does not persist that property. An `altTexts` value sent to `create-post` is not processed.
 - **DID-based platform ID**: Unlike other platforms that use numeric IDs, Bluesky uses a DID (Decentralized Identifier) format like `did:plc:abc123xyz`.
-- **`test-connection` may report missing credentials**: The platform connection validator checks for both `accessToken` and `username` fields, but Bluesky connections store a `password` (app password) instead of `accessToken`. As a result, calling `test-connection` for a Bluesky account will always report that the connection lacks credentials. This is a known limitation -- the connection will still work for posting.
+- **Connection testing uses the app password**: `test-connection` validates the stored username/app-password pair by logging in to Bluesky; no OAuth access token is required.
 
 ## Character Limits
 
 | Element | Limit |
 |---------|-------|
 | Post body | 300 characters |
-| Alt text | 2,000 characters per image (Bluesky limit; not enforced by Publora) |
+| Alt text | Unavailable through Publora REST; Bluesky's 2,000-character platform limit is therefore not an API-settable contract |
 | Images | Up to 4 per post |
 
 ## API Limits
@@ -330,7 +310,7 @@ console.log(response.data);
 **Image Limits:**
 - **Max size: exactly 2,000,000 bytes** (decimal, not 2 MiB)
 - Max count: 4
-- Input formats: JPEG, PNG, WebP (all converted to JPEG before upload to Bluesky). Additional formats supported by sharp (GIF, TIFF, BMP) are also accepted and converted to JPEG.
+- Input formats: JPEG, PNG, WebP (converted to JPEG before upload to Bluesky). GIF, TIFF, and BMP fail scheduling validation.
 
 **Video Limits:**
 - Max duration: 3 minutes

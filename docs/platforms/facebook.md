@@ -39,7 +39,7 @@ Where `{pageId}` is your Facebook Page ID assigned during account connection via
 |------|-----------|--------|
 | Text | Yes | 2,200 characters (Publora frontend limit; see note below) |
 | Images | Yes | Multiple supported (carousel/album), WebP auto-converted to JPEG |
-| Videos | Yes | MP4, MOV, AVI, MKV, WebM formats |
+| Videos | Yes | MP4 and MOV formats |
 | Multiple Pages | Yes | Each page has its own platform ID |
 
 ## Token Management
@@ -69,7 +69,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -91,7 +91,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -104,7 +104,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "We are thrilled to announce our new product launch! After months of development, we are finally ready to share what we have been building. Visit our website to learn more and sign up for early access.",
     "platforms": ["facebook-112233445566"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -123,7 +123,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ### Post with Multiple Images
@@ -145,7 +145,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -167,7 +167,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -180,7 +180,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
     "content": "Highlights from our company retreat last weekend! Great team, great memories.",
     "platforms": ["facebook-112233445566"]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -199,7 +199,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 > **Note:** To attach media to a Facebook post, first create the post, then upload media using the [media upload workflow](../guides/media-uploads.md) with the returned `postGroupId`.
@@ -226,7 +226,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 const data = await response.json();
 console.log(data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Python (requests)**
@@ -251,7 +251,7 @@ response = requests.post(
 
 data = response.json()
 print(data)
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **cURL**
@@ -267,7 +267,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       "facebook-778899001122"
     ]
   }'
-# Response: { "success": true, "postGroupId": "abc123..." }
+# Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 **Node.js (axios)**
@@ -289,7 +289,7 @@ const response = await axios.post('https://api.publora.com/api/v1/create-post', 
 });
 
 console.log(response.data);
-// Response: { "success": true, "postGroupId": "abc123..." }
+// Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
 ## Platform Quirks
@@ -329,7 +329,7 @@ These limits apply when posting via the Facebook Graph API (and by extension, Pu
 |----------|-------|
 | Max size | 10 MB (PNG recommended max 1 MB to avoid pixelation) |
 | Max count | Up to 10 images per post |
-| Formats | JPEG, PNG, GIF, BMP, TIFF |
+| Formats | JPEG, PNG, GIF, BMP, TIFF, WebP, AVIF, HEIF, HEIC |
 
 ### Video Limits (API)
 

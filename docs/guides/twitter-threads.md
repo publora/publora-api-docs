@@ -45,7 +45,7 @@ This will automatically:
 - Split into 4+ tweets at sentence boundaries
 - Add `(1/N)` numbering to each tweet
 - Post each as a reply to the previous
-- Return all tweet IDs
+- Return the Publora post-group ID; per-part tweet IDs remain internal
 
 ## How Twitter Threads Work
 
@@ -137,8 +137,8 @@ The fix? Treat Twitter like a dev log, not a highlight reel. (5/5)`;
 
 | Account Type | Per-Tweet Limit | Thread Marker Space |
 |-------------|-----------------|---------------------|
-| Standard | 280 characters | ~8 chars for `(X/N)` |
-| X Premium | 25,000 characters | ~8 chars for `(X/N)` |
+| Standard | 280 characters | 10 characters reserved for `(X/N)` |
+| X Premium | 25,000 characters | 10 characters reserved for `(X/N)` |
 
 Publora automatically reserves space for thread markers.
 
@@ -213,7 +213,7 @@ await fetch(uploadUrl, {
 
 ## Scheduling Twitter Threads
 
-> **Note:** `scheduledTime` is **optional** in the REST API (omitting it creates a draft). However, in the MCP server schema, `scheduledTime` is **required**.
+> **Note:** `scheduledTime` is optional in both REST and MCP; omitting it creates a draft.
 
 Schedule a thread for optimal posting time:
 
@@ -240,18 +240,20 @@ X-side pricing and posting quotas change independently and are not a Publora num
 
 ### Partial Thread Failure
 
-If tweets 1-3 succeed but tweet 4 fails:
+The public API does not return a per-part result object. It stores one platform target for the X connection. On a partial thread failure, that target is failed with `THREAD_PARTIALLY_PUBLISHED`, and `postedId` contains the head tweet ID; the remaining per-part IDs stay internal. A group with only this X target has group status `failed`.
 
 ```json
 {
-  "status": "partially_published",
-  "error": "Twitter thread partially published (3/5): Rate limit exceeded",
-  "publishedIds": ["123", "456", "789"],
-  "headTweetId": "123"
+  "platform": "twitter",
+  "platformId": "123456",
+  "status": "failed",
+  "postedId": "1234567890",
+  "permalink": null,
+  "error": { "code": "THREAD_PARTIALLY_PUBLISHED", "message": "Twitter thread partially published (2/5): Rate limit exceeded", "retryable": false }
 }
 ```
 
-The published tweets remain live. Publora saves progress so you know which parts failed.
+Already-published tweets can remain live, but the public response exposes only the head ID and does not enumerate the remaining IDs or identify individual failed parts.
 
 ### Common Errors
 

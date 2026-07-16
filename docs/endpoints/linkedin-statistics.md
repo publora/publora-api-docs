@@ -65,7 +65,7 @@ Use either `queryType` (single) or `queryTypes` (multiple), not both.
 }
 ```
 
-The `cachedMetrics` field lists which individual metrics were served from cache. It is only present when at least one metric was served from cache (i.e., the array is non-empty). Results are cached for 30 minutes. `cached: true` means at least one metric was served from cache.
+The `cachedMetrics` field lists which individual metrics were served from cache. It is only present when at least one metric was served from cache (i.e., the array is non-empty). Results are cached for 2 hours. `cached: true` means at least one metric was served from cache.
 
 ### Partial Failure (Multiple Metrics)
 
