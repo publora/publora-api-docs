@@ -109,7 +109,7 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 14 active Publora tools, including `linkedin_create_reshare` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+Claude should list the 15 active Publora tools, including `linkedin_create_reshare` and `linkedin_list_mentionables` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
 
 ---
 
@@ -555,6 +555,6 @@ Some clients support environment variable interpolation:
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 14 active tools with parameters
+- [Tools Reference](./tools-reference.md) — All 15 active tools with parameters
 - [Examples](./examples.md) — Real-world conversation examples
 - [Troubleshooting](./troubleshooting.md) — Common issues and solutions

@@ -28,6 +28,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
   - MCP `update_post` exposes `content` and `platforms`, and instructs clients to call `list_connections` before changing targets.
 - **Migration action:** No change is required for existing callers. Integrations that previously deleted and recreated a post to fix its text or targets should switch to `update-post`. Match on the new `code` values rather than message text, send an `Idempotency-Key` with content/platform edits, and re-read the post with `GET /get-post` on a 409 instead of blind-retrying. If you relied on a repeated connection ID in `platforms` being tolerated, de-duplicate the array.
 
+## 2026-07-17
+
+### LinkedIn mentionable-people directory — publora.com #218
+
+- **Affected surface:** REST and MCP.
+- **Tag:** Additive.
+- **Changes:** Added `GET /linkedin-mentionables` and the `linkedin_list_mentionables` MCP tool (the 15th active tool). Both list the per-user directory of native LinkedIn member ids captured automatically from engagement on connected company pages, with `q`/`limit` filtering and a ready-to-paste `mention` token per person. Paid plans only — free plans receive `403 UPGRADE_REQUIRED`.
+- **Migration action:** None. New integrations that build person mentions should prefer this directory over harvesting actor URNs manually.
+
 ## 2026-07-15
 
 ### API/MCP correctness release — publora.com #198
