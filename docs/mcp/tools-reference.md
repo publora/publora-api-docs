@@ -307,28 +307,35 @@ async def get_post_details():
 
 ### update_post
 
-Reschedule or change post status.
+Edit a draft or scheduled post — its text, its target accounts, its schedule, or its status — without deleting and recreating it.
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postGroupId` | string | Yes | Post group ID |
+| `content` | string | No | Replacement **base** post text. Rewrites every target that has no explicit per-account override. `""` is allowed while the post stays a draft. |
+| `platforms` | string[] | No | Replacement target set — **replaces the whole array**, it is not merged. Call `list_connections` first and copy each `platformId` verbatim. `[]` is allowed only while the post remains a draft. |
 | `status` | string | No | New status: `draft` or `scheduled` |
 | `scheduledTime` | string | No | New scheduled time (ISO 8601) |
 | `mediaUrls` | string[] | No | Public https URLs (≤10) to download and **append** to the post's media. |
 | `platformSettings` | object | No | Per-platform options to merge (same strict schema as `create_post`). |
 | `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request prevents repeated media appends and replays the original response. |
 
-> **Note:** Provide at least one of `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
+> **Note:** Provide at least one of `content`, `platforms`, `status`, `scheduledTime`, `mediaUrls`, or `platformSettings`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
+
+> **Editing content and targets:** a `content` edit rewrites each platform post to its effective text and preserves explicit per-account overrides. A `platforms` edit deletes the platform posts for IDs you drop and creates them for IDs you add — added connections are validated for ownership and plan entitlement, and adding a target to a **scheduled** post re-runs scheduling limits plus full content/media validation. Scheduling with an empty target set returns `PLATFORMS_REQUIRED`. The write is all-or-nothing: a rejected edit leaves the post exactly as it was.
+
+> **Not editable:** published, failed, or partially published posts return `400 POST_NOT_EDITABLE`. A post already publishing — or with a platform post in `pending`/`processing` — returns `409 POST_PUBLISH_IN_PROGRESS`, and an edit that loses a race with another write returns `409 POST_GROUP_VERSION_CONFLICT`. On either 409, call `get_post` before retrying instead of repeating the call blindly.
 
 > **`scheduledTime` handling:** omitting it keeps the current time. Under 5 minutes late is always clamped with `SCHEDULED_TIME_COERCED`; 5+ minutes is scheduled to become strict on 2026-08-25 unless production configuration overrides the date either way.
-
-> **Known discrepancy:** the `update_post` tool description returned by the live MCP server still says a past `scheduledTime` "is snapped to now". That is only true under the conditions above; the note in this section is authoritative.
 
 **Example prompts:**
 
 ```text
+"Fix the typo in tomorrow's post — it should say 'launch', not 'lunch'"
+"Add my Threads account to that scheduled post"
+"Drop LinkedIn from Friday's post and keep the rest"
 "Reschedule post 67a1b2c3d4e5f6a7b8c9d0e1 to Friday at 3pm"
 "Change my draft to scheduled"
 "Move tomorrow's post to next week"
@@ -338,15 +345,20 @@ Reschedule or change post status.
 **Python example:**
 
 ```python
-async def reschedule_post():
+async def edit_post():
     headers = {"Authorization": "Bearer sk_YOUR_API_KEY"}
 
     async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
+            # platforms REPLACES the stored set — read the current IDs first.
+            await session.call_tool("list_connections", {})
+
             result = await session.call_tool("update_post", {
                 "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+                "content": "Corrected launch announcement.",
+                "platforms": ["linkedin-ABC123", "threads-DEF456"],
                 "scheduledTime": "2026-03-01T15:00:00Z"
             })
             print(result.content[0].text)
@@ -362,6 +374,8 @@ async def reschedule_post():
   "postGroup": {
     "_id": "67a1b2c3d4e5f6a7b8c9d0e1",
     "status": "scheduled",
+    "content": "Corrected launch announcement.",
+    "platforms": ["linkedin-ABC123", "threads-DEF456"],
     "scheduledTime": "2026-03-01T15:00:00Z"
   }
 }

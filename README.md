@@ -60,7 +60,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/list-posts` | List all posts with pagination | [View](https://docs.publora.com/endpoints/list-posts) |
 | `GET` | `/get-post/:postGroupId` | Get post details and status | [View](https://docs.publora.com/endpoints/get-post) |
 | `GET` | `/post-logs/:postGroupId` | Get publish attempt history | [View](https://docs.publora.com/endpoints/post-logs) |
-| `PUT` | `/update-post/:postGroupId` | Update post timing or status | [View](https://docs.publora.com/endpoints/update-post) |
+| `PUT` | `/update-post/:postGroupId` | Edit a draft/scheduled post: content, targets, timing, or status | [View](https://docs.publora.com/endpoints/update-post) |
 | `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](https://docs.publora.com/endpoints/delete-post) |
 | `POST` | `/get-upload-url` | Get pre-signed URL for media upload | [View](https://docs.publora.com/endpoints/upload-media) |
 | `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](https://docs.publora.com/endpoints/upload-instagram-cover) |
@@ -126,7 +126,7 @@ All plans include full API access. Pro/Premium use per-account pricing — add a
 - [List Posts](https://docs.publora.com/endpoints/list-posts) — fetch all posts with pagination and filters
 - [Get Post](https://docs.publora.com/endpoints/get-post) — check post status and error details
 - [Post Logs](https://docs.publora.com/endpoints/post-logs) — publish attempt history for debugging
-- [Update Post](https://docs.publora.com/endpoints/update-post) — reschedule or change status
+- [Update Post](https://docs.publora.com/endpoints/update-post) — edit content, targets, timing, or status before publication
 - [Delete Post](https://docs.publora.com/endpoints/delete-post) — remove posts across all platforms
 - [Platform Connections](https://docs.publora.com/endpoints/platform-connections) — list connected accounts with health status
 - [Test Connection](https://docs.publora.com/endpoints/test-connection) — validate a connection before posting

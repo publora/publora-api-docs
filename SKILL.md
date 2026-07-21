@@ -61,7 +61,7 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | `/list-posts` | GET | List posts with filters |
 | `/create-post` | POST | Schedule/publish a post |
 | `/get-post/:postGroupId` | GET | Get post details |
-| `/update-post/:postGroupId` | PUT | Reschedule or change status |
+| `/update-post/:postGroupId` | PUT | Edit content, targets, timing, or status of a draft/scheduled post |
 | `/delete-post/:postGroupId` | DELETE | Delete a post |
 | `/get-upload-url` | POST | Get presigned URL for media |
 | `/upload-instagram-cover` | POST | Upload a custom Instagram Reel cover (multipart) |

@@ -1,10 +1,12 @@
 # How to Update a Scheduled Post Before Publication
 
-Update the timing or status of an already-scheduled post using the Publora API. This guide covers the complete workflow with error handling and edge cases.
+Update the text, target accounts, timing, or status of an already-scheduled post using the Publora API. This guide covers the complete workflow with error handling and edge cases.
 
 ## Overview
 
 You can modify a scheduled post before it publishes by:
+- **Editing its text** (`content`)
+- **Changing which accounts it goes to** (`platforms`)
 - **Rescheduling** to a different time
 - **Pausing** (converting to draft)
 - **Resuming** a paused draft
@@ -40,10 +42,12 @@ x-publora-key: YOUR_API_KEY
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `content` | string | No* | Replacement base post text |
+| `platforms` | string[] | No* | Replacement target set — **replaces the whole array** |
 | `status` | string | No* | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No* | ISO 8601 UTC datetime (must be future) |
 
-*At least one of `status` or `scheduledTime` must be provided.
+*At least one of `content`, `platforms`, `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` must be provided. Omitted fields keep their stored value.
 
 **Success Response (200):**
 ```json
@@ -54,10 +58,33 @@ x-publora-key: YOUR_API_KEY
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",
+    "content": "Corrected launch announcement.",
+    "platforms": ["linkedin-ABC123", "twitter-XYZ789"],
     "scheduledTime": "2026-03-15T14:00:00.000Z"
   }
 }
 ```
+
+## Editing content and target accounts
+
+```bash
+# platforms REPLACES the stored set — copy exact IDs from GET /platform-connections
+curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011" \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -H "Idempotency-Key: edit-507f1f77bcf86cd799439011" \
+  -d '{"content": "Corrected launch announcement.", "platforms": ["linkedin-ABC123", "threads-DEF456"]}'
+```
+
+Key rules:
+
+- A `content` edit rewrites each platform post to its effective text; per-account overrides created in the web editor are preserved.
+- Dropping an ID from `platforms` deletes that platform post; adding one creates it, after ownership and plan checks.
+- Adding a target to a **scheduled** post re-runs scheduling limits and full content/media validation against the new state.
+- An empty `platforms` array is allowed only while the post is a draft — scheduling with no targets returns `400 PLATFORMS_REQUIRED`.
+- The write is all-or-nothing. If validation fails or another write wins the race, nothing changes.
+
+See [Update Post → Editing content and targets](../endpoints/update-post.md#editing-content-and-targets) for the complete contract.
 
 ## Complete JavaScript Implementation
 
@@ -407,7 +434,11 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `"Scheduled time is in the past. Server time is <ISO> UTC."` (`code: "SCHEDULED_TIME_IN_PAST"`) | DateTime is 5+ minutes before server time and strict mode is active (scheduled for **2026-08-25** unless configuration overrides it) | Use a future datetime; compare `serverTime` to your clock. Under 5 min late is always clamped with `SCHEDULED_TIME_COERCED`. |
-| `"Cannot update post: post is currently in published status"` | Post already published | Cannot modify published posts |
+| `"Cannot update post: post is currently in published status"` (`code: "POST_NOT_EDITABLE"`) | Post already published | Cannot modify published posts |
+| `"Post publishing has already started; the post can no longer be edited."` (`code: "POST_PUBLISH_IN_PROGRESS"`, HTTP 409) | The group or one of its platform posts is publishing | Re-read with `GET /get-post`; retry only if it is still `draft`/`scheduled` |
+| `"Post group state changed concurrently; please retry."` (`code: "POST_GROUP_VERSION_CONFLICT"`, HTTP 409) | Another edit committed first; nothing changed | Re-read, rebase your edit on the current state, retry |
+| `"Invalid platform connection(s): …"` (`code: "INVALID_PLATFORM_CONNECTION"`) | An added platform ID is not one of your connections | Use IDs from `GET /platform-connections`; check `invalidPlatforms` |
+| `"Platforms must not contain duplicates"` (`code: "INVALID_PLATFORMS"`) | The same connection ID appears twice in `platforms` | De-duplicate the array |
 | `"Post group not found"` | Invalid ID or wrong user | Verify postGroupId and API key |
 | `"Invalid API key"` | Bad x-publora-key header | Check API key in dashboard |
 | `"Invalid scheduled time format"` | Malformed datetime | Use ISO 8601: `YYYY-MM-DDTHH:mm:ss.sssZ` |

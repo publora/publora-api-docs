@@ -1,6 +1,6 @@
 # Update Post
 
-Modify the scheduling time or status of an existing post. Updating a post group also updates all associated platform-specific posts.
+Edit an existing **draft** or **scheduled** post in place — its base text, its target accounts, its scheduling time, its status, its per-platform settings, or its media — without deleting and recreating it. Updating a post group also updates all associated platform-specific posts.
 
 ## Endpoint
 
@@ -26,10 +26,14 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 
 ## Request Body
 
-At least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` must be provided. Missing all four returns `400 { "error": "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" }`.
+At least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls` must be provided. Missing all six returns `400 { "error": "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" }`.
+
+Every field is a **patch**: omit it and the stored value is left unchanged.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `content` | string | No | Replacement **base** post text. Applies to every target that has no explicit per-account override (overrides set in the web editor are preserved). An empty string is accepted while the post stays a draft; scheduling still enforces each platform's content/media rules. See [Editing content and targets](#editing-content-and-targets). |
+| `platforms` | string[] | No | Replacement target set — **the whole array replaces the stored one**, it is not merged. Use the exact connection IDs from [`GET /platform-connections`](./platform-connections.md); duplicates are rejected. `[]` is accepted only while the post remains a draft. See [Editing content and targets](#editing-content-and-targets). |
 | `status` | string | No | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No | New ISO 8601 UTC datetime |
 | `platformSettings` | object | No | Per-platform settings using the canonical [create-post allowlist](./create-post.md#unknown-platformsettings-paths), including LinkedIn repost settings. Merged with existing settings server-side — fields you omit are preserved. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
@@ -62,6 +66,44 @@ Values under a known leaf are never traversed, so these keep working unchanged:
 - Comma-separated `youtube.tags`
 
 The deprecated flat fields `youtube.playlistId` and `youtube.thumbnailUrl` still return their existing guidance errors (e.g. *"playlistId is not supported; use …playlist"*) rather than `PLATFORM_SETTING_UNKNOWN`.
+
+### Editing content and targets
+
+`content` and `platforms` let you correct a post you already created instead of deleting it and starting over.
+
+```bash
+curl -X PUT https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011 \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -d '{
+        "content": "Corrected launch announcement.",
+        "platforms": ["linkedin-ABC123", "twitter-XYZ789"]
+      }'
+```
+
+**How the fields behave**
+
+- **`content` replaces the base text.** Each platform post is rewritten to its *effective* content: the base text for normal targets, or the account's own text where a per-account override exists (overrides created in the web editor survive a base-content edit). Editing the text of a Twitter or Threads target also clears the derived thread split so it is recomputed from the new text.
+- **`platforms` replaces the entire target set.** Send the complete list you want — IDs not in the array have their platform posts removed. Added IDs are checked for ownership and plan entitlement before anything is written; a duplicate ID in the array is rejected. Copy IDs verbatim from [`GET /platform-connections`](./platform-connections.md).
+- **Editing a post that is already `scheduled` re-runs post validation** against the new final state. A failure returns `400 { "error": "Validation failed", "validation": {…} }` and nothing is written.
+- **Adding a target to a `scheduled` post additionally re-runs scheduling checks** — plan availability and posting limits. Reordering the same IDs is not a change and skips those checks.
+- **Removing every target** is allowed only while the post is (or becomes) a draft. Scheduling an empty set returns `400 PLATFORMS_REQUIRED`.
+- **The write is all-or-nothing.** Group, platform posts, and the group's post list commit together, guarded by a compare-and-swap. A failed validation or a lost race leaves the post exactly as it was.
+
+**When editing is refused**
+
+| Situation | Response |
+|---|---|
+| Group status is not `draft` or `scheduled` (e.g. `published`, `failed`) | `400` `POST_NOT_EDITABLE` |
+| A platform post has already reached a terminal state | `400` `POST_NOT_EDITABLE` |
+| The group is being published (`processingStatus: processing`) | `409` `POST_PUBLISH_IN_PROGRESS` |
+| A platform post is already `pending` or `processing` | `409` `POST_PUBLISH_IN_PROGRESS` |
+| A platform upload/publish has a resumable operation in flight | `409` `POST_PUBLISH_IN_PROGRESS` |
+| Another edit committed while this one was in flight | `409` `POST_GROUP_VERSION_CONFLICT` |
+
+`POST_PUBLISH_IN_PROGRESS` and `POST_GROUP_VERSION_CONFLICT` are conflicts, not permanent failures — re-read the post with [`GET /get-post`](./get-post.md) and retry only if it is still `draft` or `scheduled`. Do **not** blind-retry an edit that races publishing; that is exactly what these codes exist to prevent.
+
+> **Retry safety:** send an [`Idempotency-Key`](#idempotency) with content/platform edits too. A replayed key returns the original response instead of re-applying the edit over a post that has since moved on.
 
 ### ISO 8601 DateTime Format
 
@@ -234,6 +276,8 @@ Generate the key **once per logical update** and reuse it across retries. Genera
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",
+    "content": "Corrected launch announcement.",
+    "platforms": ["linkedin-ABC123", "twitter-XYZ789"],
     "scheduledTime": "2026-03-15T10:00:00.000Z"
   }
 }
@@ -242,11 +286,49 @@ Generate the key **once per logical update** and reuse it across retries. Genera
 | Field | Type | Description |
 |-------|------|-------------|
 | `scheduledTime` | string/null | **Always present.** The effective stored time after any permitted past-time clamp. `null` if the post has no scheduled time. |
+| `postGroup.content` | string | **Always present.** The effective base text stored after the update (`""` if the post has none). |
+| `postGroup.platforms` | string[] | **Always present.** The effective target set stored after the update (`[]` for a draft with no targets). |
 | `postGroup.scheduledTime` | string | The same value; included only when the post has a scheduled time set. |
 | `warnings` | array | Present only when something was adjusted — e.g. a `SCHEDULED_TIME_COERCED` entry. See [Past scheduled times](#past-scheduled-times). |
 | `mediaValidationStatus` | string | Present as `"pending"` only when media validation had not completed by the time the response was sent. |
 
 ## Examples
+
+### Fix a typo and swap a target account
+
+```javascript
+// platforms REPLACES the stored set — send the complete final list.
+const connections = await fetch('https://api.publora.com/api/v1/platform-connections', {
+  headers: { 'x-publora-key': process.env.PUBLORA_API_KEY }
+}).then(r => r.json());
+
+await fetch(`https://api.publora.com/api/v1/update-post/${postGroupId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': process.env.PUBLORA_API_KEY,
+    'Idempotency-Key': crypto.randomUUID()
+  },
+  body: JSON.stringify({
+    content: 'Corrected launch announcement.',
+    platforms: ['linkedin-ABC123', 'threads-DEF456']
+  })
+});
+```
+
+```python
+requests.put(
+    f'https://api.publora.com/api/v1/update-post/{post_group_id}',
+    headers={
+        'Content-Type': 'application/json',
+        'x-publora-key': os.environ['PUBLORA_API_KEY']
+    },
+    json={
+        'content': 'Corrected launch announcement.',
+        'platforms': ['linkedin-ABC123', 'threads-DEF456']
+    }
+)
+```
 
 ### Reschedule a post
 
@@ -427,7 +509,14 @@ def update_post_safely(post_group_id, updates):
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"` | None of the four fields was provided (see note below) |
+| 400 | `"At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"` | None of the six fields was provided (see note below) |
+| 400 | `"Content must be a string"` — code `INVALID_CONTENT` | `content` was sent as something other than a string. Response includes `field: "content"`. |
+| 400 | `"Platforms must be an array"` / `"Invalid platforms JSON format"` / `"Invalid platform ID format: {id}"` / `"Platforms must not contain duplicates"` — code `INVALID_PLATFORMS` | `platforms` failed shape validation. Response includes `field: "platforms"`. |
+| 400 | `"Invalid platform connection(s): {ids}. Check connected accounts or call GET /platform-connections."` — code `INVALID_PLATFORM_CONNECTION` | A newly added platform ID is not a connection owned by the acting user. Response includes `invalidPlatforms`. |
+| 400 | `"At least one platform is required to schedule a post. Add a platform or keep the post as a draft."` — code `PLATFORMS_REQUIRED` | The effective final state is `scheduled` with an empty `platforms` array |
+| 400 | `"Cannot edit a post with a child in {status} status."` — code `POST_NOT_EDITABLE` | A platform post under this group has already reached a terminal state |
+| 409 | `"Post publishing has already started; the post can no longer be edited."` / `"…retrying this edit could publish stale or duplicate content."` / `"A platform upload or publish operation has already started; editing now could publish stale content."` — code `POST_PUBLISH_IN_PROGRESS` | The group or one of its platform posts is publishing. Re-read with `GET /get-post` before retrying. |
+| 409 | `"Post group state changed concurrently; please retry."` — code `POST_GROUP_VERSION_CONFLICT` | Another write committed first; this request changed nothing. Re-read and retry. |
 | 400 | `"Unknown platformSettings path: {path}"` — code `PLATFORM_SETTING_UNKNOWN` | An unrecognized top-level platform or nested settings key. The response includes `field` with the exact dotted path. Nothing is persisted. |
 | 400 | `"platformSettings.linkedin.*"` validation errors | Invalid LinkedIn repost settings (bad URN shape, bad visibility, `repostEnabled`/`repostParentUrn` mismatch) — see [Create Post → LinkedIn Repost Settings](./create-post.md#linkedin-repost-settings) |
 | 400 | `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"` | `repostVisibility: "CONNECTIONS"` on a scheduled group that targets a LinkedIn company-page connection |
@@ -437,7 +526,7 @@ def update_post_safely(post_group_id, updates):
 | 422 | `"Idempotency key was already used with a different request body"` — code `IDEMPOTENCY_KEY_CONFLICT` | The same `Idempotency-Key` was reused with a different body. Use a new key. |
 | 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
 | 400 | `"Invalid scheduled time format"` | Malformed datetime string |
-| 400 | `"Cannot update post: post is currently in {status} status"` | Post is in any status other than `draft` or `scheduled` |
+| 400 | `"Cannot update post: post is currently in {status} status"` — code `POST_NOT_EDITABLE` | Post is in any status other than `draft` or `scheduled` |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is incorrect or revoked |
@@ -451,7 +540,7 @@ def update_post_safely(post_group_id, updates):
 | 500 | `"Failed to update post"` | Malformed post group ID or internal server error |
 | 500 | `"Internal server error"` | Unexpected server error in middleware |
 
-> **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. If `status` and `scheduledTime` are both falsy and neither `platformSettings` nor `mediaUrls` is present, you will receive the "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" error.
+> **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. `content` and `platforms` are detected by **key presence**, not truthiness — sending `"content": ""` or `"platforms": []` counts as a real edit. If `status` and `scheduledTime` are both falsy and none of `content`, `platforms`, `platformSettings`, or `mediaUrls` is present, you will receive the "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" error.
 
 > **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 

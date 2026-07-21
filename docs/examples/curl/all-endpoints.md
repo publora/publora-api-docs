@@ -76,7 +76,7 @@ For public HTTPS assets, `mediaUrls` on create/update is a shorter ingestion pat
 
 ## 4. Update a post
 
-Update accepts at least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls`. `mediaUrls` appends media rather than replacing existing items.
+Update accepts at least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls`. Omitted fields keep their stored value. `mediaUrls` appends media rather than replacing existing items; `platforms` does the opposite — it replaces the whole target set.
 
 ```bash
 POST_GROUP_ID="64f1a2b3c4d5e6f7890abcde"
@@ -87,6 +87,17 @@ curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: reschedule-$POST_GROUP_ID" \
   -d "{\"status\":\"scheduled\",\"scheduledTime\":\"$FUTURE_TIME\"}"
+```
+
+Correct the text and the target accounts of a draft or scheduled post. Copy the connection IDs
+verbatim from `GET /platform-connections` — the array replaces the stored one:
+
+```bash
+curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: edit-$POST_GROUP_ID" \
+  -d '{"content":"Corrected launch announcement.","platforms":["linkedin-ABC123","threads-DEF456"]}'
 ```
 
 See [Update Post](../../endpoints/update-post.md) for validation and state behavior.

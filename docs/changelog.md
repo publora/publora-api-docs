@@ -11,6 +11,23 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-07-21
+
+### Editable draft and scheduled posts — publora.com #231
+
+- **Affected surface:** REST `PUT /update-post/:postGroupId` and the MCP `update_post` tool.
+- **Tag:** Additive, with new stable conflict codes.
+- **Changes:**
+  - `update-post` accepts two new optional patch fields: `content` (replacement base text) and `platforms` (replacement target set). Omitting a field leaves the stored value unchanged.
+  - A `content` edit rewrites every platform post to its effective text while preserving explicit per-account overrides; editing the text of a Twitter or Threads target clears its derived thread split.
+  - A `platforms` edit replaces the whole target set: dropped IDs have their platform posts deleted, added IDs are validated for ownership and plan entitlement, and adding a target to a scheduled post re-runs scheduling limits plus full content/media validation. `[]` is accepted only while the post remains a draft.
+  - Added stable codes `POST_NOT_EDITABLE` (400), `POST_PUBLISH_IN_PROGRESS` (409), and `POST_GROUP_VERSION_CONFLICT` (409), plus `INVALID_CONTENT`, `INVALID_PLATFORMS`, `INVALID_PLATFORM_CONNECTION`, and `INVALID_PLATFORM_ID` (400). The pre-existing `"Cannot update post: post is currently in {status} status"` 400 now also carries `code: "POST_NOT_EDITABLE"`.
+  - The success snapshot's `postGroup` now always includes the effective `content` and `platforms`.
+  - The "at least one field" error text changed to `"At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"`.
+  - `platforms` arrays on both `create-post` and `update-post` now reject duplicate connection IDs with `400 "Platforms must not contain duplicates"`.
+  - MCP `update_post` exposes `content` and `platforms`, and instructs clients to call `list_connections` before changing targets.
+- **Migration action:** No change is required for existing callers. Integrations that previously deleted and recreated a post to fix its text or targets should switch to `update-post`. Match on the new `code` values rather than message text, send an `Idempotency-Key` with content/platform edits, and re-read the post with `GET /get-post` on a 409 instead of blind-retrying. If you relied on a repeated connection ID in `platforms` being tolerated, de-duplicate the array.
+
 ## 2026-07-15
 
 ### API/MCP correctness release — publora.com #198

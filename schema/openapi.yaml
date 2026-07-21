@@ -681,7 +681,7 @@ paths:
                   type: array
                   items:
                     type: string
-                  description: "Array of platform connection IDs (format: platform-platformId)"
+                  description: "Array of platform connection IDs (format: platform-platformId). Each ID must appear at most once; a repeated ID is rejected with 400 \"Platforms must not contain duplicates\"."
                   example: ["twitter-123456789", "linkedin-ABC123"]
                 scheduledTime:
                   type: string
@@ -937,17 +937,27 @@ paths:
     parameters:
       - $ref: "#/components/parameters/XPubloraClient"
     put:
-      summary: Update post timing, status, or platform settings
+      summary: Edit a draft or scheduled post
       description: |
-        Modify the scheduled time, status, platformSettings, or mediaUrls of an existing
-        draft or scheduled post.
+        Modify the content, target platforms, scheduled time, status, platformSettings,
+        or mediaUrls of an existing draft or scheduled post.
         Only post groups whose status is draft or scheduled can be updated. `pending`
         and `processing` belong to separate processing/per-platform state, not
         to the post-group status enum.
-        At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided.
+        At least one of status, scheduledTime, content, platforms, platformSettings, or
+        mediaUrls must be provided. Every field is a patch — omit it to leave the stored
+        value unchanged.
+        `content` replaces the base text and rewrites each platform post to its effective
+        content, preserving explicit per-account overrides. `platforms` replaces the whole
+        target set (it is not merged); added connections are validated for ownership and
+        plan entitlement, and adding a target to a scheduled post re-runs scheduling
+        quota and post validation.
         platformSettings are merged per-platform with existing settings —
         omitted fields are preserved.
         Updating a post group also updates all associated platform-specific posts.
+        A content or platform edit is refused with POST_NOT_EDITABLE (400) or
+        POST_PUBLISH_IN_PROGRESS / POST_GROUP_VERSION_CONFLICT (409) rather than
+        partially applied.
       operationId: updatePost
       tags:
         - Posts
@@ -995,8 +1005,32 @@ paths:
           application/json:
             schema:
               type: object
-              description: "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"
+              description: "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"
               properties:
+                content:
+                  type: string
+                  description: |
+                    Replacement base post text. Every platform post without an explicit
+                    per-account override is rewritten to this text; overrides created in
+                    the web editor are preserved. Editing the text of a Twitter or Threads
+                    target clears its derived thread split so it is recomputed.
+
+                    An empty string is accepted while the post stays a draft. Scheduling
+                    still enforces each platform's content and media rules.
+                platforms:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    Replacement target set. The array REPLACES the stored one — it is not
+                    merged, so send the complete final list. Use the exact connection IDs
+                    returned by GET /platform-connections; duplicates are rejected with
+                    INVALID_PLATFORMS and unknown/foreign IDs with INVALID_PLATFORM_CONNECTION.
+
+                    IDs removed from the array have their platform posts deleted. An empty
+                    array is accepted only while the post remains a draft; scheduling an
+                    empty set returns PLATFORMS_REQUIRED.
+                  example: ["linkedin-ABC123", "twitter-XYZ789"]
                 status:
                   type: string
                   enum: [draft, scheduled]
@@ -1078,6 +1112,20 @@ paths:
                         type: string
                       status:
                         type: string
+                      content:
+                        type: string
+                        description: |
+                          The effective base text stored after the update. Always
+                          present; an empty string when the post has no base text.
+                        example: "Corrected launch announcement."
+                      platforms:
+                        type: array
+                        items:
+                          type: string
+                        description: |
+                          The effective target set stored after the update. Always
+                          present; an empty array for a draft with no targets.
+                        example: ["linkedin-ABC123", "twitter-XYZ789"]
                       scheduledTime:
                         type: string
                         format: date-time
@@ -1093,7 +1141,46 @@ paths:
                 $ref: "#/components/schemas/Error"
               examples:
                 missingFields:
-                  value: { "error": "At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided" }
+                  value: { "error": "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" }
+                invalidContent:
+                  summary: "content sent as a non-string"
+                  value:
+                    {
+                      "error": "Content must be a string",
+                      "code": "INVALID_CONTENT",
+                      "field": "content",
+                    }
+                invalidPlatforms:
+                  summary: "platforms failed shape validation"
+                  value:
+                    {
+                      "error": "Platforms must not contain duplicates",
+                      "code": "INVALID_PLATFORMS",
+                      "field": "platforms",
+                    }
+                invalidPlatformConnection:
+                  summary: "An added platform is not a connection owned by the caller"
+                  value:
+                    {
+                      "error": "Invalid platform connection(s): linkedin-NOPE. Check connected accounts or call GET /platform-connections.",
+                      "code": "INVALID_PLATFORM_CONNECTION",
+                      "invalidPlatforms": ["linkedin-NOPE"],
+                    }
+                platformsRequired:
+                  summary: "Scheduling with an empty target set"
+                  value:
+                    {
+                      "error": "PLATFORMS_REQUIRED",
+                      "code": "PLATFORMS_REQUIRED",
+                      "message": "At least one platform is required to schedule a post. Add a platform or keep the post as a draft.",
+                    }
+                childNotEditable:
+                  summary: "A platform post has already reached a terminal state"
+                  value:
+                    {
+                      "error": "Cannot edit a post with a child in published status.",
+                      "code": "POST_NOT_EDITABLE",
+                    }
                 invalidStatus:
                   value: { "error": "Status must be either 'draft' or 'scheduled'" }
                 invalidTimeFormat:
@@ -1122,7 +1209,11 @@ paths:
                       "code": "IDEMPOTENCY_BODY_TOO_COMPLEX",
                     }
                 cannotUpdate:
-                  value: { "error": "Cannot update post: post is currently in published status" }
+                  value:
+                    {
+                      "error": "Cannot update post: post is currently in published status",
+                      "code": "POST_NOT_EDITABLE",
+                    }
         "401":
           description: Invalid API key
           content:
@@ -1131,9 +1222,12 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: |
-            An earlier request with this `Idempotency-Key` is still in flight.
-            Nothing was changed by this call — retry shortly to receive the
-            original response. Match on `code`; the `error` text varies.
+            The update conflicts with concurrent work and nothing was changed.
+            Either an earlier request with this `Idempotency-Key` is still in
+            flight, or the post is being published, or another write committed
+            first. Match on `code`; the `error` text varies. Re-read the post
+            with GET /get-post before retrying — do not blind-retry an edit that
+            races publishing.
           content:
             application/json:
               schema:
@@ -1150,6 +1244,20 @@ paths:
                     {
                       "error": "Idempotency claim was superseded by another request",
                       "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+                publishInProgress:
+                  summary: "The group or one of its platform posts is publishing"
+                  value:
+                    {
+                      "error": "Post publishing has already started; the post can no longer be edited.",
+                      "code": "POST_PUBLISH_IN_PROGRESS",
+                    }
+                versionConflict:
+                  summary: "Another edit committed first — this request changed nothing"
+                  value:
+                    {
+                      "error": "Post group state changed concurrently; please retry.",
+                      "code": "POST_GROUP_VERSION_CONFLICT",
                     }
         "422":
           description: |

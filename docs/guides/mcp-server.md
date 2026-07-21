@@ -132,7 +132,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `list_posts` | List posts with filters (status, platform, dates, pagination; `responseFormat: concise` for token-lean previews) |
 | `create_post` | Create a draft or schedule a post; accepts `mediaUrls` (fast media path) and `platformSettings` |
 | `get_post` | Get post group details |
-| `update_post` | Change status/schedule, append `mediaUrls`, or merge `platformSettings` |
+| `update_post` | Edit a draft/scheduled post: replace `content` or the `platforms` target set, change status/schedule, append `mediaUrls`, or merge `platformSettings` |
 | `delete_post` | Delete a post group and all platform posts |
 
 ### Media
