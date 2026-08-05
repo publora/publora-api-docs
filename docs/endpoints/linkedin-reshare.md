@@ -125,8 +125,10 @@ Use `urn:li:share:xxx` or `urn:li:ugcPost:xxx` — **not** `urn:li:activity:xxx`
 The `urn:li:activity:` URN is what appears in LinkedIn post URLs (e.g. `linkedin.com/feed/update/urn:li:activity:123`), but it is rejected by this endpoint with a 400 error.
 
 To get the correct URN:
-- For posts created via Publora, use the `postedId` field from the [get-post](get-post.md) response
-- The activity ID and share ID are typically the same number — try replacing `urn:li:activity:` with `urn:li:share:` (e.g. `urn:li:activity:7451373349668282369` → `urn:li:share:7451373349668282369`)
+- For posts created via Publora, use the `postedId` field from the [get-post](get-post.md) response — it is already a `share` / `ugcPost` URN, so pass it straight through.
+- For any other post, prefer the post's **actual** `shareUrn` / `ugcPost` URN when you can read it (most LinkedIn post scrapers return it directly alongside the activity URN). Reach for the URL's `urn:li:activity:` id only as a fallback.
+
+> **Caveat on the activity → share swap.** The activity id and the share/ugcPost id are *often* the same number, so replacing `urn:li:activity:` with `urn:li:share:` frequently works (e.g. `urn:li:activity:7451373349668282369` → `urn:li:share:7451373349668282369`). But they are **not guaranteed** to match — real posts exist where the activity id and the share/ugcPost id differ. When they differ, the swap yields a valid-looking URN that either reshares the wrong post or is rejected. Use the post's real `shareUrn` when you have it; treat the prefix swap as a best-effort fallback only.
 
 ## Errors
 
