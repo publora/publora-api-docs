@@ -50,7 +50,7 @@ mcporter list --config config/mcporter.json
 
 > **Troubleshooting:**
 > - If `mcporter list` reports *auth required* even with a Bearer header in this config, mcporter likely merged a different config source (`~/.claude.json`, `~/.mcporter/…`). Re-run with `--verbose` to see which file supplied the `publora` entry.
-> - Don't run `mcporter auth publora`. `mcp.publora.com` *does* support OAuth 2.1 (DCR + PKCE), but its consent step is an **interactive** "paste your API key" web page — a headless CLI can't complete it. For OpenClaw/mcporter, authenticate with a static key header (`Authorization: Bearer sk_…` or `x-publora-key`) instead. (The OAuth flow is meant for the claude.ai web connector.)
+> - Don't run `mcporter auth publora`. `mcp.publora.com` supports OAuth 2.1 (PKCE, dynamic client registration), but the flow ends on an **interactive consent page in a browser**, which a headless CLI cannot complete. For mcporter, authenticate with a static key header (`Authorization: Bearer sk_…` or `x-publora-key`) instead.
 
 ## Using with OpenClaw
 

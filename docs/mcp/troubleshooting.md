@@ -211,13 +211,13 @@ curl -v -X POST https://mcp.publora.com \
 
 ---
 
-### OAuth / claude.ai connector
+### OAuth (browser-based clients)
 
-**`mcp.publora.com` supports OAuth 2.1** (Dynamic Client Registration + PKCE) in addition to static API keys. The claude.ai **custom connector** uses it automatically:
+**`mcp.publora.com` supports OAuth 2.1** (Dynamic Client Registration + PKCE) in addition to static API keys. Most clients that can open a browser use it — claude.ai's custom connector, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others. Using the claude.ai connector as the example:
 
 1. claude.ai → **Settings → Connectors → Add custom connector** → URL `https://mcp.publora.com`.
-2. Click **Connect** → a **"Connect Publora to Claude"** consent page opens.
-3. Paste your `sk_...` API key and **Authorize**. (Your API key *is* the credential — the OAuth access token wraps it; Publora stores no extra secret.)
+2. Click **Connect** → Publora's consent page opens: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
+3. Click **Approve**. Publora mints a dedicated API key for that client (named `MCP (<client> #<id>)`) and returns it as the access token — there is nothing to paste. Manage or revoke it any time on the **API** page in your dashboard.
 
 **If you instead see** `{"error":"oauth_not_supported"}` **(404) on `/register` or `/.well-known/oauth-*`:** you are hitting a deployment running in **static-key-only mode** (OAuth disabled). The public `mcp.publora.com` has OAuth enabled; a self-hosted/older instance without the OAuth signing secret does not. On such an instance, disable OAuth in your client and send a static key header (`Authorization: Bearer sk_...` or `x-publora-key: sk_...`).
 
@@ -442,7 +442,7 @@ If `mcporter list` still reports `auth required` even with the Bearer header in 
 mcporter list --config config/mcporter.json --verbose
 ```
 
-> **Don't run `mcporter auth publora`.** `mcp.publora.com` *does* support OAuth 2.1 (DCR + PKCE), but its consent step is an **interactive** "paste your API key" web page that a headless CLI can't complete — so authenticate mcporter with a static key header (`Authorization: Bearer sk_...` or `x-publora-key`) instead. (The OAuth flow is for the claude.ai web connector.)
+> **Don't run `mcporter auth publora`.** `mcp.publora.com` supports OAuth 2.1 (PKCE, dynamic client registration), but the flow ends on an **interactive consent page in a browser**, which a headless CLI cannot complete — so authenticate mcporter with a static key header (`Authorization: Bearer sk_...` or `x-publora-key`) instead.
 
 **Solution 2: Check mcporter version**
 

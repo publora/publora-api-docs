@@ -11,6 +11,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-08-03
+
+### MCP OAuth consent no longer asks for an API key
+
+- **Affected surface:** the OAuth 2.1 flow on `mcp.publora.com` (Dynamic Client Registration + PKCE), used by claude.ai's custom connector, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and other browser-capable clients.
+- **Tag:** Behavioral, non-breaking for existing credentials.
+- **Change:** The consent step is a sign-in-and-approve page — *"An application is requesting access to your Publora account"*, naming the account being authorized, with **Approve** and **Cancel**. It no longer asks you to paste an `sk_...` key; that step was replaced when SSO login shipped on 2026-07-27, and the wording was finalized on 2026-08-03. On approval Publora mints a dedicated API key for that client registration, named `MCP (<client> #<id>)`, and returns it as the access token. Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) are unaffected and remain the option for headless clients.
+- **Migration action:** None for connectors that already work. Re-authorizing a client mints a fresh key; per-client keys are listed and revocable on the **API** page in the dashboard. If you built on the old instructions and expected a key-paste page, drop that step.
+
 ## 2026-07-21
 
 ### Editable draft and scheduled posts — publora.com #231

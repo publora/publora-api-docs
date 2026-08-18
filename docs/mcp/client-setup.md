@@ -115,15 +115,15 @@ Claude should list the 14 active Publora tools, including `linkedin_create_resha
 
 ## Claude.ai (web) — Custom Connector
 
-The Publora MCP server supports the claude.ai **custom connector** via **OAuth 2.1** (Dynamic Client Registration + PKCE) — no config file, no manual API-key header.
+The Publora MCP server supports **OAuth 2.1** (Dynamic Client Registration + PKCE) — no config file, no manual API-key header. The claude.ai **custom connector** uses it:
 
 1. In claude.ai go to **Settings → Connectors → Add custom connector**.
 2. Set the URL to `https://mcp.publora.com` and add it.
-3. Click **Connect**. Claude runs the OAuth flow and opens a **"Connect Publora to Claude"** page.
-4. Paste your Publora API key (`sk_...`) on that page and click **Authorize**. That key becomes the connector's credential — Publora stores no separate OAuth password.
-5. The 14 Publora tools appear in the connector. Reconnect the same way if you rotate your key.
+3. Click **Connect**. Claude runs the OAuth flow and opens Publora's consent page: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
+4. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
+5. The 14 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
 
-> Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for Claude Code, Cursor, and other clients — OAuth is only needed for the claude.ai web/desktop connector UI, which requires it.
+> **Both auth paths work.** OAuth is what most clients use today — claude.ai, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others complete it in the browser. Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for any client that can send a header, and are the only option for headless / non-interactive clients.
 
 ---
 
@@ -208,6 +208,14 @@ Create or edit `.windsurf/mcp.json`:
   }
 }
 ```
+
+---
+
+## Manus
+
+Publora is a **published connector in [Manus](https://manus.im)' own directory** — nothing to install, no config file. Add it from **Settings → Connectors → Browse Connectors → Apps**, then authorize with your API key (some builds offer Publora's OAuth sign-in instead).
+
+See [Manus Integration](./manus.md) for the full walkthrough, including the direct connector link and the mobile caveat.
 
 ---
 
