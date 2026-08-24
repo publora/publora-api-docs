@@ -102,7 +102,7 @@ components:
     PlatformSettingsInput:
       type: object
       additionalProperties: false
-      description: "Per-platform settings for tiktok, instagram, youtube, threads, telegram, and linkedin. Unknown platform or nested paths are rejected with 400 PLATFORM_SETTING_UNKNOWN. Merged with defaults on create-post and with existing settings on update-post (omitted fields are preserved)."
+      description: "Per-platform settings for tiktok, instagram, youtube, threads, twitter, telegram, and linkedin. Unknown platform or nested paths are rejected with 400 PLATFORM_SETTING_UNKNOWN. Merged with defaults on create-post and with existing settings on update-post (omitted fields are preserved)."
       properties:
         instagram:
           type: object
@@ -186,6 +186,21 @@ components:
               type: string
               enum: [everyone, accounts_you_follow, mentioned_only, ""]
               default: ""
+        twitter:
+          type: object
+          additionalProperties: false
+          description: "X reply and quote targets. On self-serve X API tiers, the target author must have mentioned the connected account in that post, quoted one of its posts, or the connected account must have authored the target. Publora cannot prevalidate this relationship; X can reject publication later with X_REPLY_NOT_AUTHORIZED."
+          properties:
+            replyTo:
+              type: string
+              default: ""
+              description: "Full x.com/twitter.com status URL or bare 1-19 digit post ID. Publishes the post (or thread head) as a reply. Empty string clears."
+              example: "https://x.com/customer/status/1234567890123456789"
+            quoteTweet:
+              type: string
+              default: ""
+              description: "Full x.com/twitter.com status URL or bare 1-19 digit post ID. Quotes from the post or thread head; may be combined with replyTo and media. Empty string clears."
+              example: "987654321098765432"
         telegram:
           type: object
           additionalProperties: false

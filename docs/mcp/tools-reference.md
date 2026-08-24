@@ -117,7 +117,7 @@ Create and schedule a post to one or more platforms.
 
 > **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
-> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These six platforms accept settings:
+> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These seven platforms accept settings:
 >
 > ```json
 > {
@@ -139,6 +139,10 @@ Create and schedule a post to one or more platforms.
 >       "playlist": { "id": "string", "platformId": "string" }
 >     },
 >     "threads": { "replyControl": "everyone | accounts_you_follow | mentioned_only" },
+>     "twitter": {
+>       "replyTo": "https://x.com/user/status/123456789 or numeric ID",
+>       "quoteTweet": "https://x.com/user/status/987654321 or numeric ID"
+>     },
 >     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false },
 >     "linkedin": {
 >       "repostEnabled": true,
@@ -148,6 +152,7 @@ Create and schedule a post to one or more platforms.
 >   }
 > }
 > ```
+> For X, `replyTo` and `quoteTweet` are intended for inbound engagement and your own posts. Self-serve X API tiers accept the target only when its author mentioned the connected account in that same post, quoted one of its posts, or the connected account wrote the target itself. The fields may be combined, and quote posts may include media. Publora cannot prevalidate the relationship: an unrelated target is accepted by the tool but fails permanently at publish time with `X_REPLY_NOT_AUTHORIZED`.
 > For LinkedIn repost settings, `CONNECTIONS` is personal-profile-only. A company-page repost must use `PUBLIC` or scheduling returns `400`.
 > YouTube custom thumbnails are **not** settable here (they need the separate multipart thumbnail endpoint, which MCP does not expose).
 

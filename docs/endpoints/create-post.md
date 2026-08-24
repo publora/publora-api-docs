@@ -27,7 +27,7 @@ POST https://api.publora.com/api/v1/create-post
 | `content` | string | Conditional | Normally required and non-empty. It may be omitted or empty when a targeted LinkedIn connection has repost intent through `platformSettings.linkedin.repostEnabled: true` or a non-empty `repostParentUrn`; the repost settings must still form a valid parent/enable combination. Non-string truthy values (numbers, objects) can pass the initial content gate but cause unexpected behavior. |
 | `platforms` | string[] | Yes | Array of `<lowercase-prefix>-<id>` connection IDs. The ID cannot contain whitespace, `/`, `?`, or `#`; colons are allowed (e.g., `twitter-123456789`, `bluesky-did:plc:abc123`). Each ID must appear at most once — a repeated ID is rejected with `400 "Platforms must not contain duplicates"`. |
 | `scheduledTime` | string | No | ISO 8601 UTC datetime. If omitted, the post is created as a `draft`. A time in the past is **never silently accepted** — it is either clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response, or rejected with `400 SCHEDULED_TIME_IN_PAST`. See [Past scheduled times](#past-scheduled-times). |
-| `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. The accepted keys are `tiktok`, `instagram`, `youtube`, `threads`, `telegram`, and `linkedin`. **Any unknown top-level platform or unknown nested key is rejected with `400 PLATFORM_SETTING_UNKNOWN` and nothing is persisted** — see [Unknown platformSettings paths](#unknown-platformsettings-paths) for the exact accepted tree. Each platform key must map to a plain object. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
+| `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. The accepted keys are `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin`. **Any unknown top-level platform or unknown nested key is rejected with `400 PLATFORM_SETTING_UNKNOWN` and nothing is persisted** — see [Unknown platformSettings paths](#unknown-platformsettings-paths) for the exact accepted tree. Each platform key must map to a plain object. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
 | `mediaUrls` | string[] | No | Up to **10** public **https** image/video URLs. Publora downloads them server-side and attaches them to the post **before** validation, so you can attach media *and* schedule in one call (pass together with `scheduledTime`). This is the one-shot alternative to the draft → `get-upload-url` → schedule flow. Ingestion is rate-limited to 60 URLs/hour. See [Posts with Media](#posts-with-media). |
 
 ## Response
@@ -108,7 +108,7 @@ Use `serverTime` to measure your clock offset against Publora's.
 ## Unknown platformSettings paths
 
 `platformSettings` is validated against a strict allowlist **before anything is
-persisted**. An unrecognized top-level platform (e.g. `twitter`, `facebook`) or an
+persisted**. An unrecognized top-level platform (e.g. `facebook`, `bluesky`) or an
 unrecognized nested key returns `400` and creates no post:
 
 ```json
@@ -132,6 +132,7 @@ Nested reference objects are checked to their leaves — `youtube.playlist` and
 | `instagram` | `videoType`, `shareToFeed`, `coverUrl` (alias `cover_url`) |
 | `youtube` | `privacy`, `title`, `tags`, `madeForKids`, `categoryId`, `playlist.{id,platformId}`, `thumbnail.{mediaId,id,url,path}` |
 | `threads` | `replyControl` |
+| `twitter` | `replyTo`, `quoteTweet` |
 | `telegram` | `disableNotification`, `disableWebPagePreview`, `protectContent` |
 | `linkedin` | `repostEnabled`, `repostParentUrn`, `repostVisibility` |
 
@@ -248,6 +249,10 @@ When creating via the API, these defaults are applied automatically. If you prov
   "threads": {
     "replyControl": ""
   },
+  "twitter": {
+    "replyTo": "",
+    "quoteTweet": ""
+  },
   "telegram": {
     "disableNotification": false,
     "disableWebPagePreview": false,
@@ -256,11 +261,40 @@ When creating via the API, these defaults are applied automatically. If you prov
 }
 ```
 
-> **Note:** Only `tiktok`, `instagram`, `youtube`, `threads`, `telegram`, and `linkedin` keys are recognized in `platformSettings`. Other platform keys (e.g., `twitter`, `facebook`, `bluesky`, `mastodon`) are **rejected with `400` / `PLATFORM_SETTING_UNKNOWN`** — they are no longer silently dropped. LinkedIn accepts `repostEnabled`, `repostParentUrn`, and `repostVisibility`. For `telegram`, only the three boolean keys shown above (`disableNotification`, `disableWebPagePreview`, `protectContent`) are accepted; any other key inside the telegram object is likewise a `400`, and string values like `"false"` / `"0"` / `"off"` are still coerced to `false`. See [Unknown platformSettings paths](#unknown-platformsettings-paths).
+> **Note:** Only `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin` keys are recognized in `platformSettings`. Other platform keys (e.g., `facebook`, `bluesky`, `mastodon`) are **rejected with `400` / `PLATFORM_SETTING_UNKNOWN`** — they are no longer silently dropped. X accepts `replyTo` and `quoteTweet`; LinkedIn accepts `repostEnabled`, `repostParentUrn`, and `repostVisibility`. For `telegram`, only the three boolean keys shown above (`disableNotification`, `disableWebPagePreview`, `protectContent`) are accepted; any other key inside the telegram object is likewise a `400`, and string values like `"false"` / `"0"` / `"off"` are still coerced to `false`. See [Unknown platformSettings paths](#unknown-platformsettings-paths).
 
 > **YouTube** also accepts `tags`, `categoryId`, `madeForKids`, and a `playlist` object (`{ id, platformId }`) in addition to `privacy`/`title`. A `playlist` can be set directly on `create-post`. Nested objects are validated to their leaves: `playlist` accepts only `id`/`platformId` and `thumbnail` only `mediaId`/`id`/`url`/`path` — any other nested key (e.g. `youtube.thumbnail.mediaID`) returns `400` / `PLATFORM_SETTING_UNKNOWN` rather than silently clearing the value. A custom `thumbnail` **cannot** be set on `create-post` — the thumbnail upload requires a `postGroupId`, so create the post first and set the thumbnail via `update-post`. See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings) for the full field reference.
 
 > **Instagram** also accepts `coverUrl` (alias: `cover_url`) — a custom cover image for Reels. Provide a **publicly accessible http(s) URL to a JPEG image** (Instagram fetches it server-side at publish time), or [upload a cover file](upload-instagram-cover.md) (JPEG/PNG/WebP up to 8 MB) and use the URL it returns. Non-JPEG or non-http(s) URLs are rejected with `400`. An empty string clears the custom cover. Ignored for Stories and image posts. See [Instagram → Platform-Specific Settings](../platforms/instagram.md#platform-specific-settings).
+
+## X Reply and Quote Settings
+
+Use `platformSettings.twitter` to publish as a reply, quote another post, or do both:
+
+```json
+{
+  "content": "Thanks for the mention — here is the detail you asked for.",
+  "platforms": ["twitter-123456789"],
+  "scheduledTime": "2026-08-25T14:00:00.000Z",
+  "platformSettings": {
+    "twitter": {
+      "replyTo": "https://x.com/customer/status/1234567890123456789",
+      "quoteTweet": "987654321098765432"
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `replyTo` | string | Full `x.com`/`twitter.com` status URL or bare numeric post ID. A single post replies to this target; an auto-thread chains its first post under the target and the remaining parts under one another. Empty string clears the setting. |
+| `quoteTweet` | string | Full status URL or bare numeric post ID. The quote is applied to the single post or the first post of a thread. It can be combined with `replyTo` and with media. Empty string clears the setting. |
+
+URLs are normalized to their numeric ID. IDs must contain 1–19 digits; malformed references are rejected at intake.
+
+> **Important X restriction:** on self-serve X API tiers, a programmatic reply or quote is accepted only when the target post's author **mentioned the connected account in that same post**, **quoted one of the account's posts**, or the connected account **authored the target itself**. Enterprise apps are exempt. Use these fields for inbound engagement and resurfacing your own posts, not for replying to arbitrary third-party posts.
+
+Publora cannot reliably prevalidate that relationship. The create/update request can therefore succeed, but X can reject the post later during publication. Publora records that permanent failure as `X_REPLY_NOT_AUTHORIZED`; retrying the same target does not help. Deleted, protected, or otherwise inaccessible targets can instead fail as `X_TARGET_REJECTED`.
 
 ## LinkedIn Repost Settings
 
