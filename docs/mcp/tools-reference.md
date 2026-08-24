@@ -581,6 +581,19 @@ asyncio.run(list_connections())
     "lastSuccessfulPost": "2026-03-10T09:30:00.000Z",
     "lastError": null,
     "subscriptionType": null
+    },
+    {
+    "platformId": "youtube-UCxxxxxxxxxxxx",
+    "username": "Your Channel",
+    "displayName": null,
+    "profileImageUrl": "https://...",
+    "profileUrl": null,
+    "tokenStatus": "valid",
+    "tokenExpiresIn": null,
+    "accessTokenExpiresAt": null,
+    "lastSuccessfulPost": "2026-03-11T18:00:00.000Z",
+    "lastError": null,
+    "subscriptionType": null
     }
   ]
 }
@@ -595,12 +608,16 @@ asyncio.run(list_connections())
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
 | `profileUrl` | string/null | URL to the profile on the platform |
-| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown` |
-| `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h") |
-| `accessTokenExpiresAt` | string/null | ISO 8601 timestamp when the access token expires |
+| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown`. **The authoritative signal** — see the note below. |
+| `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h"); `null` when there is no expiry date to report |
+| `accessTokenExpiresAt` | string/null | Effective credential expiry, derived the same way as `tokenStatus`. `null` when no authoritative date exists — always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). |
 | `lastSuccessfulPost` | string/null | ISO 8601 timestamp of the last successful post via this connection |
 | `lastError` | object/null | Last error details: `{ message: string, occurredAt: string }` |
 | `subscriptionType` | string/null | Detected platform subscription tier when available (used for X Premium/PremiumPlus limits) |
+
+> **Deciding whether a connection needs reconnecting: read `tokenStatus`. Do not compare `accessTokenExpiresAt` against the current date.**
+>
+> `tokenStatus` already accounts for how each platform refreshes credentials and for connections the platform has revoked. Comparing the date yourself produces wrong advice in both directions: a healthy YouTube connection reports `null` (its token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime), while a revoked connection can report `expired` with a date that is `null` or still in the future. Prompt the user to reconnect when `tokenStatus` is `expired`, and warn when it is `expiring_soon`.
 
 ---
 

@@ -62,10 +62,24 @@ GET https://api.publora.com/api/v1/platform-connections
         "message": "Media upload failed: Invalid image format",
         "occurredAt": "2026-02-21T16:45:00.000Z"
       }
+    },
+    {
+      "platformId": "youtube-UCxxxxxxxxxxxx",
+      "username": "Your Channel",
+      "displayName": null,
+      "profileImageUrl": "https://...",
+      "profileUrl": null,
+      "accessTokenExpiresAt": null,
+      "tokenStatus": "valid",
+      "tokenExpiresIn": null,
+      "lastSuccessfulPost": "2026-02-23T18:00:00.000Z",
+      "lastError": null
     }
   ]
 }
 ```
+
+The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because there is no authoritative expiry date to report, not because anything is wrong. Read `tokenStatus`.
 
 ## Connection Fields
 
@@ -76,8 +90,8 @@ GET https://api.publora.com/api/v1/platform-connections
 | `displayName` | string/null | Display name on the platform. Returns `null` if not set during OAuth. |
 | `profileImageUrl` | string/null | Profile image URL. Returns `null` if not available. |
 | `profileUrl` | string/null | URL to the user's profile on the platform. Can be null if not available for the platform. |
-| `accessTokenExpiresAt` | string/null | Token expiration timestamp (null = no expiration) |
-| `tokenStatus` | string | Current credential health: `valid`, `expiring_soon`, `expired`, or `unknown`; see platform-specific rules below |
+| `accessTokenExpiresAt` | string/null | Effective credential expiry — the same date `tokenStatus` and `tokenExpiresIn` are derived from, not the raw OAuth access-token lifetime. `null` means no authoritative expiry date exists: always for YouTube (Google does not publish a refresh-token lifetime), and for the platforms whose credentials do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). A `null` here is not a problem — read `tokenStatus`. |
+| `tokenStatus` | string | Current credential health: `valid`, `expiring_soon`, `expired`, or `unknown`. **This is the authoritative signal** — decide whether to prompt a reconnect from this field, not by comparing `accessTokenExpiresAt` against the clock yourself. See platform-specific rules below. |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration. Possible formats: `"7d 3h"` (days and hours), `"5h"` (hours only, when less than one day remains), `"< 1h"` (less than one hour remaining), `"expired"` (token already expired), or `null` (no expiration). |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post to this platform |
 | `lastError` | object/null | Last error that occurred when posting to this platform. When present, contains: `message` (string — error description) and `occurredAt` (string — ISO 8601 timestamp of when the error occurred). |
@@ -87,10 +101,12 @@ GET https://api.publora.com/api/v1/platform-connections
 
 | Status | Meaning |
 |--------|---------|
-| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring. YouTube/TikTok are also `valid` when `refreshTokenExpiresAt` is absent or at least 30 days away. For Bluesky, this endpoint's projected connection data marks a stored username as `valid`; it does not re-check the app password. |
-| `expiring_soon` | YouTube/TikTok refresh token expires in under 30 days, or another OAuth platform's access token expires in under 7 days |
-| `expired` | Token has expired - reconnect required |
-| `unknown` | Stored expiry data is malformed. For Bluesky in this endpoint, it means the projected connection has no username. A missing YouTube/TikTok `refreshTokenExpiresAt` is `valid`, not `unknown`. |
+| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring. **YouTube is always `valid`** unless the connection has been flagged for reconnection — its access token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime, so there is no expiry date to report. TikTok is `valid` while its refresh token is at least 30 days away. For Bluesky, this endpoint's projected connection data marks a stored username as `valid`; it does not re-check the app password. |
+| `expiring_soon` | TikTok refresh token expires in under 30 days, or another OAuth platform's access token expires in under 7 days |
+| `expired` | Reconnect required. Either the effective expiry has passed, or Publora flagged the connection for reconnection after the platform rejected its credential — the second case applies on **any** platform, including the ones that never expire on a schedule, and in that case `accessTokenExpiresAt` may still be `null` or in the future. |
+| `unknown` | Stored expiry data is malformed. For Bluesky in this endpoint, it means the projected connection has no username. A missing TikTok `refreshTokenExpiresAt` is `valid`, not `unknown`. |
+
+> **Do not infer health from `accessTokenExpiresAt` yourself.** `tokenStatus` already accounts for per-platform refresh behaviour and for connections the platform has revoked. A connection can be `expired` while its date is `null` or in the future, and YouTube reports `null` while being perfectly healthy.
 
 > **Note:** Pinterest has OAuth connection routes in the dashboard, but no `test-connection` validator is implemented. Calling `test-connection` for a Pinterest connection will return `"Unknown platform: pinterest"`.
 
@@ -144,13 +160,12 @@ connections = response.json()['connections']
 all_platform_ids = [c['platformId'] for c in connections]
 print(f"Connected to {len(all_platform_ids)} accounts")
 
-# Check for expiring tokens
-from datetime import datetime, timezone
+# Check credential health — read tokenStatus, never compare the date yourself
 for conn in connections:
-    if conn.get('accessTokenExpiresAt'):
-        expires = datetime.fromisoformat(conn['accessTokenExpiresAt'].replace('Z', '+00:00'))
-        if expires < datetime.now(timezone.utc):
-            print(f"⚠️  {conn['platformId']} token expired! Reconnect in dashboard.")
+    if conn.get('tokenStatus') == 'expired':
+        print(f"⚠️  {conn['platformId']} needs reconnecting in the dashboard.")
+    elif conn.get('tokenStatus') == 'expiring_soon':
+        print(f"⏳ {conn['platformId']} expires in {conn.get('tokenExpiresIn')}")
 ```
 
 ### cURL
@@ -201,15 +216,12 @@ async function getConnections() {
 
     const data = await response.json();
 
-    // Check for expiring tokens
-    const now = new Date();
+    // Check credential health — read tokenStatus, never compare the date yourself
     for (const conn of data.connections) {
-      if (conn.accessTokenExpiresAt) {
-        const expires = new Date(conn.accessTokenExpiresAt);
-        const daysUntilExpiry = Math.floor((expires - now) / (1000 * 60 * 60 * 24));
-        if (daysUntilExpiry < 7) {
-          console.warn(`⚠️  ${conn.platformId} token expires in ${daysUntilExpiry} days`);
-        }
+      if (conn.tokenStatus === 'expired') {
+        console.warn(`⚠️  ${conn.platformId} needs reconnecting in the dashboard`);
+      } else if (conn.tokenStatus === 'expiring_soon') {
+        console.warn(`⏳ ${conn.platformId} expires in ${conn.tokenExpiresIn}`);
       }
     }
 
@@ -224,10 +236,9 @@ async function getConnections() {
 ```python
 import os
 import requests
-from datetime import datetime, timezone
 
 def get_connections():
-    """Get all connected platforms with error handling and token expiry check."""
+    """Get all connected platforms with error handling and a credential health check."""
     try:
         response = requests.get(
             'https://api.publora.com/api/v1/platform-connections',
@@ -240,16 +251,12 @@ def get_connections():
         response.raise_for_status()
         data = response.json()
 
-        # Check for expiring tokens
-        now = datetime.now(timezone.utc)
+        # Check credential health — read tokenStatus, never compare the date yourself
         for conn in data['connections']:
-            if conn.get('accessTokenExpiresAt'):
-                expires = datetime.fromisoformat(
-                    conn['accessTokenExpiresAt'].replace('Z', '+00:00')
-                )
-                days_until_expiry = (expires - now).days
-                if days_until_expiry < 7:
-                    print(f"⚠️  {conn['platformId']} token expires in {days_until_expiry} days")
+            if conn.get('tokenStatus') == 'expired':
+                print(f"⚠️  {conn['platformId']} needs reconnecting in the dashboard")
+            elif conn.get('tokenStatus') == 'expiring_soon':
+                print(f"⏳ {conn['platformId']} expires in {conn.get('tokenExpiresIn')}")
 
         return data['connections']
 

@@ -258,11 +258,12 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: "Effective credential expiry, derived the same way as tokenStatus. Null when no authoritative date exists: always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). Do not compare this against the current time to decide about reconnecting - read tokenStatus instead."
           example: "2026-05-15T10:30:00.000Z"
         tokenStatus:
           type: string
           enum: [valid, expiring_soon, expired, unknown]
-          description: "Current status of the access token"
+          description: "Authoritative credential health. Read this to decide whether a reconnect is needed. 'expired' also covers connections the platform revoked, where accessTokenExpiresAt may still be null or in the future."
           example: "valid"
         tokenExpiresIn:
           type: string

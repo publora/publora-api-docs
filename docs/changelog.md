@@ -13,6 +13,16 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## 2026-08-24
 
+### Connection health reporting corrected — publora.com #407
+
+- **Affected surface:** REST `GET /platform-connections` and the MCP `list_connections` tool, which passes that response through unchanged. `test-connection` reports the same corrected expiry.
+- **Tag:** **Behavioral correction.** No request shape changes, no field is added or removed; two response fields now report different — and correct — values for some connections.
+- **Changes:**
+  - `accessTokenExpiresAt` now carries the **effective** credential expiry, the same value `tokenStatus` and `tokenExpiresIn` are derived from, instead of the raw stored access-token timestamp. For YouTube it is now always `null`: the access token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime, so no authoritative date exists. TikTok continues to report its real refresh-token expiry; every other platform is unchanged.
+  - Previously, healthy YouTube and TikTok connections returned a timestamp already in the past alongside `tokenStatus: "valid"`. Clients that compared that date against the current time concluded the connection was dead and prompted users to reconnect working channels.
+  - `tokenStatus` now returns `expired` for any connection Publora has flagged for reconnection after the platform rejected its credential — including on platforms that never expire on a schedule, where such a connection previously reported `valid`. In that case `accessTokenExpiresAt` may be `null` or still in the future.
+- **Migration action:** Decide about reconnecting from **`tokenStatus`**, not by comparing `accessTokenExpiresAt` against the clock. Treat `expired` as "prompt the user to reconnect" and `expiring_soon` as "warn". Treat a `null` expiry as "no scheduled expiry", never as a problem. The examples on the endpoint, guide and MCP pages were rewritten accordingly; code copied from earlier versions of those examples should be updated.
+
 ### X replies and quote posts — publora.com #405
 
 - **Affected surface:** REST `create-post` and `update-post`, the MCP `create_post` and `update_post` tools, and the `posts[].error.code` reported by `GET /get-post` and the `post.failed` webhook.
