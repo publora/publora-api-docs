@@ -159,6 +159,8 @@ When `status` is `failed`, the `error` object contains:
 | `PLATFORM_SERVER_ERROR` | Platform API returned 5xx error | Yes |
 | `NETWORK_ERROR` | Could not reach platform API | Yes |
 | `TIMEOUT_ERROR` | Request timed out | Yes |
+| `X_REPLY_NOT_AUTHORIZED` | X refused a `platformSettings.twitter` reply or quote: on self-serve API tiers the target's author must have mentioned this account in that post, quoted one of its posts, or the account must have written the target itself | No |
+| `X_TARGET_REJECTED` | The `platformSettings.twitter` reply/quote target is unusable — deleted, protected, or its author blocked this account | No |
 | `UNKNOWN_ERROR` | Unclassified error | Maybe |
 
 > **Note:** The error codes listed above are not exhaustive. The schema does not validate error codes, so additional codes beyond these eight may appear in the response. Always handle unknown codes gracefully.

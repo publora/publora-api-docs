@@ -63,7 +63,7 @@ When your content exceeds a platform's character limit, Publora adapts it automa
 
 `platformSettings` can be passed directly in the `create-post` request body. The API merges user-provided settings with defaults per platform.
 >
-> **⚠️ Supported platforms for `platformSettings`:** The API merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, **Telegram**, and **LinkedIn**. Unknown top-level platforms or nested fields are rejected with `400 PLATFORM_SETTING_UNKNOWN`; they are not silently ignored. See the canonical [create-post platformSettings allowlist](../endpoints/create-post.md#unknown-platformsettings-paths).
+> **⚠️ Supported platforms for `platformSettings`:** The API merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, **X** (`twitter`), **Telegram**, and **LinkedIn**. Unknown top-level platforms or nested fields are rejected with `400 PLATFORM_SETTING_UNKNOWN`; they are not silently ignored. See the canonical [create-post platformSettings allowlist](../endpoints/create-post.md#unknown-platformsettings-paths), and [X Reply and Quote Settings](../endpoints/create-post.md#x-reply-and-quote-settings) for the `twitter` keys.
 >
 > **⚠️ Important limitation:** The external API `update-post` endpoint accepts `status`, `scheduledTime`, `platformSettings` (merged per-platform), and `mediaUrls`. `mediaUrls` has **append semantics**: newly ingested media is added to existing media rather than replacing it, and ingestion is limited to 60 URLs/hour. It does **not** accept `content` or `platforms`. See [update-post](../endpoints/update-post.md). To change the text or target platforms after creation, use the Publora dashboard or create a new post.
 

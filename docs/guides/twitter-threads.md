@@ -232,6 +232,23 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 });
 ```
 
+## Threads That Reply or Quote
+
+`platformSettings.twitter.replyTo` makes the **head** tweet a reply to an existing post; the remaining parts chain under the head exactly as in a standalone thread. `platformSettings.twitter.quoteTweet` is likewise applied to the head part only.
+
+```json
+{
+  "content": "Thanks for the mention — long answer follows.\n\n---\n\nPart two of the answer.",
+  "platforms": ["twitter-123"],
+  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "platformSettings": {
+    "twitter": { "replyTo": "https://x.com/customer/status/1234567890123456789" }
+  }
+}
+```
+
+Both fields accept a full `x.com`/`twitter.com` status URL or a bare 1–19 digit post ID, and an empty string clears either. On self-serve X API tiers the target's author must have mentioned this account in that post, quoted one of its posts, or this account must have written the target — otherwise the whole thread fails before its first part is published. See [X Reply and Quote Settings](../endpoints/create-post.md#x-reply-and-quote-settings).
+
 ## Rate Limits
 
 X-side pricing and posting quotas change independently and are not a Publora numeric contract. Consult X's current developer documentation; each tweet in a thread is a separate platform publication.
@@ -262,6 +279,8 @@ Already-published tweets can remain live, but the public response exposes only t
 | Rate limit exceeded | Too many requests | Wait 15 min or upgrade tier |
 | Character limit exceeded | Tweet too long | Check emoji counting, reduce content |
 | Duplicate content | Same tweet posted recently | Vary your content |
+| `X_REPLY_NOT_AUTHORIZED` | The `replyTo`/`quoteTweet` target is not one X lets this account reply to or quote on a self-serve tier | Reply only where you were mentioned, or quote your own post; do not retry the same target |
+| `X_TARGET_REJECTED` | The reply/quote target is deleted, protected, or its author blocked this account | Choose a reachable target; do not retry unchanged |
 
 ## Python Example
 

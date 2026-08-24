@@ -11,6 +11,21 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-08-24
+
+### X replies and quote posts — publora.com #405
+
+- **Affected surface:** REST `create-post` and `update-post`, the MCP `create_post` and `update_post` tools, and the `posts[].error.code` reported by `GET /get-post` and the `post.failed` webhook.
+- **Tag:** Additive. No existing request shape changes behavior.
+- **Changes:**
+  - `platformSettings` accepts a new top-level `twitter` object with two string keys, `replyTo` and `quoteTweet`. Both take a full `x.com`/`twitter.com` status URL or a bare 1–19 digit post ID, and both are normalized to the numeric ID before storage, so `GET /get-post` echoes the ID rather than the URL you sent.
+  - `replyTo` publishes the post — or the head part of a thread — as a reply to the target; the remaining thread parts chain under it as before. `quoteTweet` applies to the single post or the thread head only. The two fields combine with each other and with media. An empty string clears either one.
+  - A malformed reference is rejected at intake with `400` and a plain `error` message (`platformSettings.twitter.replyTo must be a tweet URL (https://x.com/user/status/123...) or a numeric tweet ID`); no `code` field accompanies it. An unknown key under `twitter` is still `400 PLATFORM_SETTING_UNKNOWN`, which is evaluated first.
+  - Two publish-time codes were added: `X_REPLY_NOT_AUTHORIZED` when X refuses the reply or quote relationship, and `X_TARGET_REJECTED` when the target is deleted, protected, or its author blocked the account. Both are permanent — `retryable: false`.
+  - `twitter` is no longer an example of a rejected `platformSettings` platform; the allowlist now has seven platforms.
+- **Restriction to know before integrating:** X allows a programmatic reply or quote on self-serve API tiers only when the target post's author mentioned the connected account **in that same post**, quoted one of the account's posts, or the connected account authored the target. Enterprise apps are exempt. Publora cannot check that relationship at intake, so an unrelated target is accepted by `create-post`/`update-post` and fails later at publish time.
+- **Migration action:** None for existing callers. New integrations should treat these fields as inbound-engagement and own-post tools, match on `error.code` rather than message text, and not retry `X_REPLY_NOT_AUTHORIZED` or `X_TARGET_REJECTED` with the same target.
+
 ## 2026-08-03
 
 ### MCP OAuth consent no longer asks for an API key
