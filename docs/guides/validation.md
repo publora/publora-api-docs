@@ -18,7 +18,7 @@ Validation runs automatically on these API calls:
 | `POST /api/v1/create-post` | When `scheduledTime` makes the new post scheduled |
 | `PUT /api/v1/update-post/:id` | When scheduling the post; media URLs are finalized before validation |
 
-> **Note:** `PUT /api/v1/update-post/:id` accepts `status`, `scheduledTime`, `platformSettings`, and `mediaUrls`; it also supports the `Idempotency-Key` header. Scheduling re-runs validation and media finalization.
+> **Note:** `PUT /api/v1/update-post/:id` accepts `content`, `platforms`, `status`, `scheduledTime`, `platformSettings`, and `mediaUrls`; it also supports the `Idempotency-Key` header. Scheduling re-runs validation and media finalization, and adding a target to a scheduled post re-runs scheduling limits plus full content/media validation.
 
 If validation fails with blocking errors, the API returns a `400` status code with details about what needs to be fixed. Warnings are returned but do not block the operation.
 

@@ -144,7 +144,7 @@ The `code` field is the contract — branch on it, not on the message text.
 
 | Status | Error Message | Cause | Resolution |
 |---|---|---|---|
-| `400` | `"At least one of status, scheduledTime, platformSettings, or mediaUrls must be provided"` | An update-post request omitted all four accepted fields | Include at least one of `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` in the request body |
+| `400` | `"At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"` | An update-post request omitted all six accepted fields | Include at least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls` in the request body |
 | `400` | `"Status must be either 'draft' or 'scheduled'"` | The `status` field in an update-post request contains an invalid value | Set `status` to either `"draft"` or `"scheduled"` |
 | `422` / `409` / `400` | Idempotency errors | An `Idempotency-Key` was reused with a different body, is still in flight, or the body is too deeply nested | See [Idempotency Errors](#idempotency-errors) |
 
