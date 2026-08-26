@@ -140,6 +140,22 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 });
 ```
 
+## Who Can I Mention?
+
+In practice, the people you can mention fall into two groups:
+
+1. **Your own connected accounts** — every LinkedIn connection's native id is in its `platformId` (see [Finding LinkedIn URNs](#finding-linkedin-urns) below).
+2. **People who engaged with your connected company pages** — when comments or reactions are read on a company-page post (in the Publora app or via the API), Publora automatically captures each engaging member's native id into a per-user **mentionable-people directory**. No manual step is needed, and no extra LinkedIn calls are made. Engagement on personal-profile posts is not capturable (LinkedIn restricts the required scope).
+
+The recommended way to discover mentionable people is the [`GET /linkedin-mentionables`](../endpoints/linkedin-mentionables.md) endpoint (or the `linkedin_list_mentionables` MCP tool — both paid-plan only). It supports name search and returns a ready-to-paste `mention` token for each person:
+
+```bash
+curl "https://api.publora.com/api/v1/linkedin-mentionables?q=daria" \
+  -H "x-publora-key: YOUR_API_KEY"
+```
+
+Anyone outside these two groups — e.g. a person you only know from a linkedin.com profile URL — cannot be mentioned, because their native id is not obtainable (see the honest limitation under [Finding LinkedIn URNs](#finding-linkedin-urns)).
+
 ## Finding LinkedIn URNs
 
 ### Person URN
@@ -157,6 +173,7 @@ Where to get native member ids:
 
 - **Your own connected accounts:** the [platform-connections](../endpoints/platform-connections.md) endpoint returns each LinkedIn connection's `platformId` (e.g. `linkedin-Dk968RHxiO`). Strip the `linkedin-` prefix — the remainder is that member's native id.
 - **Actor ids returned by Publora's LinkedIn APIs:** endpoints such as [comments](../endpoints/linkedin-comments.md), [reactions](../endpoints/linkedin-reactions.md), and [feed retrieval](../endpoints/linkedin-feed-retrieval.md) return `urn:li:person:…` actor URNs in their responses. The id inside those URNs is the native form and can be used directly.
+- **The mentionable-people directory:** [`GET /linkedin-mentionables`](../endpoints/linkedin-mentionables.md) lists every native id Publora has captured for you, searchable by name and with a ready-to-paste `mention` token per person (see [Who Can I Mention?](#who-can-i-mention)).
 
 > **Honest limitation:** There is **no public API to look up an arbitrary member's native id.** You can reliably mention people whose ids you obtained through Publora or LinkedIn API surfaces (your connections, actors on posts/comments you retrieved) — **not** people you found via a linkedin.com profile URL. The `ACoAA…` id visible in profile URLs and page source cannot be converted to a native id.
 
@@ -228,6 +245,7 @@ After posting, check your LinkedIn post to ensure:
 
 ## Related Guides
 
+- [LinkedIn Mentionables](../endpoints/linkedin-mentionables.md) - List the people you can mention
 - [LinkedIn Comments](linkedin-comments.md) - Comment on posts
 - [LinkedIn Reshare](../endpoints/linkedin-reshare.md) - Reshare posts with mention-capable commentary
 - [LinkedIn Reactions](linkedin-reactions.md) - Like and react to posts

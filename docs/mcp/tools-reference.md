@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 15 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -810,6 +810,69 @@ Reshare an existing LinkedIn post to your feed, optionally with commentary.
 ```text
 "Reshare urn:li:share:123456 on linkedin-abc123 with the commentary 'Worth reading'"
 ```
+
+---
+
+## LinkedIn Mentionables Tool
+
+### linkedin_list_mentionables
+
+List the LinkedIn members you can @mention — Publora's per-user directory of native member ids captured from engagement (comments and reactions) on your connected company pages. Each entry includes a ready-to-paste `mention` token for post content or comment messages. **Paid plans only** — free plans receive a `403 UPGRADE_REQUIRED` error. Backed by [`GET /linkedin-mentionables`](../endpoints/linkedin-mentionables.md); see the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md) for why native ids are required.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | No | Case-insensitive substring filter on the person's name |
+| `limit` | number | No | Maximum entries to return, 1–100 (default: 25) |
+
+Results are sorted by `lastSeenAt` descending (most recently engaged first).
+
+**Example prompts:**
+
+```text
+"Who can I mention on LinkedIn?"
+"Find the mention token for Daria"
+"List people who recently engaged with my company page"
+```
+
+**Python example:**
+
+```python
+async def list_mentionables():
+    headers = {"Authorization": "Bearer sk_YOUR_API_KEY"}
+
+    async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            result = await session.call_tool("linkedin_list_mentionables", {
+                "q": "daria",
+                "limit": 10
+            })
+            print(result.content[0].text)
+```
+
+**Response example:**
+
+```json
+{
+  "success": true,
+  "people": [
+    {
+      "personId": "Dk968RHxiO",
+      "name": "Daria Bulaeva",
+      "profileUrl": "",
+      "profilePicture": "",
+      "source": "comment",
+      "lastSeenAt": "2026-07-16T10:00:00.000Z",
+      "mention": "@{urn:li:person:Dk968RHxiO|Daria Bulaeva}"
+    }
+  ]
+}
+```
+
+`source` is `comment` or `reaction` (the most recent engagement wins). `mention` is `null` when no usable name is stored. The directory fills automatically when company-page engagement is read — there is no way to add a person manually or by profile URL.
 
 ---
 

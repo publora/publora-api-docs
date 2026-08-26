@@ -72,6 +72,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
 | `DELETE` | `/linkedin-reactions` | Remove a LinkedIn reaction | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
 | `POST` | `/linkedin-reshare` | Reshare an existing LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reshare) |
+| `GET` | `/linkedin-mentionables` | List mentionable LinkedIn people | [View](https://docs.publora.com/endpoints/linkedin-mentionables) |
 | `POST` | `/linkedin-followers` | Get LinkedIn follower statistics | [View](https://docs.publora.com/endpoints/linkedin-followers) |
 | `POST` | `/linkedin-profile-summary` | Get LinkedIn profile summary | [View](https://docs.publora.com/endpoints/linkedin-profile-summary) |
 
@@ -140,6 +141,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
 - [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
 - [LinkedIn Reshare](https://docs.publora.com/endpoints/linkedin-reshare) — repost an existing LinkedIn post
+- [LinkedIn Mentionables](https://docs.publora.com/endpoints/linkedin-mentionables) — list the people you can @mention, with ready-to-paste tokens
 
 ### Platform Guides
 - [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)

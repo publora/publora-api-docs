@@ -158,6 +158,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `linkedin_create_comment` | Post a comment on a LinkedIn post |
 | `linkedin_delete_comment` | Delete a comment from a LinkedIn post |
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
+| `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
 > LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
