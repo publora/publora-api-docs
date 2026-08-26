@@ -541,4 +541,4 @@ async function getStatisticsSafe(platformId, postedId) {
 
 ---
 
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+*[Publora](https://publora.com) — Social media API with free tier, paid plans from $3.99/account*

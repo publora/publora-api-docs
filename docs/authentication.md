@@ -37,12 +37,12 @@ In the Publora dashboard, connect the social platforms you want to post to:
 | Plan | Price | Posts/Month | Accounts | Platforms | Video Upload |
 |------|-------|-------------|----------|-----------|--------------|
 | **Starter** | Free | 15 | 3 | All 10 | 50MB |
-| **Pro** | $2.99/account | 100/account | Unlimited | All platforms | 100MB |
-| **Premium** | $5.99/account | 500/account | Unlimited | All platforms | 250MB |
+| **Pro** | from $3.99/account | Unlimited (fair use) | 1–1,000 | All platforms | 250MB |
+| **Agency** | Custom | Unlimited | Custom | All platforms | Custom |
 
 - **Starter** is free forever — great for trying the API
-- **Pro** and **Premium** use per-account pricing — add as many social accounts as you need
-- View full details at [publora.com/pricing](https://publora.com/pricing)
+- **Pro** uses graduated per-account pricing with automatic volume discounts: monthly $5.99 (accounts 1–5) / $2.99 (6–20) / $0.99 (21+); yearly is a flat 33% off ($3.99 / $1.99 / $0.66)
+- View full details at [publora.com/pricing](https://publora.com/pricing) (machine-readable: [publora.com/pricing.md](https://publora.com/pricing.md))
 
 ## API Keys vs OAuth Tokens
 

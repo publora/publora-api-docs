@@ -341,4 +341,4 @@ Use MCP for conversational workflows. Use REST API for production integrations.
 
 ---
 
-*[Publora](https://publora.com) -- Social media API with free Starter plan, paid plans from Pro ($2.99/mo billed yearly)*
+*[Publora](https://publora.com) -- Social media API with free Starter plan, paid plans from Pro ($3.99/mo billed yearly)*

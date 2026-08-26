@@ -2,7 +2,7 @@
 
 **Affordable REST API for scheduling and publishing social media posts across 10 platforms.**
 
-Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. **Free tier available**, paid plans from **$2.99/month** per connected account.
+Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. **Free tier available**, paid plans from **$3.99/month** per connected account (graduated volume discounts).
 
 **Website:** [publora.com](https://publora.com) | **Dashboard:** [app.publora.com](https://app.publora.com) | **Email:** serge@publora.com
 
@@ -24,7 +24,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   }'
 ```
 
-**3 API calls. 10 platforms. Free tier + $2.99/account.**
+**3 API calls. 10 platforms. Free tier + Pro from $3.99/account.**
 
 ## Why Publora?
 
@@ -33,7 +33,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | Feature | Publora | Ayrshare | Publer | Sprout Social |
 |---------|---------|----------|--------|---------------|
 | **Starting price** | **Free** | $49/mo | $12/mo | $249/mo |
-| Per-account pricing | $2.99-5.99 | N/A | N/A | N/A |
+| Per-account pricing | from $3.99 (graduated) | N/A | N/A | N/A |
 | Platforms | **10** | 13 | 9 | 6 |
 | API access | All plans | Paid only | Paid only | Enterprise |
 | Bluesky support | Yes | Yes | No | No |
@@ -44,7 +44,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 ### Why Developers Choose Publora
 
-1. **Affordable** — Free tier available, paid plans from $2.99/account. No enterprise tier required.
+1. **Affordable** — Free tier available, paid plans from $3.99/account with automatic volume discounts. No enterprise tier required.
 2. **10 Platforms** — X, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram.
 3. **API-First** — Clean REST API designed for developers, not a bloated dashboard.
 4. **AI-Ready** — Docs indexed on [Context7](https://context7.com) so AI coding assistants already know our API.
@@ -110,10 +110,10 @@ See [Authentication Guide](https://docs.publora.com/authentication) for details.
 | Plan | Price | Posts/Month | Accounts | Platforms | Video |
 |------|-------|-------------|----------|-----------|-------|
 | **Starter** | Free | 15 | 3 | All 10 | 50 MB |
-| **Pro** | $2.99/account | 100/account | Unlimited | All 10 | 100 MB |
-| **Premium** | $5.99/account | 500/account | Unlimited | All 10 | 250 MB |
+| **Pro** | from $3.99/account | Unlimited (fair use) | 1–1,000 | All 10 | 250 MB |
+| **Agency** | Custom | Unlimited | Custom | All 10 | Custom |
 
-All plans include full API access. Pro/Premium use per-account pricing — add as many accounts as you need. [Get started free](https://publora.com).
+All plans include full API access. Pro uses graduated per-account pricing — monthly $5.99 (accounts 1–5) / $2.99 (6–20) / $0.99 (21+), yearly a flat 33% off. Machine-readable pricing: [publora.com/pricing.md](https://publora.com/pricing.md). [Get started free](https://publora.com).
 
 ## Documentation
 

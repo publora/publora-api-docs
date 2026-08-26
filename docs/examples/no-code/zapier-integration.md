@@ -271,4 +271,4 @@ Run it once and check the response to get your platform IDs.
 
 ---
 
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+*[Publora](https://publora.com) — Social media API with free tier, paid plans from $3.99/account*

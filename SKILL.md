@@ -35,8 +35,8 @@ This skill provides complete documentation for the Publora social media scheduli
 | Plan | Price | Posts/Month | Platforms |
 |------|-------|-------------|-----------|
 | Starter | Free | 15 | All 10 |
-| Pro | $2.99/account | 100/account | All platforms |
-| Premium | $5.99/account | 500/account | All platforms |
+| Pro | from $3.99/account (graduated) | Unlimited (fair use) | All platforms |
+| Agency | Custom | Unlimited | All platforms |
 
 ## Authentication
 

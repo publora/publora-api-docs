@@ -134,10 +134,12 @@ Each Publora plan enforces limits on monthly posts, scheduled (pending) posts, a
 | Plan | Monthly Posts | Connections | Post Limit Scope | Scheduled Posts | Schedule Horizon | API/MCP Access | Platforms |
 |------|-------------|-------------|------------------|-----------------|------------------|----------------|-----------|
 | **Starter (Free)** | 15 | 3 | Account-wide | 3 pending | 7 days | Yes | All 10 |
-| **Pro Monthly ($5.99/mo)** | 100 | Per seat* | Per connection | 100 pending | Unlimited | Yes | All |
-| **Pro Yearly ($2.99/mo)** | 100 | Per seat* | Per connection | 100 pending | Unlimited | Yes | All |
-| **Premium Monthly ($9.99/mo)** | 500 | Per seat* | Per connection | 500 pending | Unlimited | Yes | All |
-| **Premium Yearly ($5.99/mo)** | 500 | Per seat* | Per connection | 500 pending | Unlimited | Yes | All |
+| **Pro Monthly (graduated, from $5.99/account)** | 5,000 (fair use) | Per purchased quantity* | Per connection | Unlimited | Unlimited | Yes | All |
+| **Pro Yearly (graduated, from $3.99/account)** | 5,000 (fair use) | Per purchased quantity* | Per connection | Unlimited | Unlimited | Yes | All |
+| **Pro Monthly — legacy ($5.99/mo)** | 100 | Per seat* | Per connection | 100 pending | Unlimited | Yes | All |
+| **Pro Yearly — legacy ($2.99/mo)** | 100 | Per seat* | Per connection | 100 pending | Unlimited | Yes | All |
+| **Premium Monthly — legacy ($9.99/mo)** | 500 | Per seat* | Per connection | 500 pending | Unlimited | Yes | All |
+| **Premium Yearly — legacy ($5.99/mo)** | 500 | Per seat* | Per connection | 500 pending | Unlimited | Yes | All |
 
 *\*Paid plan connection limits are based on subscription quantity (seat count), not truly unlimited. Each seat in your subscription adds to your total allowed connections.*
 
