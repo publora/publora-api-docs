@@ -133,7 +133,7 @@ Each Publora plan enforces limits on monthly posts, scheduled (pending) posts, a
 
 | Plan | Monthly Posts | Connections | Post Limit Scope | Scheduled Posts | Schedule Horizon | API/MCP Access | Platforms |
 |------|-------------|-------------|------------------|-----------------|------------------|----------------|-----------|
-| **Starter (Free)** | 15 | 3 | Account-wide | 3 pending | 7 days | Yes | All 10 |
+| **Starter (Free)** | 15 | 3 | Account-wide | 3 pending | 7 days | Yes | All platforms, except X |
 | **Pro Monthly (graduated, from $5.99/account)** | 5,000 (fair use) | Per purchased quantity* | Per connection | Unlimited | Unlimited | Yes | All |
 | **Pro Yearly (graduated, from $3.99/account)** | 5,000 (fair use) | Per purchased quantity* | Per connection | Unlimited | Unlimited | Yes | All |
 | **Pro Monthly — legacy ($5.99/mo)** | 100 | Per seat* | Per connection | 100 pending | Unlimited | Yes | All |

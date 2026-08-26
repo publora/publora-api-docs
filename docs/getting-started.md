@@ -10,15 +10,15 @@ Machine-readable API descriptions are available as [OpenAPI YAML](https://docs.p
 
 ## Pricing
 
-| Plan | Price | Posts/Month | Platforms |
-|------|-------|-------------|-----------|
-| **Starter** | Free | 15 | All 10 |
-| **Pro** | from $3.99/account | Unlimited (fair use) | All platforms |
-| **Agency** | Custom | Unlimited | All platforms |
+| Plan | Monthly | Yearly −33% | Posts/Month | Platforms |
+|------|---------|-------------|-------------|-----------|
+| **Starter** | Free | Free | 15 | All platforms, except X |
+| **Pro**, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | All platforms |
+| **Agency** | Custom | Custom | Unlimited | All platforms |
 
 > **Note:** The free Starter plan **includes** full REST API and MCP access (3 connected accounts, 15 posts/month account-wide).
 
-Pro uses graduated per-account pricing with automatic volume discounts — monthly: $5.99 (accounts 1–5), $2.99 (6–20), $0.99 (21+); yearly billing is a flat 33% off: $3.99 / $1.99 / $0.66.
+Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
 
 See full details at [publora.com/pricing](https://publora.com/pricing) (machine-readable: [publora.com/pricing.md](https://publora.com/pricing.md))
 

@@ -32,11 +32,13 @@ This skill provides complete documentation for the Publora social media scheduli
 
 ## Pricing
 
-| Plan | Price | Posts/Month | Platforms |
-|------|-------|-------------|-----------|
-| Starter | Free | 15 | All 10 |
-| Pro | from $3.99/account (graduated) | Unlimited (fair use) | All platforms |
-| Agency | Custom | Unlimited | All platforms |
+| Plan | Monthly | Yearly −33% | Posts/Month | Platforms |
+|------|---------|-------------|-------------|-----------|
+| Starter | Free | Free | 15 | All platforms, except X |
+| Pro, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | All platforms |
+| Agency | Custom | Custom | Unlimited | All platforms |
+
+Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
 
 ## Authentication
 

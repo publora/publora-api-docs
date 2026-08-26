@@ -34,14 +34,15 @@ In the Publora dashboard, connect the social platforms you want to post to:
 
 ## Pricing Plans
 
-| Plan | Price | Posts/Month | Accounts | Platforms | Video Upload |
-|------|-------|-------------|----------|-----------|--------------|
-| **Starter** | Free | 15 | 3 | All 10 | 50MB |
-| **Pro** | from $3.99/account | Unlimited (fair use) | 1–1,000 | All platforms | 250MB |
-| **Agency** | Custom | Unlimited | Custom | All platforms | Custom |
+| Plan | Monthly | Yearly −33% | Posts/Month | Accounts | Platforms | Video Upload |
+|------|---------|-------------|-------------|----------|-----------|--------------|
+| **Starter** | Free | Free | 15 | 3 | All platforms, except X | 50MB |
+| **Pro**, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | 1–1,000 | All platforms | 250MB |
+| **Agency** | Custom | Custom | Unlimited | Custom | All platforms | Custom |
+
+Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
 
 - **Starter** is free forever — great for trying the API
-- **Pro** uses graduated per-account pricing with automatic volume discounts: monthly $5.99 (accounts 1–5) / $2.99 (6–20) / $0.99 (21+); yearly is a flat 33% off ($3.99 / $1.99 / $0.66)
 - View full details at [publora.com/pricing](https://publora.com/pricing) (machine-readable: [publora.com/pricing.md](https://publora.com/pricing.md))
 
 ## API Keys vs OAuth Tokens
