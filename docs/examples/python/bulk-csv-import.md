@@ -365,4 +365,4 @@ print(df[['content', 'import_success', 'postGroupId']])
 
 ---
 
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $3.99/account*
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

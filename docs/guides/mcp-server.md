@@ -341,4 +341,4 @@ Use MCP for conversational workflows. Use REST API for production integrations.
 
 ---
 
-*[Publora](https://publora.com) -- Social media API with free Starter plan, paid plans from Pro ($3.99/mo billed yearly)*
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*
