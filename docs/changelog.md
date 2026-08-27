@@ -11,6 +11,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-08-27
+
+### Native Zapier app (beta)
+
+- **Affected surface:** No REST or MCP contract change. Publora now has a native app on Zapier (beta, v1.2.0), built on the public API and [webhooks](endpoints/webhooks.md): instant triggers **New Published Post** and **New Scheduled Post**, actions **Create Post**, **Update Post** and **Delete Post**, and searches **Find Connected Account** and **Find Posts**.
+- **Tag:** Additive.
+- **Change:** The [Zapier guide](examples/no-code/zapier-integration.md) was rewritten for the native app. It previously documented a workaround through Webhooks by Zapier; that approach still works and stays documented on the same page for endpoints the app does not expose.
+- **Migration action:** None. Existing Webhooks-by-Zapier Zaps keep working; the native app is the recommended path for new Zaps.
+
 ## 2026-08-24
 
 ### Connection health reporting corrected — publora.com #407

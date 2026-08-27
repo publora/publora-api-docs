@@ -1,274 +1,91 @@
-# Zapier Integration Guide
+# Zapier Integration
 
-Connect Publora to 5,000+ apps using Zapier's Webhooks feature.
+Publora has a native Zapier app, so anything that can start a Zap can also publish to your social accounts. A new row in a spreadsheet, a fresh item in an RSS feed, a message in Slack. Any of them can turn into a scheduled post across your connected platforms, without writing a line of code.
 
-## Overview
+The integration is currently in beta. Everything below works today; the set of triggers and actions will grow.
 
-While Publora doesn't have a native Zapier app yet, you can easily integrate using Zapier's **Webhooks by Zapier** action to call the Publora API directly.
+![The Publora app page on Zapier, marked Beta under the Social Media Marketing category](../../images/zapier/zapier-a-app-page.png)
 
-## Prerequisites
+## Before you start
 
-- Zapier account (Free tier works)
-- Publora API key from [app.publora.com](https://app.publora.com)
-- At least one social account connected in Publora
+- A Publora account with at least one connected social account.
+- A Zapier account. The free plan is enough for single-step Zaps.
 
-## Example 1: Post When New Blog Published
+## Step 1 — Get your Publora API key
 
-Automatically post to social media when you publish a new blog post in WordPress.
+In the Publora dashboard, open **API** in the left sidebar (or go straight to [app.publora.com/dashboard/api](https://app.publora.com/dashboard/api)) and click **+ Create New Key**. Copy it right away; the full key is shown once, and the list afterwards only keeps a short prefix so you can tell your keys apart.
 
-### Step 1: Create a New Zap
+![The API page in the Publora dashboard, with the API Keys list and the Create New Key button](../../images/zapier/zapier-b-api-key.png)
 
-1. Go to [zapier.com](https://zapier.com) and click "Create Zap"
-2. Search for **WordPress** as your trigger app
-3. Select **New Post** as the trigger event
-4. Connect your WordPress site
-5. Test the trigger
+## Step 2 — Open the Publora app on Zapier
 
-### Step 2: Add Webhooks Action
+Go to [zapier.com/apps/publora/integrations](https://zapier.com/apps/publora/integrations) and pick a template, or start a Zap from scratch and search for **Publora** in the editor.
 
-1. Click "+" to add an action
-2. Search for **Webhooks by Zapier**
-3. Select **POST** as the action event
+## Step 3 — Connect your account
 
-### Step 3: Configure the Webhook
+When Zapier asks to connect Publora, paste the key into the **Publora API Key** field and click **Connect**. Zapier checks it by fetching your connected accounts, so a wrong key fails immediately instead of later.
 
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
+![The Zapier connection window with the Publora API Key field](../../images/zapier/zapier-c-connect.png)
 
-**Payload Type:** `json`
+Once it goes through, the account shows up in the step and can be reused by every other Zap you build. You can manage the connection any time at [zapier.com/app/connections](https://zapier.com/app/connections).
 
-**Data:**
-```json
-{
-  "content": "New blog post: {{title}} - {{link}}",
-  "platforms": ["twitter-YOUR_PLATFORM_ID", "linkedin-YOUR_PLATFORM_ID"],
-  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
-}
-```
+![A connected Publora account in the Zap editor, in use by four Zap workflows](../../images/zapier/zapier-d-connected.png)
 
-**Headers:**
-| Key | Value |
-|-----|-------|
-| `x-publora-key` | `YOUR_API_KEY` |
-| `Content-Type` | `application/json` |
+## Step 4 — What you can build
 
-For recipes using `{{Publish Time ISO (at least 5 minutes ahead)}}`, add a Formatter → Date/Time step before the Webhook and map its future ISO 8601 output into that field.
+**Triggers** (Publora starts the Zap). Both are instant: Publora pushes the event to Zapier the moment it happens, instead of Zapier polling for changes on a schedule.
 
-### Step 4: Test and Enable
+- **New Published Post** — a post was published to a connected account
+- **New Scheduled Post** — a post was scheduled for publishing
 
-1. Click "Test action" to verify it works
-2. Turn on your Zap
+![The New Published Post and New Scheduled Post triggers, both marked Instant, next to the Create Post and Delete Post actions](../../images/zapier/zapier-e-triggers.png)
 
----
+**Actions** (Publora does something):
 
-## Example 2: Schedule Posts from Google Sheets
+- **Create Post** — creates and schedules a post across your connected platforms
+- **Update Post** — changes a scheduled post's timing, status, or media
+- **Delete Post** — deletes a scheduled post
 
-Use a Google Sheet as your content calendar and automatically schedule posts.
+**Searches:**
 
-### Google Sheet Format
+- **Find Connected Account** — looks up a connected social account
+- **Find Posts** — finds posts by status, platform, or date range
 
-| A (Content) | B (Platforms) | C (Schedule Time) | D (Posted) |
-|-------------|---------------|-------------------|------------|
-| Monday motivation! | twitter-123;linkedin-456 | `<FUTURE_ISO_8601_UTC>` | |
-| New feature alert | twitter-123 | `<FUTURE_ISO_8601_UTC>` | |
+![The Update Post action and the Find Connected Account and Find Posts searches](../../images/zapier/zapier-f-actions.png)
 
-### Zap Configuration
+## Example: publish new blog posts automatically
 
-**Trigger:** Google Sheets → New Row
+Wire up **RSS by Zapier → New Item in Feed** as the trigger, then **Publora → Create Post** as the action. Picking the event takes one click:
 
-**Action:** Webhooks by Zapier → POST
+![Choosing a Publora trigger event in the Zap editor](../../images/zapier/zapier-g-trigger-event.png)
 
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
+Create Post has four fields:
 
-**Data:**
-```json
-{
-  "content": "{{Content}}",
-  "platforms": "{{Platforms}}".split(";"),
-  "scheduledTime": "{{Schedule Time}}"
-}
-```
+![The Create Post action expanded, showing the Content, Platforms, Schedule Time and Media URLs fields](../../images/zapier/zapier-h-create-post.png)
 
-**Note:** For the platforms array, you may need to use Zapier's Formatter to split the semicolon-separated values.
+Pick your accounts under **Platforms**. The dropdown lists the accounts you've connected in Publora, so there are no IDs to copy by hand. Map the feed's title and link into **Content**, and either leave **Schedule Time** empty to create a draft or set a time to schedule it. Test the step, then publish the Zap. Every new post in the feed now becomes a post on your networks.
 
-### Using Formatter for Platforms Array
+## Example: get alerted when something publishes
 
-1. Add a **Formatter by Zapier** step before the Webhook
-2. Choose **Text** → **Split Text**
-3. Input: `{{Platforms}}`
-4. Separator: `;`
-5. Use the output in your webhook as the platforms value
+Use **Publora → New Scheduled Post** or **New Published Post** as the trigger, then send it wherever you keep an eye on things: **Email by Zapier** for a notification, **Google Sheets → Create Row** for a running log, or **Slack → Send Channel Message** for a ping.
 
----
+![A live two-step Zap: New Scheduled Post in Publora followed by Send Outbound Email](../../images/zapier/zapier-i-zap-live.png)
 
-## Example 3: Post RSS Feed Updates
+## More ideas
 
-Automatically share new RSS feed items to social media.
+- New row in Google Sheets → Create Post, scheduled from a column
+- New item in a Notion database → Create Post
+- New WordPress post → Create Post, announcing it on your networks
+- New Airtable record with status Approved → Create Post
+- Schedule by Zapier, weekly → Create Post for a recurring digest
 
-### Zap Configuration
+## Tips and troubleshooting
 
-**Trigger:** RSS by Zapier → New Item in Feed
+- Leaving **Schedule Time** empty creates a draft, not an immediate post.
+- Instagram, TikTok, and YouTube require media. Pass public `https` URLs in **Media URLs**.
+- You can't update a post that has already published. Deleting a published post removes it from Publora, but not from the platforms it already went out to.
+- Times are ISO 8601, in UTC, and **Schedule Time** must be in the future. Zaps can queue behind rate limits — if the time you mapped has already passed when the step runs, Publora clamps a small delay to "now" (returning a `SCHEDULED_TIME_COERCED` warning) and rejects anything five or more minutes stale. Add a few minutes of buffer.
 
-**Action:** Webhooks by Zapier → POST
+## Calling the API directly
 
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
-
-**Data:**
-```json
-{
-  "content": "📰 {{Title}}\n\n{{Description}}\n\nRead more: {{Link}}",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF"],
-  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
-}
-```
-
----
-
-## Example 4: Post from Slack Command
-
-Let your team schedule social posts directly from Slack.
-
-### Zap Configuration
-
-**Trigger:** Slack → New Message Posted to Channel
-
-Filter: Message starts with `/post`
-
-**Action 1:** Formatter → Extract text after `/post `
-
-**Action 2:** Webhooks by Zapier → POST
-
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
-
-**Data:**
-```json
-{
-  "content": "{{Extracted Text}}",
-  "platforms": ["twitter-123456789"],
-  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
-}
-```
-
----
-
-## Example 5: Weekly Scheduled Post
-
-Post a weekly reminder every Monday at 9 AM.
-
-### Zap Configuration
-
-**Trigger:** Schedule by Zapier → Every Week (Monday at 9 AM)
-
-**Action:** Webhooks by Zapier → POST
-
-**URL:**
-```
-https://api.publora.com/api/v1/create-post
-```
-
-**Data:**
-```json
-{
-  "content": "Happy Monday! What are you working on this week? Share in the comments! 👇",
-  "platforms": ["twitter-123456789", "linkedin-ABC123DEF", "threads-987654321"],
-  "scheduledTime": "{{Publish Time ISO (at least 5 minutes ahead)}}"
-}
-```
-
----
-
-## Handling Responses
-
-### Success Response
-
-Publora returns:
-```json
-{
-  "success": true,
-  "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
-  "scheduledTime": "{{Publish Time ISO (effective)}}"
-}
-```
-
-You can use Zapier's **Paths** or **Filter** to handle this:
-- Continue workflow if `success` is `true`
-- Send alert if `success` is `false`
-
-### Error Handling
-
-Add a **Paths** step after the webhook:
-
-**Path A:** If `success` equals `true`
-- Continue with success actions (e.g., update spreadsheet, send Slack notification)
-
-**Path B:** If `success` does not equal `true`
-- Send error notification via email or Slack
-- Log to error spreadsheet
-
----
-
-## Finding Your Platform IDs
-
-To get your platform connection IDs for Zapier:
-
-### Option 1: Use the API
-
-```bash
-curl https://api.publora.com/api/v1/platform-connections \
-  -H "x-publora-key: YOUR_API_KEY"
-```
-
-### Option 2: Zapier Webhook GET
-
-Create a simple Zap:
-1. Trigger: Schedule by Zapier → Every Day
-2. Action: Webhooks by Zapier → GET
-3. URL: `https://api.publora.com/api/v1/platform-connections`
-4. Headers: `x-publora-key: YOUR_API_KEY`
-
-Run it once and check the response to get your platform IDs.
-
----
-
-## Tips and Best Practices
-
-1. **Test First:** Always use Zapier's test feature before enabling a Zap
-2. **Rate Limits:** Add a 1-second delay between multiple webhook calls
-3. **Error Notifications:** Set up email alerts for failed Zaps
-4. **Content Length:** Be mindful of platform character limits (Twitter: 280, LinkedIn: 3000, etc.)
-5. **Scheduling:** Use a future ISO 8601 UTC value for `scheduledTime` (for example, `<FUTURE_ISO_8601_UTC>`)
-
----
-
-## Common Issues
-
-### "Invalid API Key"
-- Check that your API key is correctly entered in the headers
-- Ensure there are no extra spaces
-
-### "Invalid Platform ID"
-- Verify your platform IDs using the GET /platform-connections endpoint
-- Platform IDs look like `twitter-123456789` or `linkedin-ABC123DEF`
-
-### "Scheduled time is in the past" (`SCHEDULED_TIME_IN_PAST`)
-- Zaps are the usual victim: a trigger fires, the Zap queues behind a rate limit, and the `scheduledTime` your formatter computed is already stale by the time the POST lands.
-- Under 5 minutes late, Publora clamps the post to server time and returns `200` with `warnings: [{ code: "SCHEDULED_TIME_COERCED", requested, effective }]` — the post goes out **now**, not at the time you asked for. Check `effective` if the exact minute matters.
-- Five minutes or more late is clamped and warned today, and is scheduled to return `400 SCHEDULED_TIME_IN_PAST` from **2026-08-25** unless production configuration overrides that date either way.
-- Make sure your `scheduledTime` is in the future, and use UTC (ends with `Z`) — Zapier's `Formatter > Date/Time` defaults to your account timezone.
-- Add a buffer: schedule at least 2–5 minutes ahead so queueing delay can't push you into the past.
-- The `serverTime` field in a `400` is Publora's authoritative clock — compare it to your Zap's computed time to confirm drift is the cause.
-
----
-
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $3.99/account*
+The Zapier app covers scheduling, editing, and publishing events. If you need an endpoint it doesn't expose, you can still call the Publora API from a **Webhooks by Zapier** step: send a POST to `https://api.publora.com/api/v1/create-post` with your key in the `x-publora-key` header. See [Authentication](../../authentication.md) for the key setup and [Core Workflows](../curl/all-endpoints.md) for every endpoint in curl form.

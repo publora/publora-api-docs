@@ -165,7 +165,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [JavaScript Examples](https://docs.publora.com/examples/javascript/quick-start) — fetch, axios, Node.js
 - [Python Examples](https://docs.publora.com/examples/python/quick-start) — requests, async workflows
 - [cURL Examples](https://docs.publora.com/examples/curl/all-endpoints) — command-line reference
-- [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — no-code automation
+- [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — native Zapier app (beta): instant triggers, post actions, searches
 - [Make Integration](https://docs.publora.com/examples/no-code/make-integration) — visual workflows
 
 ### API Specification
