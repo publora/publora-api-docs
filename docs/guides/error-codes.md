@@ -2,7 +2,7 @@
 
 This catalog covers stable codes reachable through API-key-authenticated `/api/v1` routes. It excludes internal X Bookmarks codes and codes emitted only by dashboard sessions, OAuth, billing, or other non-API-key routes.
 
-Codes can appear at the top level, inside `warnings[]`, inside `validation.errors[]`, or per URL in `mediaResults[]`. Match on the code, not the human-readable message.
+Codes can appear at the top level, inside `warnings[]`, inside `validation.errors[]`, per URL in `mediaResults[]`, or per connection in `issues` on the analytics routes. Match on the code, not the human-readable message.
 
 For retry patterns and idempotency guidance, see [Error Handling](./error-handling.md).
 
@@ -81,6 +81,20 @@ When create/update ingestion fails, the request returns HTTP 400 with `error: "M
 | `MEDIA_URL_SKIPPED` | 400 | `mediaResults[].code` | This URL was not attempted after another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |
 | `MEDIA_URL_ROLLED_BACK` | 400 | `mediaResults[].code` | This URL succeeded, but its media was removed because another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |
 
+## Mastodon and Bluesky analytics codes
+
+`POST /post-statistics` reports per-connection problems in the `issues` object of a `200` response, keyed by connection ID (`<platform>-<platformId>`); the affected `postedId` values are `null` in `stats`. `POST /profile-statistics` reports the same conditions in `unavailable` (`AUTH_REVOKED`, `FORBIDDEN`) and `rateLimited`. See [Mastodon and Bluesky Statistics](../endpoints/platform-statistics.md).
+
+| Code | HTTP | Location | Meaning | Retryable? | Recovery |
+|---|---:|---|---|---|---|
+| `ANALYTICS_PLAN_REQUIRED` | 403 | top-level `code` | The plan has no analytics feature | No, unchanged | Upgrade to a plan that includes analytics |
+| `ANALYTICS_REQUEST_TIMEOUT` | 504 | top-level `code` | The request exceeded its 90-second budget | Yes | Retry with fewer posts per request |
+| `CONNECTION_NOT_FOUND` | 200 | `issues[<connection>]` | No connection of the caller matches that platform and platform ID | No, unchanged | Re-read `GET /platform-connections` |
+| `AUTH_REVOKED` | 200 | `issues[<connection>]`, `unavailable` | Mastodon rejected the stored token (HTTP 401) | After reconnecting | Reconnect the account |
+| `FORBIDDEN` | 200 | `issues[<connection>]`, `unavailable` | Mastodon refused analytics access (HTTP 403, scope or moderation). Publishing is unaffected. | Later | Retry later; reconnect if it persists |
+| `RATE_LIMITED` | 200 | `issues[<connection>]` | The platform is in a cooldown after answering 429 | Yes, after the cooldown | Retry later; the response also carries `rateLimited: true` |
+| `FETCH_FAILED` | 200 | `issues[<connection>]` | A transient failure reaching the platform | Yes | Retry later |
+
 ## LinkedIn symbolic errors
 
 These LinkedIn endpoints use the `error` field for stable symbolic values rather than a separate `code` field.
@@ -147,3 +161,4 @@ These lowercase codes are top-level response fields from `POST /workspace/users`
 - Validation codes actually emitted by scheduling: `backend/src/app/services/postValidationService.js` and `errors/ValidationError.js`.
 - Workspace attachment responses: `backend/src/app/controllers/workspaceApiController.js`.
 - LinkedIn interaction/analytics errors: `backend/src/app/controllers/linkedinController.js`.
+- Mastodon/Bluesky analytics responses: `backend/src/app/controllers/platformAnalyticsController.js` and `backend/src/app/services/platformAnalytics/`.

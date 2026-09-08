@@ -29,6 +29,8 @@ tags:
     description: Manage platform connections
   - name: Media
     description: Upload media files
+  - name: Platform Analytics
+    description: On-demand Mastodon and Bluesky post and profile statistics
   - name: LinkedIn Analytics
     description: LinkedIn-specific analytics and interactions
   - name: Webhooks
@@ -483,6 +485,80 @@ components:
           type: integer
           description: "MEDIA_VALIDATION_PENDING only. How many validation probes ran before responding."
           example: 3
+
+    PlatformPostMetrics:
+      type: object
+      description: |
+        Engagement counters for one post. Every key is always present; a metric the
+        platform does not expose is `null`, never `0`. Neither Mastodon nor Bluesky
+        reports impressions, reach or clicks, and Mastodon has no saves.
+      properties:
+        reactions:
+          type: integer
+          nullable: true
+          description: "Mastodon favourites, Bluesky likes"
+          example: 42
+        comments:
+          type: integer
+          nullable: true
+          description: "Replies"
+          example: 3
+        reposts:
+          type: integer
+          nullable: true
+          description: "Mastodon boosts, Bluesky reposts"
+          example: 7
+        quotes:
+          type: integer
+          nullable: true
+          description: "Quote posts. Mastodon reports this on 4.5+ only, otherwise null."
+          example: 1
+        saves:
+          type: integer
+          nullable: true
+          description: "Bluesky bookmarks. Always null on Mastodon."
+          example: 2
+        impressions:
+          type: integer
+          nullable: true
+          description: "Always null on both platforms"
+        reach:
+          type: integer
+          nullable: true
+          description: "Always null on both platforms"
+        clicks:
+          type: integer
+          nullable: true
+          description: "Always null on both platforms"
+
+    PlatformProfileMetrics:
+      type: object
+      description: Follower counters for one connected account.
+      properties:
+        followers:
+          type: integer
+          nullable: true
+          example: 1234
+        following:
+          type: integer
+          nullable: true
+          example: 321
+        posts:
+          type: integer
+          nullable: true
+          example: 987
+
+    PlatformAnalyticsIssue:
+      type: string
+      description: |
+        Why one connection could not be answered. Reported per connection rather
+        than failing the request.
+      enum:
+        - CONNECTION_NOT_FOUND
+        - AUTH_REVOKED
+        - FORBIDDEN
+        - RATE_LIMITED
+        - FETCH_FAILED
 
     Error:
       type: object
@@ -1851,6 +1927,254 @@ paths:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "Failed to upload YouTube thumbnail"
+
+  /post-statistics:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    post:
+      summary: Get Mastodon and Bluesky post statistics
+      description: |
+        Engagement counters for up to 50 published Mastodon or Bluesky posts. Values are
+        read from the platform when requested and cached for about 2 hours; nothing is
+        collected in the background, so there is no history.
+
+        Only posts Publora published for the caller, and stored a `postedId` for, can be
+        queried; any other id is answered `null` without contacting the platform. Publora
+        began storing `postedId` for these two platforms on 2026-09-07. For a thread, only
+        the root part is addressable.
+
+        Requires a plan with analytics; otherwise `403 ANALYTICS_PLAN_REQUIRED`.
+      operationId: getPlatformPostStatistics
+      tags:
+        - Platform Analytics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [posts]
+              properties:
+                posts:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  description: "One entry per post. Platforms and connections may be mixed."
+                  items:
+                    type: object
+                    required: [platform, platformId, postedId]
+                    properties:
+                      platform:
+                        type: string
+                        enum: [mastodon, bluesky]
+                      platformId:
+                        type: string
+                        maxLength: 512
+                        description: "Connection ID, with or without the `<platform>-` prefix"
+                        example: "bluesky-did:plc:3xcxmi4aiok5zyghylsa4dzw"
+                      postedId:
+                        type: string
+                        maxLength: 512
+                        description: "Bluesky AT-URI or Mastodon status ID"
+                        example: "at://did:plc:3xcxmi4aiok5zyghylsa4dzw/app.bsky.feed.post/3muxmedtwxd2k"
+            example:
+              posts:
+                - platform: bluesky
+                  platformId: "bluesky-did:plc:3xcxmi4aiok5zyghylsa4dzw"
+                  postedId: "at://did:plc:3xcxmi4aiok5zyghylsa4dzw/app.bsky.feed.post/3muxmedtwxd2k"
+                - platform: mastodon
+                  platformId: "mastodon-110300915972205108"
+                  postedId: "117232239423110999"
+      responses:
+        "200":
+          description: |
+            Statistics retrieved. A `null` value in `stats` means "no data right now" —
+            a deleted post, an id that is not one of the caller's published posts, or a
+            connection listed in `issues`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  stats:
+                    type: object
+                    description: "Keyed by postedId"
+                    additionalProperties:
+                      allOf:
+                        - $ref: "#/components/schemas/PlatformPostMetrics"
+                      nullable: true
+                  rateLimited:
+                    type: boolean
+                    description: "Present only when a connection was in a rate-limit cooldown"
+                  issues:
+                    type: object
+                    description: "Present only when non-empty. Keyed by connection ID in the `<platform>-<platformId>` form."
+                    additionalProperties:
+                      $ref: "#/components/schemas/PlatformAnalyticsIssue"
+              example:
+                success: true
+                stats:
+                  "at://did:plc:3xcxmi4aiok5zyghylsa4dzw/app.bsky.feed.post/3muxmedtwxd2k":
+                    reactions: 42
+                    comments: 3
+                    reposts: 7
+                    quotes: 1
+                    saves: 2
+                    impressions: null
+                    reach: null
+                    clicks: null
+                  "117232239423110999": null
+        "400":
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingPosts:
+                  value:
+                    error: "posts array is required"
+                tooMany:
+                  value:
+                    error: "Maximum 50 posts per request"
+                badEntry:
+                  value:
+                    error: "Each post must have string platform, platformId and postedId"
+        "403":
+          description: The plan does not include analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Analytics requires a Pro or Premium plan"
+                code: "ANALYTICS_PLAN_REQUIRED"
+        "504":
+          description: The request exceeded its 90-second budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Analytics request timed out"
+                code: "ANALYTICS_REQUEST_TIMEOUT"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to fetch post statistics"
+
+  /profile-statistics:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    post:
+      summary: Get Mastodon and Bluesky profile statistics
+      description: |
+        Followers, following and post count of one connected Mastodon or Bluesky account.
+        Cached for about 2 hours. Requires a plan with analytics.
+      operationId: getPlatformProfileStatistics
+      tags:
+        - Platform Analytics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, platformId]
+              properties:
+                platform:
+                  type: string
+                  enum: [mastodon, bluesky]
+                platformId:
+                  type: string
+                  maxLength: 512
+                  description: "Connection ID, with or without the `<platform>-` prefix"
+                  example: "mastodon-110300915972205108"
+      responses:
+        "200":
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  profile:
+                    allOf:
+                      - $ref: "#/components/schemas/PlatformProfileMetrics"
+                    nullable: true
+                    description: "null when the account could not be read"
+                  cached:
+                    type: boolean
+                    description: "true when the answer came from the cache"
+                  fetchedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  rateLimited:
+                    type: boolean
+                    description: "Present only during a rate-limit cooldown"
+                  unavailable:
+                    type: string
+                    enum: [AUTH_REVOKED, FORBIDDEN]
+                    description: "Present only when the connection is marked unavailable for analytics"
+              example:
+                success: true
+                profile:
+                  followers: 1234
+                  following: 321
+                  posts: 987
+                cached: true
+                fetchedAt: "2026-09-08T09:00:00.000Z"
+        "400":
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "platform and platformId are required"
+        "403":
+          description: The plan does not include analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Analytics requires a Pro or Premium plan"
+                code: "ANALYTICS_PLAN_REQUIRED"
+        "404":
+          description: The connection is not the caller's
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "mastodon connection not found"
+        "504":
+          description: The request exceeded its 90-second budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Analytics request timed out"
+                code: "ANALYTICS_REQUEST_TIMEOUT"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to fetch profile statistics"
 
   /linkedin-post-statistics:
     parameters:

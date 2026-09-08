@@ -130,4 +130,4 @@ Delivery is a single attempt per event, not a retry queue. Respond quickly with 
 
 ## Related capabilities
 
-The five workflows above are the shared example contract, not the entire API. Use the endpoint pages and [OpenAPI](https://docs.publora.com/openapi.yaml) for connections, listing and deleting posts, platform limits, post logs, LinkedIn engagement and analytics, workspace operations, and webhook administration.
+The five workflows above are the shared example contract, not the entire API. Use the endpoint pages and [OpenAPI](https://docs.publora.com/openapi.yaml) for connections, listing and deleting posts, platform limits, post logs, LinkedIn engagement and analytics, [Mastodon and Bluesky statistics](../../endpoints/platform-statistics.md), workspace operations, and webhook administration.

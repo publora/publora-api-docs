@@ -67,6 +67,8 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
+| `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
@@ -137,6 +139,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
 - [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
 - [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON
+- [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics) — on-demand post engagement and follower counts
 - [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
 - [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
 - [LinkedIn Reshare](https://docs.publora.com/endpoints/linkedin-reshare) — repost an existing LinkedIn post

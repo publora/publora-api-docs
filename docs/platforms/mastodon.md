@@ -323,6 +323,19 @@ console.log(response.data);
 - Mastodon and Meta Threads do not support auto-threading in the current Publora capability set; X/Twitter threading remains enabled
 - Max image count (4) and video count (1) limits are enforced by Publora at scheduling time via `postValidationService.js`
 
+## Analytics
+
+Engagement counters for a published toot and follower counts for the connected account are available on demand:
+
+```bash
+curl -X POST https://api.publora.com/api/v1/post-statistics \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -d '{"posts":[{"platform":"mastodon","platformId":"mastodon-110300915972205108","postedId":"117232239423110999"}]}'
+```
+
+Mastodon reports `reactions` (favourites), `comments` (replies), `reposts` (boosts) and, on Mastodon 4.5+, `quotes`. `saves`, `impressions`, `reach` and `clicks` are `null` — Mastodon has no such counters. Requires a plan with analytics; values are cached for about 2 hours. Only posts Publora published for you and stored a `postedId` for can be queried. See [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
 ## What you can't do through the REST API
 
 - **Set media descriptions (alt text):** The Mastodon publisher forwards `file.description` when present, but the API media model has no persisted `description` field. The current REST upload flows therefore cannot supply it.

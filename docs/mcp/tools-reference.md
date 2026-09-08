@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 18 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -618,6 +618,55 @@ asyncio.run(list_connections())
 > **Deciding whether a connection needs reconnecting: read `tokenStatus`. Do not compare `accessTokenExpiresAt` against the current date.**
 >
 > `tokenStatus` already accounts for how each platform refreshes credentials and for connections the platform has revoked. Comparing the date yourself produces wrong advice in both directions: a healthy YouTube connection reports `null` (its token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime), while a revoked connection can report `expired` with a date that is `null` or still in the future. Prompt the user to reconnect when `tokenStatus` is `expired`, and warn when it is `expiring_soon`.
+
+---
+
+## Analytics Tools (Mastodon, Bluesky)
+
+Both tools need a plan that includes analytics (Pro or Premium); a Starter key gets a `403`. Values are read from the platform on request and cached for about 2 hours. Full contract: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
+### post_stats
+
+Engagement counters for published Mastodon or Bluesky posts.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections`, e.g. `bluesky-did:plc:abc123` or `mastodon-110300915972205108` (prefix optional) |
+| `postedIds` | string[] | Yes | 1–50 platform post IDs (`postedId` from `get_post` / `list_posts`): a Bluesky AT-URI or a Mastodon status ID |
+
+Returns `stats` keyed by `postedId`. Each value is either the metric object — `reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks` — or `null` when there is no data right now. A metric the platform does not have is `null`, never `0`: Mastodon has no `saves`, and neither platform reports `impressions`, `reach` or `clicks`. Per-connection problems appear in `issues`.
+
+Only posts Publora published for you, and stored a `postedId` for, can be queried. For a thread, that is the root part only.
+
+**Example prompt:**
+
+```text
+"How did my last Bluesky post do?"
+```
+
+---
+
+### profile_stats
+
+Followers, following and post count of a connected Mastodon or Bluesky account.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections` (prefix optional) |
+
+Returns `profile` (`followers`, `following`, `posts`), plus `cached` and `fetchedAt`.
+
+**Example prompt:**
+
+```text
+"How many followers does my Mastodon account have?"
+```
 
 ---
 
