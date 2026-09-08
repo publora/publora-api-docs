@@ -2,6 +2,8 @@
 
 Real-world examples of using Publora MCP with AI assistants like Claude, Cursor, and others.
 
+> The [official Publora skills](https://github.com/publora/skills) package this knowledge for agents: `npx skills add publora/skills` teaches Claude Code, Codex or Cursor which platform accepts what before it tries to publish.
+
 ## Getting Started
 
 ### First Connection Test

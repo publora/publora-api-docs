@@ -561,8 +561,20 @@ Some clients support environment variable interpolation:
 
 ---
 
+## Install the official skills
+
+Configuring the server gives an agent the tools. The [official skills](https://github.com/publora/skills) give it the judgement to use them: nine `SKILL.md` files covering when to post to each platform, what each platform refuses, and the limits that differ from the native apps.
+
+```bash
+npx skills add publora/skills
+```
+
+They work with Claude Code, Codex, Cursor, OpenClaw or any skills-aware agent, and are MIT licensed.
+
+---
+
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 14 active tools with parameters
+- [Tools Reference](./tools-reference.md) — All 16 active tools with parameters
 - [Examples](./examples.md) — Real-world conversation examples
 - [Troubleshooting](./troubleshooting.md) — Common issues and solutions

@@ -1,0 +1,11 @@
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Node
+node_modules/
