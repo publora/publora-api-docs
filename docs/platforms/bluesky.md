@@ -326,6 +326,19 @@ console.log(response.data);
 **Rate Limits:**
 - 25 videos per day (sourced from `@publora/platform-limits`)
 
+## Analytics
+
+Engagement counters for a published post and follower counts for the connected account are available on demand:
+
+```bash
+curl -X POST https://api.publora.com/api/v1/post-statistics \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -d '{"posts":[{"platform":"bluesky","platformId":"bluesky-did:plc:3xcxmi4aiok5zyghylsa4dzw","postedId":"at://did:plc:3xcxmi4aiok5zyghylsa4dzw/app.bsky.feed.post/3muxmedtwxd2k"}]}'
+```
+
+Bluesky reports `reactions` (likes), `comments` (replies), `reposts`, `quotes` and `saves` (bookmarks). `impressions`, `reach` and `clicks` are `null` — the AppView exposes no such counters. The `postedId` is the AT-URI of the post. Requires a plan with analytics; values are cached for about 2 hours. See [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
 ## What you can't do through the REST API
 
 - **Set image alt text:** Neither the presigned-upload flow nor `mediaUrls` stores the `alt` property read by the Bluesky publisher. Do not send `altTexts` expecting it to persist.

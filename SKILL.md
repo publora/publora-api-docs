@@ -78,6 +78,13 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | `/platform-connections` | GET | List connected accounts |
 | `/test-connection/:platformId` | POST | Test if a connection is valid |
 
+### Mastodon & Bluesky Analytics
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/post-statistics` | POST | Get engagement for up to 50 published posts |
+| `/profile-statistics` | POST | Get followers/following/post count for a connection |
+
 ### LinkedIn Analytics & Engagement
 
 | Endpoint | Method | Description |

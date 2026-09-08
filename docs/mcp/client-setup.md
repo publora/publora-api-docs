@@ -109,7 +109,7 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 14 active Publora tools, including `linkedin_create_reshare` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+Claude should list the 18 active Publora tools, including `post_stats`, `profile_stats` and `linkedin_create_reshare` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
 
 ---
 
@@ -121,7 +121,7 @@ The Publora MCP server supports **OAuth 2.1** (Dynamic Client Registration + PKC
 2. Set the URL to `https://mcp.publora.com` and add it.
 3. Click **Connect**. Claude runs the OAuth flow and opens Publora's consent page: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
 4. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
-5. The 14 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
+5. The 18 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
 
 > **Both auth paths work.** OAuth is what most clients use today — claude.ai, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others complete it in the browser. Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for any client that can send a header, and are the only option for headless / non-interactive clients.
 

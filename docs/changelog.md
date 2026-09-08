@@ -11,6 +11,22 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-09-08
+
+### Mastodon and Bluesky statistics — publora.com #460
+
+- **Affected surface:** New REST endpoints `POST /post-statistics` and `POST /profile-statistics`, and new MCP tools `post_stats` and `profile_stats`. Nothing existing changes shape.
+- **Tag:** Additive.
+- **Changes:**
+  - `POST /post-statistics` takes `{ posts: [{ platform, platformId, postedId }] }` (1–50 entries, `mastodon` and `bluesky`, both platforms may be mixed in one request) and returns `stats` keyed by `postedId`. Each value is a metric object — `reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks` — or `null`. Every key is always present; a metric the platform does not expose is `null`, never `0`.
+  - `POST /profile-statistics` takes `{ platform, platformId }` and returns `profile` (`followers`, `following`, `posts`) with `cached` and `fetchedAt`, or `404` when the connection is not the caller's.
+  - `platformId` is accepted with or without the `<platform>-` prefix returned by `GET /platform-connections`.
+  - Per-connection problems do not fail the request: `post-statistics` reports them in an `issues` object keyed by connection ID (`CONNECTION_NOT_FOUND`, `AUTH_REVOKED`, `FORBIDDEN`, `RATE_LIMITED`, `FETCH_FAILED`), and `profile-statistics` reports them in `unavailable` and `rateLimited`.
+  - Both endpoints, and both MCP tools, are gated by the analytics plan feature that already gated the LinkedIn analytics endpoints; a plan without it receives `403 ANALYTICS_PLAN_REQUIRED`. A request that exceeds its 90-second budget returns `504 ANALYTICS_REQUEST_TIMEOUT`.
+  - Values are fetched from the platform on request and cached for about 2 hours. Nothing is collected in the background, so there is no history — only the counters as they stand when you ask.
+- **Known limitation:** only posts Publora published for you **and stored a platform post ID for** can be queried. Publora began storing `postedId` for Mastodon and Bluesky on 2026-09-07; posts published before that have no `postedId` and are answered `null`. For a thread, only the root part is addressable.
+- **Migration action:** None. New capability.
+
 ## 2026-08-27
 
 ### Native Zapier app (beta)
