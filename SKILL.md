@@ -304,3 +304,5 @@ See the `docs/` directory for:
 - `docs/guides/` - How-to guides
 - `docs/examples/` - Code examples in multiple languages
 - `docs/platforms/` - Platform-specific information
+
+For agent-facing skills built on this API, see [publora/skills](https://github.com/publora/skills).

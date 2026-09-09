@@ -516,6 +516,19 @@ Remove a media slot from a post (detaches and deletes the underlying file). Dele
 > 1. **Fast path** — pass `mediaUrls` (public https URLs) to `create_post`/`update_post`; the server downloads them. No upload steps.
 > 2. **Upload dance** — `get_upload_url` → `PUT` the bytes to the presigned URL → `complete_media`. Use `delete_media` to drop a slot.
 
+### prune_media_reference
+
+Repair a `MEDIA_REFERENCE_MISSING` error by removing a stale or dangling media reference from a post group you own. It works even when the underlying `MediaFile` row is gone or inaccessible, which is the case `delete_media` cannot handle.
+
+Reach for `delete_media` for normal, existing media rows; reach for this only when a post group points at media that no longer resolves.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `postGroupId` | string | Yes | Post group containing the stale reference. |
+| `mediaId` | string | Yes | The stale media ID reported in the `MEDIA_REFERENCE_MISSING` error. |
+
 ---
 
 ## Connections Tool

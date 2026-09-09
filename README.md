@@ -163,6 +163,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 ### AI Integration
 - [MCP Server](https://docs.publora.com/guides/mcp-server) — Claude Code, Claude Desktop, Cursor integration
 - [Cursor AI Guide](https://docs.publora.com/guides/cursor-ai) — AI-assisted development with Publora
+- [Official agent skills](https://github.com/publora/skills) — nine `SKILL.md` files for Claude Code, Codex, Cursor and OpenClaw (`npx skills add publora/skills`)
 
 ### Code Examples
 - [JavaScript Examples](https://docs.publora.com/examples/javascript/quick-start) — fetch, axios, Node.js
