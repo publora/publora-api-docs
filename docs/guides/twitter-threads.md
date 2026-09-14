@@ -45,7 +45,7 @@ This will automatically:
 - Split into 4+ tweets at sentence boundaries
 - Add `(1/N)` numbering to each tweet
 - Post each as a reply to the previous
-- Return the Publora post-group ID; per-part tweet IDs remain internal
+- Return the Publora post-group ID; per-part tweet IDs are then readable from `get-post`
 
 ## How Twitter Threads Work
 
@@ -257,7 +257,7 @@ X-side pricing and posting quotas change independently and are not a Publora num
 
 ### Partial Thread Failure
 
-The public API does not return a per-part result object. It stores one platform target for the X connection. On a partial thread failure, that target is failed with `THREAD_PARTIALLY_PUBLISHED`, and `postedId` contains the head tweet ID; the remaining per-part IDs stay internal. A group with only this X target has group status `failed`.
+Publora stores one platform target for the X connection, and `get-post` reports the chain's progress on it. On a partial thread failure that target is failed with `THREAD_PARTIALLY_PUBLISHED`, `postedId` holds the head tweet ID, and `threadParts[]` says exactly which tweets went out. A group with only this X target has group status `failed`.
 
 ```json
 {
@@ -266,11 +266,17 @@ The public API does not return a per-part result object. It stores one platform 
   "status": "failed",
   "postedId": "1234567890",
   "permalink": null,
-  "error": { "code": "THREAD_PARTIALLY_PUBLISHED", "message": "Twitter thread partially published (2/5): Rate limit exceeded", "retryable": false }
+  "isThread": true,
+  "threadParts": [
+    { "index": 0, "content": "Part one (1/3)", "status": "published", "publishedId": "1234567890" },
+    { "index": 1, "content": "Part two (2/3)", "status": "published", "publishedId": "1234567891" },
+    { "index": 2, "content": "Part three (3/3)", "status": "failed", "publishedId": null }
+  ],
+  "error": { "code": "THREAD_PARTIALLY_PUBLISHED", "message": "Twitter thread partially published (2/3): Rate limit exceeded", "retryable": false }
 }
 ```
 
-Already-published tweets can remain live, but the public response exposes only the head ID and does not enumerate the remaining IDs or identify individual failed parts.
+Already-published tweets stay live. Read `threadParts[]` to see which ones, then post only the missing parts yourself — a partially published chain is terminal and not retried, so recreating the post would duplicate what already landed. `list-posts` omits `threadParts`; fetch the group with [get-post](../endpoints/get-post.md#thread-parts).
 
 ### Common Errors
 

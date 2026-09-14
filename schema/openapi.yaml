@@ -428,6 +428,46 @@ components:
             Public URL of the published post. Always present; null until the post
             is published, and null for platforms that expose no permalink.
           example: "https://x.com/publora/status/1234567890123456789"
+        isThread:
+          type: boolean
+          description: |
+            True when this target was published as a multi-part chain (X/Twitter
+            or Meta Threads). Always present.
+          example: false
+        threadParts:
+          type: array
+          description: |
+            Per-part publication progress for a chain. Always present; empty when
+            the target is not a chain. Returned by get-post only — list-posts
+            omits it. Parts already marked published are live on the platform, and a
+            partially published chain is terminal and not retried, so inspect this
+            array instead of resubmitting the post after a partial failure.
+          items:
+            $ref: '#/components/schemas/ThreadPart'
+
+    ThreadPart:
+      type: object
+      description: One message of a multi-part chain.
+      properties:
+        index:
+          type: integer
+          description: Zero-based position of the part in the chain.
+          example: 0
+        content:
+          type: string
+          description: The text of that part, exactly as published.
+          example: "First message."
+        status:
+          type: string
+          enum: [pending, published, failed]
+          example: "published"
+        publishedId:
+          type: string
+          nullable: true
+          description: |
+            The platform's own ID for that part; null until confirmed. The
+            target's postedId equals threadParts[0].publishedId.
+          example: "17900000000000001"
 
     Warning:
       type: object

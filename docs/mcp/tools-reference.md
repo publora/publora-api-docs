@@ -231,7 +231,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 | LinkedIn | 3,000 | 10 | 500MB | Documents, @mentions |
 | X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
 | Instagram | 2,200 | 10 | 900s Reels, 3600s feed, 60s carousel | Reels & Stories supported |
-| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Threading disabled |
+| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Auto-threading |
 | TikTok | 2,200 | 35 | 10min / 4 GB | Image carousel or video |
 | YouTube | 5,000 desc | 0 | 12h / 256 GB | Shorts support |
 | Facebook | 63,206 | 10 | 45min / 2 GB | Page posts, Reels |
@@ -243,7 +243,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 
 > **Note:** LinkedIn's "10 images" is the multi-image upload limit, not a carousel. Organic carousels on LinkedIn are **not** supported via the API (carousels are only available for sponsored/ad content). To share multi-page content organically, use LinkedIn document (PDF) posts instead.
 
-> **Note:** Multi-threaded nested posts on Threads are temporarily unavailable. Single posts and carousel posts to Threads continue to work normally.
+> **Note:** Threads chains are created from the `content` field — long text splits into replies of up to 500 characters each, and a standalone `---` line between paragraphs forces a break. Media are attached to the first part only. The connection must have granted `threads_manage_replies`; otherwise scheduling is rejected with `THREADS_PERMISSION_REQUIRED` before anything is published.
 
 ---
 
@@ -299,14 +299,36 @@ async def get_post_details():
       "content": "Excited to share our latest update!",
       "status": "scheduled",
       "postedId": null,
-      "permalink": null
+      "permalink": null,
+      "isThread": false,
+      "threadParts": []
     }
   ],
   "media": []
 }
 ```
 
-> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`; internal thread-part IDs are not exposed.
+> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`, plus `isThread` and `threadParts` — both always present.
+
+**Thread progress.** For an X/Twitter or Meta Threads target published as a chain, `isThread` is `true` and `threadParts[]` carries one entry per part with `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). The target's `postedId` is the first part's ID.
+
+```json
+{
+  "platform": "threads",
+  "platformId": "17841412345678",
+  "status": "published",
+  "postedId": "17900000000000001",
+  "isThread": true,
+  "threadParts": [
+    { "index": 0, "content": "First message.", "status": "published", "publishedId": "17900000000000001" },
+    { "index": 1, "content": "Second message.", "status": "published", "publishedId": "17900000000000002" }
+  ]
+}
+```
+
+> **After a partial or unknown outcome, inspect the parts — do not resubmit the chain.** Parts marked `published` are already live; recreating the post would duplicate them. A partially published chain is terminal and is not retried.
+
+> **Note:** `list_posts` does not include `threadParts`. Call `get_post` to read chain progress.
 
 ---
 

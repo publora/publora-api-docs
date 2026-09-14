@@ -278,7 +278,7 @@ print('Image attached and post scheduled:', post_group_id)
 | LinkedIn | 3,000 | 10 | 30 min / 500 MB | Documents (≤100 MB), multi-image, @mentions |
 | X/Twitter | 280 (25K premium) | 4 | 140s / 512 MB | Auto-threading |
 | Instagram | 2,200 | 10 | Reels 900s / 300 MB, feed 3600s, 60s carousel | Reels & Stories, JPEG/PNG/WebP via API |
-| Threads | 500 (10K with text attachment) | 20 | 5 min / 1 GB | Threading disabled |
+| Threads | 500 (10K with text attachment) | 20 | 5 min / 1 GB | Auto-threading |
 | TikTok | 2,200 | 35 | 10 min / 4 GB | Image carousel or video |
 | YouTube | 100 title / 5,000 desc | 0 | 12 h / 256 GB | Shorts support |
 | Facebook | 63,206 | 10 | 45 min / 2 GB | Page posts, Reels 90s / 1 GB |

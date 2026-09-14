@@ -2,11 +2,11 @@
 
 Post to Threads (by Meta) programmatically using the Publora REST API. A simpler alternative to the official Threads API or Meta Graph API for Threads.
 
-> **⚠️ Temporary Restriction:** Multi-threaded nested posts (content >500 characters that would be split into multiple connected replies) are temporarily unavailable due to Threads app reconnection status. Single posts, carousel posts, and standalone threads continue to work normally. Contact support@publora.com for updates on when this feature will be restored.
+> **Permission requirement:** Threads chains need the `threads_manage_replies` permission on the connection. Publora checks the grant when you schedule (from a per-connection cache up to five minutes old) and re-checks it against Meta immediately before publishing; a connection whose token predates that permission is rejected with `THREADS_PERMISSION_REQUIRED` **before any part is published**. Reconnect that account in Publora **Channels** and approve all requested permissions. Single posts and carousels are unaffected.
 
 ## Threads API Overview
 
-Publora provides a unified REST API for publishing single text posts, images, videos, and carousels on Threads. Multi-part thread splitting is currently unavailable.
+Publora provides a unified REST API for publishing single text posts, images, videos, carousels, and multi-part chains on Threads.
 
 ### Why Use Publora Instead of Threads API / Meta Graph API?
 
@@ -14,7 +14,7 @@ Publora provides a unified REST API for publishing single text posts, images, vi
 |---------|-------------|-------------------|
 | Authentication | Single API key | Meta OAuth 2.0 flow |
 | API access | Instant | Requires Meta app review |
-| Multi-part thread creation | Disabled | Manual implementation |
+| Multi-part thread creation | Automatic from one `content` field | Manual implementation |
 | Multi-platform | Post to 10 platforms | Threads only |
 | Setup time | 5 minutes | Days to weeks |
 | Carousel support | Yes | Yes |
@@ -40,14 +40,14 @@ Where `{accountId}` is your Threads account ID assigned during connection via Me
 |------|-----------|--------|
 | Text | Yes | 500 characters |
 | Images | Yes | Up to 20 per carousel, WebP auto-converted |
-| Videos | Yes | MP4, MOV formats, 1 per post (video carousels not supported by Publora) |
-| Carousels | Yes | 2-20 images; video support in carousels is limited (see Platform Quirks) |
-| Multi-part threads | Disabled | Numbering and splitting are not a public contract while disabled |
+| Videos | Yes | MP4, MOV formats, 1 per post (see Platform Quirks for video inside a carousel) |
+| Carousels | Yes | 2-20 items; a video item behaves differently per path (see Platform Quirks) |
+| Multi-part threads | Yes | 500 characters per part; automatic splits are numbered, `---` breaks are not |
 | Hashtags | Yes | Maximum 1 hashtag per post |
 
 ## Threading
 
-Multi-part Threads publishing is currently disabled (`supportsThreading: false`). The following mechanics are not a public contract while it remains disabled.
+Threads supports multi-part chains (`supportsThreading: true`). One `create-post` call with one `content` field produces the whole chain.
 
 ### How It Works
 
@@ -60,13 +60,9 @@ Publora uses the official Threads API `reply_to_id` parameter to chain posts tog
 
 ### Automatic Splitting
 
-Content over 500 characters currently fails validation rather than being split:
+Content over 500 characters is split into a chain instead of failing validation. Splitting prefers paragraph breaks, then line breaks, then sentence endings, then word boundaries, and cuts mid-word only as a last resort. Automatically split parts carry a ` (1/3)`-style suffix, and 10 characters of each part's 500 are reserved for it — so roughly 490 characters of your own text land in each part. Emoji and other astral characters count as **2** toward that limit.
 
-Multi-part threading is disabled; splitting and numbering semantics are not a public contract until it is re-enabled.
-
-### Disabled multi-part workflow (reference only)
-
-The following separators are not operational while multi-part Threads publishing is disabled.
+### Controlling the split
 
 **Method 1: Triple dash separator**
 ```
@@ -90,7 +86,14 @@ Second part of the thread [2/3]
 Third and final part [3/3]
 ```
 
-Explicit marker and numbering behavior is not a public Threads contract while multi-part publishing is disabled.
+Both separators work, and both split content that would otherwise fit in a single post:
+
+- A `---` break must sit on its own line with a newline before and after it (`\n---\n` or `\n\n---\n\n`). `---` as the very first or very last characters of `content`, or `----`, does not register.
+- `[n/m]` markers must form a complete set — `[1/3]`, `[2/3]`, `[3/3]`, all sharing the same total. An incomplete or inconsistent set is ignored and the text is treated as ordinary content.
+
+Parts you separate yourself are published **exactly as written — no numbering is added**. Numbering appears only when Publora splits the text itself. A part you defined that exceeds 500 characters is re-split automatically when it came from `---`, but a `[n/m]` part is not — an oversized marker part is rejected at scheduling with `400` / `THREAD_PART_TOO_LONG`.
+
+There is no public `parts` array and no numbering or threading switch in REST or MCP: `content` is the only input.
 
 ### Media in Threads
 
@@ -476,17 +479,18 @@ console.log(response.data);
 // Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
-Multi-part Threads publishing is currently disabled. Long content is not automatically split, and numbering semantics are not a public contract until threading is re-enabled.
+Long content like this is split into a numbered chain automatically. Inspect the result with `GET /api/v1/get-post/:postGroupId`, which reports `isThread` and one `threadParts[]` entry per part.
 
 ## Platform Quirks
 
 - **Single hashtag limit**: Threads allows a maximum of 1 hashtag per post. If your content includes more than one hashtag, only the first will be recognized by the platform.
 - **WebP auto-conversion**: If you provide WebP images, Publora automatically converts them to **JPEG** before uploading to Threads.
-- **Threading disabled**: Multi-part Threads publishing is disabled; numbering semantics are not a public contract until it is re-enabled.
-- **Manual thread parts unavailable**: `---` separators are not operational while multi-part Threads publishing is disabled.
+- **Chains need a permission**: `threads_manage_replies` must be granted on the connection. Publora rejects a chain before publishing anything if the grant is missing.
+- **Numbering depends on who split the text**: parts Publora derives automatically are numbered; parts you separate with `---` are published verbatim.
+- **No chain-wide ID**: `postedId` is the first part's ID. Per-part IDs are in `threadParts[].publishedId`.
 - **No edit support**: Once posted, Threads posts cannot be edited via the API. You would need to delete and repost.
 - **MP4 and MOV for videos**: MP4 and MOV video formats are supported. Other formats will be rejected.
-- **Carousel video support is limited**: While the Threads API supports videos in carousels, Publora's current implementation only supports IMAGE type items in carousels. Standalone video posts work normally, but VIDEO items within carousels are not yet supported by Publora.
+- **Carousel video support depends on the path**: a single (non-chain) Threads post uploads every carousel item as an IMAGE, so a video inside one is not published as video. On a chain's first part Publora sends each item with its own type, so a video item is submitted as `VIDEO` — whether Threads accepts a mixed carousel is Meta's call, not Publora's. Standalone video posts work normally either way.
 
 ## Character Limits
 
@@ -494,7 +498,7 @@ Multi-part Threads publishing is currently disabled. Long content is not automat
 |---------|-------|
 | Post body | 500 characters |
 | Hashtags | 1 per post |
-| Carousel items | 2-20 images (video in carousels not yet supported by Publora) |
+| Carousel items | 2-20 items (see Platform Quirks for video inside a carousel) |
 
 ## API Limits
 
@@ -513,7 +517,7 @@ Multi-part Threads publishing is currently disabled. Long content is not automat
 | Media Type | Max Size | Max Count | Supported Formats |
 |------------|----------|-----------|-------------------|
 | Images | 8 MB | 20 per carousel | JPEG, PNG, WebP |
-| Videos | 1 GB | 1 per post (video carousels not supported by Publora) | MP4, MOV |
+| Videos | 1 GB | 1 per post (see Platform Quirks for video inside a carousel) | MP4, MOV |
 
 | Video Constraint | Limit |
 |------------------|-------|
@@ -525,12 +529,14 @@ Threads-side posting quotas are advisory, account-dependent, and may change with
 
 ### Additional Notes
 
-- Multi-part threading is disabled; numbering and splitting semantics are not a public contract until re-enabled.
+- Multi-part chains are supported: 500 characters per part, media on the first part only.
 - Platform-side rate-limit failures are surfaced; do not assume automatic retry or redistribution.
 
 ## What you can't do
 
-- **Publish multi-part Threads threads:** Publora currently treats Threads as a single-post target. Manual `---` parts and automatic splitting are disabled because the shared capability flag is `supportsThreading: false`.
+- **Submit thread parts as a list:** there is no public `parts` array and no numbering or threading switch. The only public input is `content`, optionally with standalone `---` lines.
+- **Address a chain by one ID:** no single platform ID represents the whole chain; read `threadParts[].publishedId` for the individual messages.
+- **Attach media to a reply:** media go on the first part only; later parts are text-only.
 
 ---
 

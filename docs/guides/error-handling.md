@@ -186,11 +186,17 @@ In addition to the standard fields (`code`, `error`, `message`, `metric`, `limit
 
 ### Threads-Specific Errors
 
-| Error Message | Cause | Resolution |
-|---|---|---|
-| `"Multi-part threads (nested replies) are temporarily blocked while we wait for Meta to approve additional permissions for our app."` | Multi-part threads (content >500 chars or with `---` separators) are temporarily disabled due to Threads API access requirements | Keep content under 500 characters without `---` separators. Use carousel posts for multiple images. Contact support@publora.com for updates. |
+Multi-part chains require the `threads_manage_replies` permission on the connection. Publora checks the grant when you schedule a chain — from a per-connection cache up to five minutes old — and re-checks it against Meta immediately before publishing, so a missing permission never leaves a half-published chain.
 
-**Note:** Single posts (under 500 characters) and carousel posts on Threads continue to work normally. Multi-part requests are blocked, and no automatic split occurs while `supportsThreading` is false.
+| Code | HTTP | Error Message | Cause | Resolution |
+|---|---:|---|---|---|
+| `THREADS_PERMISSION_REQUIRED` | 400 | `"Reconnect your Threads account and allow reply publishing to publish a thread with multiple posts."` — or `"Reconnect your Threads account before scheduling a thread."` when the connection no longer exists | The token does not grant `threads_manage_replies` | Reconnect that account in Publora **Channels** and approve all requested permissions |
+| `TOKEN_EXPIRED` | 400 | `"Threads authorization has expired. Reconnect your Threads account."` | Meta reports the stored token invalid | Reconnect the account |
+| `THREADS_PERMISSIONS_UNAVAILABLE` | 503 | `"Unable to check Threads permissions. Please try scheduling again shortly."` | Publora's own permission lookup failed — **not** an account problem | Retry in a few seconds. Never prompt the user to reconnect. If it keeps failing it is a Publora-side configuration issue, so stop retrying and contact support |
+
+The first two arrive inside the standard `validation.errors[]` envelope. `THREADS_PERMISSIONS_UNAVAILABLE` does not: its body is `{ "code": "THREADS_PERMISSIONS_UNAVAILABLE", "error": "…" }` with no `validation` object. Treat the 503 as transient and the 400s as user action, and match on the code rather than the message — `THREADS_PERMISSION_REQUIRED` has two variants.
+
+**Note:** Single Threads posts and drafts skip the permission check entirely — it runs only for a target that resolves to more than one part. See [Threads chain codes](./error-codes.md#threads-chain-codes) for the publish-time codes.
 
 ### Post-Level Errors (Partial Failures)
 
@@ -913,7 +919,8 @@ if result['failed']:
 | Post group shows `partially_published` | Some platforms failed while others succeeded | Inspect individual platform post statuses for error details |
 | TikTok post fails with FPS error | Video frame rate below TikTok's minimum requirement | Re-encode the video with at least 23 FPS before uploading |
 | `500` intermittent errors | Temporary server issues | Implement retry logic with exponential backoff |
-| Threads post fails with nested thread error | Multi-part nested threads are temporarily disabled pending Meta permissions approval | Keep content under 500 characters or use carousel posts. Contact support@publora.com for updates. |
+| Threads chain rejected with `THREADS_PERMISSION_REQUIRED` | The connection has not granted `threads_manage_replies` | Reconnect that Threads account in Channels and approve all permissions; nothing was published, so simply schedule again |
+| Threads chain ends `failed` with `THREAD_PARTIALLY_PUBLISHED` | Some parts published, then one failed; Publora does not republish a chain | Read `threadParts` in `get-post`, then publish only the parts still missing — do not recreate the post |
 
 
 ---

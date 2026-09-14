@@ -86,7 +86,7 @@ Base URL: `https://api.publora.com/api/v1`
 | X / Twitter | 280 chars | Up to 4 | 1 per post | Auto-split | — |
 | LinkedIn | 3,000 chars | Multiple | 1 per post | — | 5 metrics |
 | Instagram | 2,200 chars | Carousel (10) | Reels/Stories | — | — |
-| Threads | 500 chars | Carousel | 1 per post | Disabled | — |
+| Threads | 500 chars | Carousel | 1 per post | Auto-split | — |
 | TikTok | Caption | Up to 35 | 1 per post (MP4/MOV/WebM) | — | — |
 | YouTube | Description | — | 1 per post | — | — |
 | Facebook | 63,206 chars | Multiple | 1 per post | — | — |

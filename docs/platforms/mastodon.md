@@ -320,7 +320,7 @@ console.log(response.data);
 
 - Character limits vary by Mastodon instance; mastodon.social uses 500 characters, but some instances allow 5,000+
 - Publora currently connects to mastodon.social only (posting is hardcoded to this instance)
-- Mastodon and Meta Threads do not support auto-threading in the current Publora capability set; X/Twitter threading remains enabled
+- Mastodon does not support auto-threading in the current Publora capability set; X/Twitter and Meta Threads do
 - Max image count (4) and video count (1) limits are enforced by Publora at scheduling time via `postValidationService.js`
 
 ## Analytics

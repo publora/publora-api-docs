@@ -33,7 +33,7 @@ Each platform has a maximum character limit. Some platforms also have minimum re
 |---|---|---|
 | **Twitter/X** | 280 (standard) / 25,000 (Premium) | Threading supported for long content |
 | **Instagram** | 2,200 | First 125 chars visible before "more" |
-| **Threads** | 500 (10,000 with text attachment) | Max 5 links per post |
+| **Threads** | 500 (10,000 with text attachment) | Threading supported: 500 per part. Max 5 links per post |
 | **TikTok** | 2,200 (API) | Native app allows 4,000 |
 | **LinkedIn** | 3,000 | First 210 chars visible before "see more" |
 | **YouTube** | 100 (title) / 5,000 (description) | First 150 chars of description visible |
@@ -195,11 +195,11 @@ When validation errors occur, the API returns a `400` status code with a structu
 
 | Code | Description | Resolution |
 |---|---|---|
-| `CONTENT_TOO_LONG` | Content exceeds the platform's character limit | Shorten the content or use threading where supported. **Note:** On Twitter/X with threading enabled, this is a **warning** and content is auto-threaded. Meta Threads has `supportsThreading: false`, so over-limit content remains an **error**. |
+| `CONTENT_TOO_LONG` | Content exceeds the platform's character limit | Shorten the content or use threading where supported. **Note:** on Twitter/X and Meta Threads over-limit content is not an error at all — it is accepted and split into a chain. A successful response carries no `validation` object, so there is nothing to inspect; the split simply happens. On platforms without threading this stays a blocking **error**. |
 | `CONTENT_TOO_SHORT` | Content is below the minimum required length | Add more content |
 | `CONTENT_REQUIRED` *(reserved — not currently emitted)* | Text content is required but missing | Add text content to the post |
 | `CONTENT_OR_MEDIA_REQUIRED` | Either text or media is needed | Add content or attach media |
-| `THREAD_PART_TOO_LONG` | A single thread part exceeds the platform's per-part character limit | Break the thread part into smaller segments. (This code is defined in the `@publora/platform-limits` package. Threading validation may occur in a separate service.) |
+| `THREAD_PART_TOO_LONG` | A single thread part exceeds the platform's per-part character limit (500 on Threads) | Shorten that part; `field` identifies its index. Only parts authored in the web app can trigger this — parts the API splits automatically are within the limit by construction |
 | `INVALID_PLATFORM_CONTENT` | Content contains elements not supported by the platform | Remove unsupported content elements. (This error code is defined in the codebase but not currently emitted by the validation service.) |
 
 ### Media Errors
@@ -331,7 +331,7 @@ When scheduling YouTube with an image instead of a required video:
 
 When content exceeds Twitter's 280 character limit:
 
-> **Threading note:** Twitter/X can turn this into a warning when threading is enabled. Threads has `supportsThreading: false`, so over-limit Threads content remains an error.
+> **Threading note:** Twitter/X and Meta Threads do not raise this error — over-limit content is accepted and split into a chain. The example below is a platform without threading.
 
 **Response (400):**
 

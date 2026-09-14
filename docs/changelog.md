@@ -11,6 +11,21 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-09-14
+
+### Threads multi-part chains — publora.com #472, #474
+
+- **Affected surface:** REST `create-post`, `update-post` and `get-post`; MCP `create_post`, `update_post` and `get_post`; `GET /platform-limits`.
+- **Tag:** Additive, with one behaviour change for over-limit Threads content.
+- **Changes:**
+  - Meta Threads now supports multi-part chains. `platforms.threads.requirements.supportsThreading` in `GET /platform-limits` is `true`; it was `false`.
+  - Threads content over 500 characters is **no longer rejected**. It is accepted and split into a chain instead of being rejected with `CONTENT_TOO_LONG` in `validation.errors[]`. A successful request carries no `validation` object, so there is nothing new to read on success — the split is simply performed. A standalone `---` line, or a complete `[n/m]` marker set, splits the content explicitly; automatically derived parts get a ` (1/N)` suffix, explicit ones are published verbatim. Media attach to the first part only.
+  - `get-post` `posts[]` entries gained **`isThread`** (boolean) and **`threadParts`** (array). Both are always present — `false` and `[]` for a non-chain target. Each part carries `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). `postedId` is the first part's ID. `list-posts` does not include these fields. The same fields reach MCP through `get_post`, which passes the REST body through unchanged. They are populated for X/Twitter chains as well as Threads.
+  - Scheduling a Threads chain requires the connection to have granted `threads_manage_replies`. The grant is checked at scheduling (from a per-connection cache up to five minutes old) and re-checked against Meta immediately before publishing: a missing grant returns `400` with `THREADS_PERMISSION_REQUIRED` in `validation.errors[]` and nothing is published. A failure of the permission lookup itself returns `503` with `{ "code": "THREADS_PERMISSIONS_UNAVAILABLE", "error": … }` and no `validation` object — that one never means reconnect. `GET /platform-connections` does not report granted scopes, so the grant cannot be pre-checked.
+  - New publish-time codes in `posts[].error.code`: `THREADS_INVALID_THREAD_PART`, and `THREAD_PARTIALLY_PUBLISHED` / `PUBLISH_OUTCOME_UNKNOWN` now reachable for Threads. A chain with published parts is never republished from the beginning.
+  - The error message `"Multi-part threads (nested replies) are temporarily blocked while we wait for Meta to approve additional permissions for our app."` no longer occurs.
+- **Migration action:** If your client special-cased Threads by truncating text at 500 characters or by treating over-limit content as a hard error, that workaround is now unnecessary. After a partial or unknown publication, read `threadParts` and publish only the missing parts — do not resubmit the post.
+
 ## 2026-09-08
 
 ### Mastodon and Bluesky statistics — publora.com #460

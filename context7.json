@@ -12,6 +12,6 @@
     "Platform IDs format: {platform}-{id} e.g. twitter-123",
     "scheduledTime must be ISO 8601 UTC format",
     "Media uploads use pre-signed S3 URLs via get-upload-url",
-    "Threads nested multi-part posts temporarily unavailable"
+    "Threads long content is split into a native multi-post chain; the connection needs threads_manage_replies"
   ]
 }
