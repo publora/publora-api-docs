@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 14 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 18 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -231,7 +231,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 | LinkedIn | 3,000 | 10 | 500MB | Documents, @mentions |
 | X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
 | Instagram | 2,200 | 10 | 900s Reels, 3600s feed, 60s carousel | Reels & Stories supported |
-| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Threading disabled |
+| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Auto-threading |
 | TikTok | 2,200 | 35 | 10min / 4 GB | Image carousel or video |
 | YouTube | 5,000 desc | 0 | 12h / 256 GB | Shorts support |
 | Facebook | 63,206 | 10 | 45min / 2 GB | Page posts, Reels |
@@ -243,7 +243,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 
 > **Note:** LinkedIn's "10 images" is the multi-image upload limit, not a carousel. Organic carousels on LinkedIn are **not** supported via the API (carousels are only available for sponsored/ad content). To share multi-page content organically, use LinkedIn document (PDF) posts instead.
 
-> **Note:** Multi-threaded nested posts on Threads are temporarily unavailable. Single posts and carousel posts to Threads continue to work normally.
+> **Note:** Threads chains are created from the `content` field — long text splits into replies of up to 500 characters each, and a standalone `---` line between paragraphs forces a break. Media are attached to the first part only. The connection must have granted `threads_manage_replies`; otherwise scheduling is rejected with `THREADS_PERMISSION_REQUIRED` before anything is published.
 
 ---
 
@@ -299,14 +299,36 @@ async def get_post_details():
       "content": "Excited to share our latest update!",
       "status": "scheduled",
       "postedId": null,
-      "permalink": null
+      "permalink": null,
+      "isThread": false,
+      "threadParts": []
     }
   ],
   "media": []
 }
 ```
 
-> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`; internal thread-part IDs are not exposed.
+> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`, plus `isThread` and `threadParts` — both always present.
+
+**Thread progress.** For an X/Twitter or Meta Threads target published as a chain, `isThread` is `true` and `threadParts[]` carries one entry per part with `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). The target's `postedId` is the first part's ID.
+
+```json
+{
+  "platform": "threads",
+  "platformId": "17841412345678",
+  "status": "published",
+  "postedId": "17900000000000001",
+  "isThread": true,
+  "threadParts": [
+    { "index": 0, "content": "First message.", "status": "published", "publishedId": "17900000000000001" },
+    { "index": 1, "content": "Second message.", "status": "published", "publishedId": "17900000000000002" }
+  ]
+}
+```
+
+> **After a partial or unknown outcome, inspect the parts — do not resubmit the chain.** Parts marked `published` are already live; recreating the post would duplicate them. A partially published chain is terminal and is not retried.
+
+> **Note:** `list_posts` does not include `threadParts`. Call `get_post` to read chain progress.
 
 ---
 
@@ -634,6 +656,55 @@ asyncio.run(list_connections())
 
 ---
 
+## Analytics Tools (Mastodon, Bluesky)
+
+Both tools need a plan that includes analytics (Pro or Premium); a Starter key gets a `403`. Values are read from the platform on request and cached for about 2 hours. Full contract: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
+### post_stats
+
+Engagement counters for published Mastodon or Bluesky posts.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections`, e.g. `bluesky-did:plc:abc123` or `mastodon-110300915972205108` (prefix optional) |
+| `postedIds` | string[] | Yes | 1–50 platform post IDs (`postedId` from `get_post` / `list_posts`): a Bluesky AT-URI or a Mastodon status ID |
+
+Returns `stats` keyed by `postedId`. Each value is either the metric object — `reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks` — or `null` when there is no data right now. A metric the platform does not have is `null`, never `0`: Mastodon has no `saves`, and neither platform reports `impressions`, `reach` or `clicks`. Per-connection problems appear in `issues`.
+
+Only posts Publora published for you, and stored a `postedId` for, can be queried. For a thread, that is the root part only.
+
+**Example prompt:**
+
+```text
+"How did my last Bluesky post do?"
+```
+
+---
+
+### profile_stats
+
+Followers, following and post count of a connected Mastodon or Bluesky account.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections` (prefix optional) |
+
+Returns `profile` (`followers`, `following`, `posts`), plus `cached` and `fetchedAt`.
+
+**Example prompt:**
+
+```text
+"How many followers does my Mastodon account have?"
+```
+
+---
+
 ## LinkedIn Reactions
 
 ### linkedin_create_reaction
@@ -823,6 +894,69 @@ Reshare an existing LinkedIn post to your feed, optionally with commentary.
 ```text
 "Reshare urn:li:share:123456 on linkedin-abc123 with the commentary 'Worth reading'"
 ```
+
+---
+
+## LinkedIn Mentionables Tool
+
+### linkedin_list_mentionables
+
+List the LinkedIn members you can @mention — Publora's per-user directory of native member ids captured from engagement (comments and reactions) on your connected company pages. Each entry includes a ready-to-paste `mention` token for post content or comment messages. **Paid plans only** — free plans receive a `403 UPGRADE_REQUIRED` error. Backed by [`GET /linkedin-mentionables`](../endpoints/linkedin-mentionables.md); see the [LinkedIn Mentions Guide](../guides/linkedin-mentions.md) for why native ids are required.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | No | Case-insensitive substring filter on the person's name |
+| `limit` | number | No | Maximum entries to return, 1–100 (default: 25) |
+
+Results are sorted by `lastSeenAt` descending (most recently engaged first).
+
+**Example prompts:**
+
+```text
+"Who can I mention on LinkedIn?"
+"Find the mention token for Daria"
+"List people who recently engaged with my company page"
+```
+
+**Python example:**
+
+```python
+async def list_mentionables():
+    headers = {"Authorization": "Bearer sk_YOUR_API_KEY"}
+
+    async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            result = await session.call_tool("linkedin_list_mentionables", {
+                "q": "daria",
+                "limit": 10
+            })
+            print(result.content[0].text)
+```
+
+**Response example:**
+
+```json
+{
+  "success": true,
+  "people": [
+    {
+      "personId": "Dk968RHxiO",
+      "name": "Daria Bulaeva",
+      "profileUrl": "",
+      "profilePicture": "",
+      "source": "comment",
+      "lastSeenAt": "2026-07-16T10:00:00.000Z",
+      "mention": "@{urn:li:person:Dk968RHxiO|Daria Bulaeva}"
+    }
+  ]
+}
+```
+
+`source` is `comment` or `reaction` (the most recent engagement wins). `mention` is `null` when no usable name is stored. The directory fills automatically when company-page engagement is read — there is no way to add a person manually or by profile URL.
 
 ---
 

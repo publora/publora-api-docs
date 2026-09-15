@@ -67,11 +67,14 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
+| `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
 | `DELETE` | `/linkedin-reactions` | Remove a LinkedIn reaction | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
 | `POST` | `/linkedin-reshare` | Reshare an existing LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reshare) |
+| `GET` | `/linkedin-mentionables` | List mentionable LinkedIn people | [View](https://docs.publora.com/endpoints/linkedin-mentionables) |
 | `POST` | `/linkedin-followers` | Get LinkedIn follower statistics | [View](https://docs.publora.com/endpoints/linkedin-followers) |
 | `POST` | `/linkedin-profile-summary` | Get LinkedIn profile summary | [View](https://docs.publora.com/endpoints/linkedin-profile-summary) |
 
@@ -84,7 +87,7 @@ Base URL: `https://api.publora.com/api/v1`
 | X / Twitter | 280 chars | Up to 4 | 1 per post | Auto-split | — |
 | LinkedIn | 3,000 chars | Multiple | 1 per post | — | 5 metrics |
 | Instagram | 2,200 chars | Carousel (10) | Reels/Stories | — | — |
-| Threads | 500 chars | Carousel | 1 per post | Disabled | — |
+| Threads | 500 chars | Carousel | 1 per post | Auto-split | — |
 | TikTok | Caption | Up to 35 | 1 per post (MP4/MOV/WebM) | — | — |
 | YouTube | Description | — | 1 per post | — | — |
 | Facebook | 63,206 chars | Multiple | 1 per post | — | — |
@@ -137,9 +140,11 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
 - [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
 - [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON
+- [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics) — on-demand post engagement and follower counts
 - [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
 - [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
 - [LinkedIn Reshare](https://docs.publora.com/endpoints/linkedin-reshare) — repost an existing LinkedIn post
+- [LinkedIn Mentionables](https://docs.publora.com/endpoints/linkedin-mentionables) — list the people you can @mention, with ready-to-paste tokens
 
 ### Platform Guides
 - [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)

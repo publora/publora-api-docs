@@ -2,7 +2,7 @@
 
 This catalog covers stable codes reachable through API-key-authenticated `/api/v1` routes. It excludes internal X Bookmarks codes and codes emitted only by dashboard sessions, OAuth, billing, or other non-API-key routes.
 
-Codes can appear at the top level, inside `warnings[]`, inside `validation.errors[]`, or per URL in `mediaResults[]`. Match on the code, not the human-readable message.
+Codes can appear at the top level, inside `warnings[]`, inside `validation.errors[]`, per URL in `mediaResults[]`, or per connection in `issues` on the analytics routes. Match on the code, not the human-readable message.
 
 For retry patterns and idempotency guidance, see [Error Handling](./error-handling.md).
 
@@ -81,6 +81,20 @@ When create/update ingestion fails, the request returns HTTP 400 with `error: "M
 | `MEDIA_URL_SKIPPED` | 400 | `mediaResults[].code` | This URL was not attempted after another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |
 | `MEDIA_URL_ROLLED_BACK` | 400 | `mediaResults[].code` | This URL succeeded, but its media was removed because another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |
 
+## Mastodon and Bluesky analytics codes
+
+`POST /post-statistics` reports per-connection problems in the `issues` object of a `200` response, keyed by connection ID (`<platform>-<platformId>`); the affected `postedId` values are `null` in `stats`. `POST /profile-statistics` reports the same conditions in `unavailable` (`AUTH_REVOKED`, `FORBIDDEN`) and `rateLimited`. See [Mastodon and Bluesky Statistics](../endpoints/platform-statistics.md).
+
+| Code | HTTP | Location | Meaning | Retryable? | Recovery |
+|---|---:|---|---|---|---|
+| `ANALYTICS_PLAN_REQUIRED` | 403 | top-level `code` | The plan has no analytics feature | No, unchanged | Upgrade to a plan that includes analytics |
+| `ANALYTICS_REQUEST_TIMEOUT` | 504 | top-level `code` | The request exceeded its 90-second budget | Yes | Retry with fewer posts per request |
+| `CONNECTION_NOT_FOUND` | 200 | `issues[<connection>]` | No connection of the caller matches that platform and platform ID | No, unchanged | Re-read `GET /platform-connections` |
+| `AUTH_REVOKED` | 200 | `issues[<connection>]`, `unavailable` | Mastodon rejected the stored token (HTTP 401) | After reconnecting | Reconnect the account |
+| `FORBIDDEN` | 200 | `issues[<connection>]`, `unavailable` | Mastodon refused analytics access (HTTP 403, scope or moderation). Publishing is unaffected. | Later | Retry later; reconnect if it persists |
+| `RATE_LIMITED` | 200 | `issues[<connection>]` | The platform is in a cooldown after answering 429 | Yes, after the cooldown | Retry later; the response also carries `rateLimited: true` |
+| `FETCH_FAILED` | 200 | `issues[<connection>]` | A transient failure reaching the platform | Yes | Retry later |
+
 ## LinkedIn symbolic errors
 
 These LinkedIn endpoints use the `error` field for stable symbolic values rather than a separate `code` field.
@@ -94,7 +108,7 @@ These LinkedIn endpoints use the `error` field for stable symbolic values rather
 
 ## Post validation codes
 
-Scheduling validation returns HTTP 400. These codes appear in `validation.errors[].code`; validation warnings, when present, use `validation.warnings[].code`.
+Scheduling validation returns HTTP 400. These codes appear in `validation.errors[].code`. A successful request returns no `validation` object at all, so validation warnings are not part of the success contract.
 
 | Code | Meaning | Recovery |
 |---|---|---|
@@ -116,6 +130,50 @@ Scheduling validation returns HTTP 400. These codes appear in `validation.errors
 | `PLATFORM_NOT_SUPPORTED` | The validator has no contract for the target platform | Remove the unsupported target |
 
 All validation codes above are non-retryable with the unchanged request.
+
+## Threads chain codes
+
+These codes concern multi-part Threads chains only. A single Threads post never
+triggers the permission check.
+
+### At scheduling
+
+| Code | HTTP | Location | Meaning | Retryable? | Recovery |
+|---|---:|---|---|---|---|
+| `THREADS_PERMISSION_REQUIRED` | 400 | `validation.errors[].code` | The connection's token does not grant `threads_manage_replies`, or the connection no longer exists. Nothing was published | No, unchanged | Reconnect that Threads account in Publora **Channels**, approve all requested permissions, then schedule again |
+| `TOKEN_EXPIRED` | 400 | `validation.errors[].code` | The stored Threads token is absent, or Meta reports it invalid | No, unchanged | Reconnect the Threads account |
+| `THREADS_PERMISSIONS_UNAVAILABLE` | 503 | top-level `code` | Publora could not complete the permission check itself. This is **not** an account problem and never means reconnect | Usually | Retry scheduling in a few seconds. A lookup that keeps failing is a Publora-side configuration problem no retry will clear — contact support |
+| `THREAD_PART_TOO_LONG` | 400 | `validation.errors[].code` | A resolved thread part exceeds 500 characters. Automatic splitting never produces one, but a `[n/m]` part you wrote yourself is not re-split, so an oversized one lands here | No, unchanged | Shorten that part; `field` names its index |
+| `INVALID_PLATFORM_CONTENT` | 400 | `validation.errors[].code` | A stored thread part is not a text string | No, unchanged | Edit or remove the invalid part |
+
+> **`THREADS_PERMISSIONS_UNAVAILABLE` has its own envelope.** Unlike the validation
+> codes, it returns `{ "code": "THREADS_PERMISSIONS_UNAVAILABLE", "error": "…" }`
+> with **no** `validation` object.
+
+> **`THREADS_PERMISSION_REQUIRED` carries one of two messages.** A connection whose
+> token lacks the grant returns *"Reconnect your Threads account and allow reply
+> publishing to publish a thread with multiple posts."*; a target whose connection no
+> longer exists returns *"Reconnect your Threads account before scheduling a thread."*
+> Match on the code, not the message.
+
+> **There is no way to pre-check the grant.** `GET /platform-connections` does not
+> report granted scopes, so a missing permission first surfaces as
+> `THREADS_PERMISSION_REQUIRED` when you schedule a chain.
+
+### At publishing
+
+These appear in `posts[].error.code` from `GET /get-post`, never as an HTTP status.
+
+| Code | Meaning | Retryable? | Recovery |
+|---|---|---|---|
+| `THREADS_INVALID_THREAD_PART` | A part was empty, not text, or over 500 characters including its numbering | No | Fix the content and create a new post |
+| `THREAD_PARTIALLY_PUBLISHED` | Some parts published, then one failed. The published parts are live and Publora will not republish the chain | No | Read `threadParts`, then publish only the missing parts |
+| `PUBLISH_OUTCOME_UNKNOWN` | Threads accepted a publish request without returning an ID, so the outcome is genuinely unknown. Automatic retry is disabled to avoid duplicates | No | Check the live Threads account before posting anything further |
+| `THREADS_PERMISSION_REQUIRED` | The grant disappeared between scheduling and publishing. Nothing was published | No | Reconnect the account and schedule again |
+
+> **Never resubmit a chain after `THREAD_PARTIALLY_PUBLISHED` or
+> `PUBLISH_OUTCOME_UNKNOWN`.** Parts marked `published` in `threadParts` already
+> exist on the platform; recreating the post duplicates them.
 
 ## Workspace attachment codes
 
@@ -145,5 +203,7 @@ These lowercase codes are top-level response fields from `POST /workspace/users`
 - Scheduling guards and media state: `backend/src/app/helpers/scheduledPlatformsGuard.js`, `mediaStatusTransitions.js`, and `probeMediaUpload.js`.
 - Per-URL ingestion: `backend/src/app/helpers/mediaUrlIngest.js` and `mediaUrlSecurity.js`.
 - Validation codes actually emitted by scheduling: `backend/src/app/services/postValidationService.js` and `errors/ValidationError.js`.
+- Threads chain permission and publish errors: `backend/src/app/helpers/threadsPermissions.js`, `backend/src/app/services/threadsPostPreflight.js`, and `scheduler-service/src/app/controllers/threadsController.js`.
 - Workspace attachment responses: `backend/src/app/controllers/workspaceApiController.js`.
 - LinkedIn interaction/analytics errors: `backend/src/app/controllers/linkedinController.js`.
+- Mastodon/Bluesky analytics responses: `backend/src/app/controllers/platformAnalyticsController.js` and `backend/src/app/services/platformAnalytics/`.

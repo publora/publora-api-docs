@@ -49,7 +49,7 @@ All platforms have character limits for text content. Some platforms have differ
 |----------|---------------|-----------------|-------|
 | **Twitter/X** | 280 characters | 25,000 (Premium) | Threading supported for long content |
 | **Instagram** | 2,200 characters | - | First 125 chars visible before "more" |
-| **Threads** | 500 characters | 10,000 (text attachment) | Threading disabled; max 5 links per post |
+| **Threads** | 500 characters | 10,000 (text attachment) | Threading supported (500 per part); max 5 links per post |
 | **TikTok** | 2,200 characters (API) | 4,000 (native app) | API enforces stricter limit |
 | **LinkedIn** | 3,000 characters | - | First 210 chars visible before "see more" |
 | **YouTube** | 100 (title) / 5,000 (description) | - | First 150 chars of description visible |
@@ -63,7 +63,7 @@ All platforms have character limits for text content. Some platforms have differ
 
 1. **Design for the lowest common denominator** when cross-posting. If posting to Twitter and Threads, keep content under 280 characters.
 
-2. **Use threading** for long-form content on Twitter/X. Meta Threads multi-part publishing is disabled, so keep its content within the single-post limit.
+2. **Use threading** for long-form content on Twitter/X and Meta Threads. Both split over-limit content into a chain instead of rejecting it.
 
 3. **Front-load important information** since most platforms truncate visible content with a "see more" link.
 
@@ -197,7 +197,7 @@ Different platforms have different requirements for media. Some platforms are te
 |----------|----------------|----------------|--------------------|--------------------|
 | **Twitter/X** | No | No | Yes | Yes |
 | **Instagram** | Yes | No | No | No |
-| **Threads** | No | No | Yes | No |
+| **Threads** | No | No | Yes | Yes |
 | **TikTok** | Yes | No | No | No |
 | **LinkedIn** | No | No | Yes | No |
 | **YouTube** | Yes | Yes | No | No |
@@ -212,7 +212,7 @@ Different platforms have different requirements for media. Some platforms are te
 - **TikTok** requires media and supports image carousels or video; **YouTube** requires video. Neither supports text-only publication.
 - **Instagram** requires at least one image or video with every post.
 - **Pinterest** is listed for reference but is **not currently supported** in Publora. Support is planned for a future release.
-- **Threading** is currently available for Twitter/X; multi-part Threads publishing is disabled.
+- **Threading** is available for Twitter/X and Meta Threads.
 
 ---
 

@@ -54,7 +54,7 @@ Ask for the channel list first: Publora identifies targets by `platformId` (for 
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — all 14 MCP tools
+- [Tools Reference](./tools-reference.md) — all 18 MCP tools
 - [Client Setup](./client-setup.md) — other MCP clients
 - [Examples](./examples.md) — more conversation examples
 - [Troubleshooting](./troubleshooting.md) — server-level issues

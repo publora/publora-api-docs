@@ -320,8 +320,21 @@ console.log(response.data);
 
 - Character limits vary by Mastodon instance; mastodon.social uses 500 characters, but some instances allow 5,000+
 - Publora currently connects to mastodon.social only (posting is hardcoded to this instance)
-- Mastodon and Meta Threads do not support auto-threading in the current Publora capability set; X/Twitter threading remains enabled
+- Mastodon does not support auto-threading in the current Publora capability set; X/Twitter and Meta Threads do
 - Max image count (4) and video count (1) limits are enforced by Publora at scheduling time via `postValidationService.js`
+
+## Analytics
+
+Engagement counters for a published toot and follower counts for the connected account are available on demand:
+
+```bash
+curl -X POST https://api.publora.com/api/v1/post-statistics \
+  -H "Content-Type: application/json" \
+  -H "x-publora-key: YOUR_API_KEY" \
+  -d '{"posts":[{"platform":"mastodon","platformId":"mastodon-110300915972205108","postedId":"117232239423110999"}]}'
+```
+
+Mastodon reports `reactions` (favourites), `comments` (replies), `reposts` (boosts) and, on Mastodon 4.5+, `quotes`. `saves`, `impressions`, `reach` and `clicks` are `null` — Mastodon has no such counters. Requires a plan with analytics; values are cached for about 2 hours. Only posts Publora published for you and stored a `postedId` for can be queried. See [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
 
 ## What you can't do through the REST API
 
