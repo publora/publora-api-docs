@@ -1,0 +1,6 @@
+# Credentials. This repo has no application code, so a .env here is somebody's
+# local tooling - and GitHub push protection has already had to stop a PAT in
+# one from reaching a branch. `git add -A` should not be able to stage it.
+.env
+.env.*
+!.env.example
