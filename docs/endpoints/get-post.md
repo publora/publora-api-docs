@@ -42,7 +42,9 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "content": "Excited to share our new product launch! 🚀",
       "status": "published",
       "postedId": "1234567890123456789",
-      "permalink": null
+      "permalink": null,
+      "isThread": false,
+      "threadParts": []
     },
     {
       "_id": "663a1b2c3d4e5f6a7b8c9d02",
@@ -51,7 +53,9 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "content": "Excited to share our new product launch! 🚀",
       "status": "published",
       "postedId": "urn:li:share:7654321",
-      "permalink": null
+      "permalink": null,
+      "isThread": false,
+      "threadParts": []
     }
   ],
   "media": []
@@ -83,6 +87,8 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 | `status` | string | Per-platform status |
 | `postedId` | string/null | The platform's own ID for the published post — `null` until published |
 | `permalink` | string/null | Public URL of the published post — `null` when unavailable |
+| `isThread` | boolean | `true` when this target was published as a multi-part chain. Always present |
+| `threadParts` | array | Per-part publication progress — see [Thread parts](#thread-parts). Always present, `[]` when the target is not a chain |
 
 > **Stable shape:** `platformId`, `postedId` and `permalink` are **always present** on every `posts[]` entry. When a value is unavailable it is explicitly `null` — the key never disappears, so you can read it without existence checks.
 
@@ -93,6 +99,49 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 > **Note:** For draft and scheduled posts, `postedId` is `null` (present, but empty) since the post has not yet been published to the platform. Published posts normally carry a non-null `postedId`; a partially published X thread is the exception where a `failed` target can retain the head tweet ID in `postedId`.
 
 > **Note:** The `platformId` field returns the raw platform ID (e.g., `"123456789"`), not the compound format used by list-posts (e.g., `"twitter-123456789"`). See the [list-posts](./list-posts) endpoint for details on this difference.
+
+### Thread parts
+
+X/Twitter and Meta Threads targets can publish one post as a chain of connected
+parts. `get-post` reports that progress per target.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `index` | number | Zero-based position of the part in the chain |
+| `content` | string | The text of that part, exactly as published |
+| `status` | string | `pending`, `published`, or `failed` |
+| `publishedId` | string/null | The platform's own ID for that part — `null` until confirmed |
+
+```json
+{
+  "_id": "663a1b2c3d4e5f6a7b8c9d04",
+  "platform": "threads",
+  "platformId": "17841412345678",
+  "content": "The whole story, as submitted.\n\n---\n\nThe second half.",
+  "status": "published",
+  "postedId": "17900000000000001",
+  "permalink": null,
+  "isThread": true,
+  "threadParts": [
+    { "index": 0, "content": "The whole story, as submitted.", "status": "published", "publishedId": "17900000000000001" },
+    { "index": 1, "content": "The second half.", "status": "published", "publishedId": "17900000000000002" }
+  ]
+}
+```
+
+`postedId` on the target is the **first** part's platform ID, which is also
+`threadParts[0].publishedId`. There is no single ID that addresses the whole chain.
+
+> **After a partial failure, read the parts before acting.** A chain that published
+> some parts and then failed leaves those parts live on the platform, with
+> `status: "published"` and a `publishedId`; the rest stay `pending` or `failed` and
+> the target carries the error. A partially published chain is terminal and is not
+> retried, and on Threads a re-entry guard additionally refuses any chain that already
+> has published parts. Recreating the post would duplicate the parts that already
+> exist — inspect `threadParts` and the live account, then publish only what is missing.
+
+> **Note:** `threadParts` is exposed by `get-post` only. `list-posts` does not
+> include it, so fetch the group to inspect chain progress.
 
 ### Failed Post Response
 
@@ -159,6 +208,8 @@ When `status` is `failed`, the `error` object contains:
 | `PLATFORM_SERVER_ERROR` | Platform API returned 5xx error | Yes |
 | `NETWORK_ERROR` | Could not reach platform API | Yes |
 | `TIMEOUT_ERROR` | Request timed out | Yes |
+| `X_REPLY_NOT_AUTHORIZED` | X refused a `platformSettings.twitter` reply or quote: on self-serve API tiers the target's author must have mentioned this account in that post, quoted one of its posts, or the account must have written the target itself | No |
+| `X_TARGET_REJECTED` | The `platformSettings.twitter` reply/quote target is unusable — deleted, protected, or its author blocked this account | No |
 | `UNKNOWN_ERROR` | Unclassified error | Maybe |
 
 > **Note:** The error codes listed above are not exhaustive. The schema does not validate error codes, so additional codes beyond these eight may appear in the response. Always handle unknown codes gracefully.

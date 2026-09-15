@@ -8,7 +8,7 @@ Publora provides analytics for LinkedIn posts, including:
 - **Post-level metrics:** impressions, reach, reactions, comments, reshares
 - **Account-level metrics:** aggregated impressions, reactions, comments, reshares, and reach
 
-> **Note:** Analytics are currently available for LinkedIn only. Other platforms are planned for future releases.
+> **Note:** This guide covers the LinkedIn analytics endpoints. Mastodon and Bluesky have their own, simpler pair of endpoints — see [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics). No other platform exposes analytics through Publora yet.
 
 ## Available Metrics
 
@@ -506,6 +506,17 @@ function calculateEngagementRate(metrics) {
 // Great engagement rate: 5%+
 ```
 
+## Other Platforms
+
+Mastodon and Bluesky engagement is served by two separate endpoints with a different, much smaller contract:
+
+```
+POST /api/v1/post-statistics      # up to 50 posts at once, mixed platforms
+POST /api/v1/profile-statistics   # followers / following / post count
+```
+
+They return a fixed, always-present metric shape (`reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks`) where anything the platform does not expose is `null` rather than `0`, and they are gated by the same analytics plan feature as the LinkedIn endpoints. Full reference: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
 ## Error Handling
 
 ```javascript
@@ -541,4 +552,4 @@ async function getStatisticsSafe(platformId, postedId) {
 
 ---
 
-*[Publora](https://publora.com) — Social media API with free tier, paid plans from $2.99/account*
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

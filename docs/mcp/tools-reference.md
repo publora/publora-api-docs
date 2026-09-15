@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 15 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 18 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -117,7 +117,7 @@ Create and schedule a post to one or more platforms.
 
 > **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
-> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These six platforms accept settings:
+> **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These seven platforms accept settings:
 >
 > ```json
 > {
@@ -139,6 +139,10 @@ Create and schedule a post to one or more platforms.
 >       "playlist": { "id": "string", "platformId": "string" }
 >     },
 >     "threads": { "replyControl": "everyone | accounts_you_follow | mentioned_only" },
+>     "twitter": {
+>       "replyTo": "https://x.com/user/status/123456789 or numeric ID",
+>       "quoteTweet": "https://x.com/user/status/987654321 or numeric ID"
+>     },
 >     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false },
 >     "linkedin": {
 >       "repostEnabled": true,
@@ -148,6 +152,7 @@ Create and schedule a post to one or more platforms.
 >   }
 > }
 > ```
+> For X, `replyTo` and `quoteTweet` are intended for inbound engagement and your own posts. Self-serve X API tiers accept the target only when its author mentioned the connected account in that same post, quoted one of its posts, or the connected account wrote the target itself. The fields may be combined, and quote posts may include media. Publora cannot prevalidate the relationship: an unrelated target is accepted by the tool but fails permanently at publish time with `X_REPLY_NOT_AUTHORIZED`.
 > For LinkedIn repost settings, `CONNECTIONS` is personal-profile-only. A company-page repost must use `PUBLIC` or scheduling returns `400`.
 > YouTube custom thumbnails are **not** settable here (they need the separate multipart thumbnail endpoint, which MCP does not expose).
 
@@ -226,7 +231,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 | LinkedIn | 3,000 | 10 | 500MB | Documents, @mentions |
 | X/Twitter | 280 (25K premium) | 4 | 140s | Auto-threading |
 | Instagram | 2,200 | 10 | 900s Reels, 3600s feed, 60s carousel | Reels & Stories supported |
-| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Threading disabled |
+| Threads | 500 (10,000 with text attachment) | 20 | 5min / 1 GB | Auto-threading |
 | TikTok | 2,200 | 35 | 10min / 4 GB | Image carousel or video |
 | YouTube | 5,000 desc | 0 | 12h / 256 GB | Shorts support |
 | Facebook | 63,206 | 10 | 45min / 2 GB | Page posts, Reels |
@@ -238,7 +243,7 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 
 > **Note:** LinkedIn's "10 images" is the multi-image upload limit, not a carousel. Organic carousels on LinkedIn are **not** supported via the API (carousels are only available for sponsored/ad content). To share multi-page content organically, use LinkedIn document (PDF) posts instead.
 
-> **Note:** Multi-threaded nested posts on Threads are temporarily unavailable. Single posts and carousel posts to Threads continue to work normally.
+> **Note:** Threads chains are created from the `content` field — long text splits into replies of up to 500 characters each, and a standalone `---` line between paragraphs forces a break. Media are attached to the first part only. The connection must have granted `threads_manage_replies`; otherwise scheduling is rejected with `THREADS_PERMISSION_REQUIRED` before anything is published.
 
 ---
 
@@ -294,14 +299,36 @@ async def get_post_details():
       "content": "Excited to share our latest update!",
       "status": "scheduled",
       "postedId": null,
-      "permalink": null
+      "permalink": null,
+      "isThread": false,
+      "threadParts": []
     }
   ],
   "media": []
 }
 ```
 
-> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`; internal thread-part IDs are not exposed.
+> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`, plus `isThread` and `threadParts` — both always present.
+
+**Thread progress.** For an X/Twitter or Meta Threads target published as a chain, `isThread` is `true` and `threadParts[]` carries one entry per part with `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). The target's `postedId` is the first part's ID.
+
+```json
+{
+  "platform": "threads",
+  "platformId": "17841412345678",
+  "status": "published",
+  "postedId": "17900000000000001",
+  "isThread": true,
+  "threadParts": [
+    { "index": 0, "content": "First message.", "status": "published", "publishedId": "17900000000000001" },
+    { "index": 1, "content": "Second message.", "status": "published", "publishedId": "17900000000000002" }
+  ]
+}
+```
+
+> **After a partial or unknown outcome, inspect the parts — do not resubmit the chain.** Parts marked `published` are already live; recreating the post would duplicate them. A partially published chain is terminal and is not retried.
+
+> **Note:** `list_posts` does not include `threadParts`. Call `get_post` to read chain progress.
 
 ---
 
@@ -576,6 +603,19 @@ asyncio.run(list_connections())
     "lastSuccessfulPost": "2026-03-10T09:30:00.000Z",
     "lastError": null,
     "subscriptionType": null
+    },
+    {
+    "platformId": "youtube-UCxxxxxxxxxxxx",
+    "username": "Your Channel",
+    "displayName": null,
+    "profileImageUrl": "https://...",
+    "profileUrl": null,
+    "tokenStatus": "valid",
+    "tokenExpiresIn": null,
+    "accessTokenExpiresAt": null,
+    "lastSuccessfulPost": "2026-03-11T18:00:00.000Z",
+    "lastError": null,
+    "subscriptionType": null
     }
   ]
 }
@@ -590,12 +630,65 @@ asyncio.run(list_connections())
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
 | `profileUrl` | string/null | URL to the profile on the platform |
-| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown` |
-| `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h") |
-| `accessTokenExpiresAt` | string/null | ISO 8601 timestamp when the access token expires |
+| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown`. **The authoritative signal** — see the note below. |
+| `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h"); `null` when there is no expiry date to report |
+| `accessTokenExpiresAt` | string/null | Effective credential expiry, derived the same way as `tokenStatus`. `null` when no authoritative date exists — always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). |
 | `lastSuccessfulPost` | string/null | ISO 8601 timestamp of the last successful post via this connection |
 | `lastError` | object/null | Last error details: `{ message: string, occurredAt: string }` |
 | `subscriptionType` | string/null | Detected platform subscription tier when available (used for X Premium/PremiumPlus limits) |
+
+> **Deciding whether a connection needs reconnecting: read `tokenStatus`. Do not compare `accessTokenExpiresAt` against the current date.**
+>
+> `tokenStatus` already accounts for how each platform refreshes credentials and for connections the platform has revoked. Comparing the date yourself produces wrong advice in both directions: a healthy YouTube connection reports `null` (its token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime), while a revoked connection can report `expired` with a date that is `null` or still in the future. Prompt the user to reconnect when `tokenStatus` is `expired`, and warn when it is `expiring_soon`.
+
+---
+
+## Analytics Tools (Mastodon, Bluesky)
+
+Both tools need a plan that includes analytics (Pro or Premium); a Starter key gets a `403`. Values are read from the platform on request and cached for about 2 hours. Full contract: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+
+### post_stats
+
+Engagement counters for published Mastodon or Bluesky posts.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections`, e.g. `bluesky-did:plc:abc123` or `mastodon-110300915972205108` (prefix optional) |
+| `postedIds` | string[] | Yes | 1–50 platform post IDs (`postedId` from `get_post` / `list_posts`): a Bluesky AT-URI or a Mastodon status ID |
+
+Returns `stats` keyed by `postedId`. Each value is either the metric object — `reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks` — or `null` when there is no data right now. A metric the platform does not have is `null`, never `0`: Mastodon has no `saves`, and neither platform reports `impressions`, `reach` or `clicks`. Per-connection problems appear in `issues`.
+
+Only posts Publora published for you, and stored a `postedId` for, can be queried. For a thread, that is the root part only.
+
+**Example prompt:**
+
+```text
+"How did my last Bluesky post do?"
+```
+
+---
+
+### profile_stats
+
+Followers, following and post count of a connected Mastodon or Bluesky account.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | `mastodon` or `bluesky` |
+| `platformId` | string | Yes | Connection ID from `list_connections` (prefix optional) |
+
+Returns `profile` (`followers`, `following`, `posts`), plus `cached` and `fetchedAt`.
+
+**Example prompt:**
+
+```text
+"How many followers does my Mastodon account have?"
+```
 
 ---
 

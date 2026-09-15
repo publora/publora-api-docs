@@ -11,6 +11,80 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-09-14
+
+### Threads multi-part chains — publora.com #472, #474
+
+- **Affected surface:** REST `create-post`, `update-post` and `get-post`; MCP `create_post`, `update_post` and `get_post`; `GET /platform-limits`.
+- **Tag:** Additive, with one behaviour change for over-limit Threads content.
+- **Changes:**
+  - Meta Threads now supports multi-part chains. `platforms.threads.requirements.supportsThreading` in `GET /platform-limits` is `true`; it was `false`.
+  - Threads content over 500 characters is **no longer rejected**. It is accepted and split into a chain instead of being rejected with `CONTENT_TOO_LONG` in `validation.errors[]`. A successful request carries no `validation` object, so there is nothing new to read on success — the split is simply performed. A standalone `---` line, or a complete `[n/m]` marker set, splits the content explicitly; automatically derived parts get a ` (1/N)` suffix, explicit ones are published verbatim. Media attach to the first part only.
+  - `get-post` `posts[]` entries gained **`isThread`** (boolean) and **`threadParts`** (array). Both are always present — `false` and `[]` for a non-chain target. Each part carries `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). `postedId` is the first part's ID. `list-posts` does not include these fields. The same fields reach MCP through `get_post`, which passes the REST body through unchanged. They are populated for X/Twitter chains as well as Threads.
+  - Scheduling a Threads chain requires the connection to have granted `threads_manage_replies`. The grant is checked at scheduling (from a per-connection cache up to five minutes old) and re-checked against Meta immediately before publishing: a missing grant returns `400` with `THREADS_PERMISSION_REQUIRED` in `validation.errors[]` and nothing is published. A failure of the permission lookup itself returns `503` with `{ "code": "THREADS_PERMISSIONS_UNAVAILABLE", "error": … }` and no `validation` object — that one never means reconnect. `GET /platform-connections` does not report granted scopes, so the grant cannot be pre-checked.
+  - New publish-time codes in `posts[].error.code`: `THREADS_INVALID_THREAD_PART`, and `THREAD_PARTIALLY_PUBLISHED` / `PUBLISH_OUTCOME_UNKNOWN` now reachable for Threads. A chain with published parts is never republished from the beginning.
+  - The error message `"Multi-part threads (nested replies) are temporarily blocked while we wait for Meta to approve additional permissions for our app."` no longer occurs.
+- **Migration action:** If your client special-cased Threads by truncating text at 500 characters or by treating over-limit content as a hard error, that workaround is now unnecessary. After a partial or unknown publication, read `threadParts` and publish only the missing parts — do not resubmit the post.
+
+## 2026-09-08
+
+### Mastodon and Bluesky statistics — publora.com #460
+
+- **Affected surface:** New REST endpoints `POST /post-statistics` and `POST /profile-statistics`, and new MCP tools `post_stats` and `profile_stats`. Nothing existing changes shape.
+- **Tag:** Additive.
+- **Changes:**
+  - `POST /post-statistics` takes `{ posts: [{ platform, platformId, postedId }] }` (1–50 entries, `mastodon` and `bluesky`, both platforms may be mixed in one request) and returns `stats` keyed by `postedId`. Each value is a metric object — `reactions`, `comments`, `reposts`, `quotes`, `saves`, `impressions`, `reach`, `clicks` — or `null`. Every key is always present; a metric the platform does not expose is `null`, never `0`.
+  - `POST /profile-statistics` takes `{ platform, platformId }` and returns `profile` (`followers`, `following`, `posts`) with `cached` and `fetchedAt`, or `404` when the connection is not the caller's.
+  - `platformId` is accepted with or without the `<platform>-` prefix returned by `GET /platform-connections`.
+  - Per-connection problems do not fail the request: `post-statistics` reports them in an `issues` object keyed by connection ID (`CONNECTION_NOT_FOUND`, `AUTH_REVOKED`, `FORBIDDEN`, `RATE_LIMITED`, `FETCH_FAILED`), and `profile-statistics` reports them in `unavailable` and `rateLimited`.
+  - Both endpoints, and both MCP tools, are gated by the analytics plan feature that already gated the LinkedIn analytics endpoints; a plan without it receives `403 ANALYTICS_PLAN_REQUIRED`. A request that exceeds its 90-second budget returns `504 ANALYTICS_REQUEST_TIMEOUT`.
+  - Values are fetched from the platform on request and cached for about 2 hours. Nothing is collected in the background, so there is no history — only the counters as they stand when you ask.
+- **Known limitation:** only posts Publora published for you **and stored a platform post ID for** can be queried. Publora began storing `postedId` for Mastodon and Bluesky on 2026-09-07; posts published before that have no `postedId` and are answered `null`. For a thread, only the root part is addressable.
+- **Migration action:** None. New capability.
+
+## 2026-08-27
+
+### Native Zapier app (beta)
+
+- **Affected surface:** No REST or MCP contract change. Publora now has a native app on Zapier (beta, v1.2.0), built on the public API and [webhooks](endpoints/webhooks.md): instant triggers **New Published Post** and **New Scheduled Post**, actions **Create Post**, **Update Post** and **Delete Post**, and searches **Find Connected Account** and **Find Posts**.
+- **Tag:** Additive.
+- **Change:** The [Zapier guide](examples/no-code/zapier-integration.md) was rewritten for the native app. It previously documented a workaround through Webhooks by Zapier; that approach still works and stays documented on the same page for endpoints the app does not expose.
+- **Migration action:** None. Existing Webhooks-by-Zapier Zaps keep working; the native app is the recommended path for new Zaps.
+
+## 2026-08-24
+
+### Connection health reporting corrected — publora.com #407
+
+- **Affected surface:** REST `GET /platform-connections` and the MCP `list_connections` tool, which passes that response through unchanged. `test-connection` reports the same corrected expiry.
+- **Tag:** **Behavioral correction.** No request shape changes, no field is added or removed; two response fields now report different — and correct — values for some connections.
+- **Changes:**
+  - `accessTokenExpiresAt` now carries the **effective** credential expiry, the same value `tokenStatus` and `tokenExpiresIn` are derived from, instead of the raw stored access-token timestamp. For YouTube it is now always `null`: the access token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime, so no authoritative date exists. TikTok continues to report its real refresh-token expiry; every other platform is unchanged.
+  - Previously, healthy YouTube and TikTok connections returned a timestamp already in the past alongside `tokenStatus: "valid"`. Clients that compared that date against the current time concluded the connection was dead and prompted users to reconnect working channels.
+  - `tokenStatus` now returns `expired` for any connection Publora has flagged for reconnection after the platform rejected its credential — including on platforms that never expire on a schedule, where such a connection previously reported `valid`. In that case `accessTokenExpiresAt` may be `null` or still in the future.
+- **Migration action:** Decide about reconnecting from **`tokenStatus`**, not by comparing `accessTokenExpiresAt` against the clock. Treat `expired` as "prompt the user to reconnect" and `expiring_soon` as "warn". Treat a `null` expiry as "no scheduled expiry", never as a problem. The examples on the endpoint, guide and MCP pages were rewritten accordingly; code copied from earlier versions of those examples should be updated.
+
+### X replies and quote posts — publora.com #405
+
+- **Affected surface:** REST `create-post` and `update-post`, the MCP `create_post` and `update_post` tools, and the `posts[].error.code` reported by `GET /get-post` and the `post.failed` webhook.
+- **Tag:** Additive. No existing request shape changes behavior.
+- **Changes:**
+  - `platformSettings` accepts a new top-level `twitter` object with two string keys, `replyTo` and `quoteTweet`. Both take a full `x.com`/`twitter.com` status URL or a bare 1–19 digit post ID, and both are normalized to the numeric ID before storage, so `GET /get-post` echoes the ID rather than the URL you sent.
+  - `replyTo` publishes the post — or the head part of a thread — as a reply to the target; the remaining thread parts chain under it as before. `quoteTweet` applies to the single post or the thread head only. The two fields combine with each other and with media. An empty string clears either one.
+  - A malformed reference is rejected at intake with `400` and a plain `error` message (`platformSettings.twitter.replyTo must be a tweet URL (https://x.com/user/status/123...) or a numeric tweet ID`); no `code` field accompanies it. An unknown key under `twitter` is still `400 PLATFORM_SETTING_UNKNOWN`, which is evaluated first.
+  - Two publish-time codes were added: `X_REPLY_NOT_AUTHORIZED` when X refuses the reply or quote relationship, and `X_TARGET_REJECTED` when the target is deleted, protected, or its author blocked the account. Both are permanent — `retryable: false`.
+  - `twitter` is no longer an example of a rejected `platformSettings` platform; the allowlist now has seven platforms.
+- **Restriction to know before integrating:** X allows a programmatic reply or quote on self-serve API tiers only when the target post's author mentioned the connected account **in that same post**, quoted one of the account's posts, or the connected account authored the target. Enterprise apps are exempt. Publora cannot check that relationship at intake, so an unrelated target is accepted by `create-post`/`update-post` and fails later at publish time.
+- **Migration action:** None for existing callers. New integrations should treat these fields as inbound-engagement and own-post tools, match on `error.code` rather than message text, and not retry `X_REPLY_NOT_AUTHORIZED` or `X_TARGET_REJECTED` with the same target.
+
+## 2026-08-03
+
+### MCP OAuth consent no longer asks for an API key
+
+- **Affected surface:** the OAuth 2.1 flow on `mcp.publora.com` (Dynamic Client Registration + PKCE), used by claude.ai's custom connector, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and other browser-capable clients.
+- **Tag:** Behavioral, non-breaking for existing credentials.
+- **Change:** The consent step is a sign-in-and-approve page — *"An application is requesting access to your Publora account"*, naming the account being authorized, with **Approve** and **Cancel**. It no longer asks you to paste an `sk_...` key; that step was replaced when SSO login shipped on 2026-07-27, and the wording was finalized on 2026-08-03. On approval Publora mints a dedicated API key for that client registration, named `MCP (<client> #<id>)`, and returns it as the access token. Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) are unaffected and remain the option for headless clients.
+- **Migration action:** None for connectors that already work. Re-authorizing a client mints a fresh key; per-client keys are listed and revocable on the **API** page in the dashboard. If you built on the old instructions and expected a key-paste page, drop that step.
+
 ## 2026-07-21
 
 ### Editable draft and scheduled posts — publora.com #231

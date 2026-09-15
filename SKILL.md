@@ -32,11 +32,13 @@ This skill provides complete documentation for the Publora social media scheduli
 
 ## Pricing
 
-| Plan | Price | Posts/Month | Platforms |
-|------|-------|-------------|-----------|
-| Starter | Free | 15 | All 10 |
-| Pro | $2.99/account | 100/account | All platforms |
-| Premium | $5.99/account | 500/account | All platforms |
+| Plan | Monthly | Yearly −33% | Posts/Month | Platforms |
+|------|---------|-------------|-------------|-----------|
+| Starter | Free | Free | 15 | All platforms, except X |
+| Pro, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | All platforms |
+| Agency | Custom | Custom | Unlimited | All platforms |
+
+Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
 
 ## Authentication
 
@@ -75,6 +77,13 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 |----------|--------|-------------|
 | `/platform-connections` | GET | List connected accounts |
 | `/test-connection/:platformId` | POST | Test if a connection is valid |
+
+### Mastodon & Bluesky Analytics
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/post-statistics` | POST | Get engagement for up to 50 published posts |
+| `/profile-statistics` | POST | Get followers/following/post count for a connection |
 
 ### LinkedIn Analytics & Engagement
 

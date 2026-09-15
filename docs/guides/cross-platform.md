@@ -54,18 +54,18 @@ Retrieve your connected accounts and their platform IDs from the `GET /api/v1/pl
 When your content exceeds a platform's character limit, Publora adapts it automatically:
 
 - **Twitter / X:** Long text is split into a **thread** (multiple tweets chained together).
-- **Threads:** Long text is split into a **thread** (multiple posts chained together). ⚠️ *Temporarily unavailable - see note below.*
+- **Threads:** Long text is split into a **thread** (multiple posts chained together), each part replying to the previous one.
 - **Other platforms:** Content that exceeds the platform's character limit will return a validation error. Content is **not** auto-truncated for non-threading platforms.
 
-> **⚠️ Threads Notice:** Multi-part thread splitting on Threads is temporarily unavailable due to API access requirements. Keep Threads content under 500 characters or it will fail. Single posts and carousels work normally. Contact support@publora.com for updates.
+> **Threads note:** Threads chains need the `threads_manage_replies` permission on the connection. A connection whose token predates that permission is rejected before anything is published — reconnect the account in Publora Channels to grant it.
 
 ### Platform-Specific Defaults
 
 `platformSettings` can be passed directly in the `create-post` request body. The API merges user-provided settings with defaults per platform.
 >
-> **⚠️ Supported platforms for `platformSettings`:** The API merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, **Telegram**, and **LinkedIn**. Unknown top-level platforms or nested fields are rejected with `400 PLATFORM_SETTING_UNKNOWN`; they are not silently ignored. See the canonical [create-post platformSettings allowlist](../endpoints/create-post.md#unknown-platformsettings-paths).
+> **⚠️ Supported platforms for `platformSettings`:** The API merges `platformSettings` for **TikTok**, **Instagram**, **YouTube**, **Threads**, **X** (`twitter`), **Telegram**, and **LinkedIn**. Unknown top-level platforms or nested fields are rejected with `400 PLATFORM_SETTING_UNKNOWN`; they are not silently ignored. See the canonical [create-post platformSettings allowlist](../endpoints/create-post.md#unknown-platformsettings-paths), and [X Reply and Quote Settings](../endpoints/create-post.md#x-reply-and-quote-settings) for the `twitter` keys.
 >
-> **⚠️ Important limitation:** The external API `update-post` endpoint accepts `status`, `scheduledTime`, `platformSettings` (merged per-platform), and `mediaUrls`. `mediaUrls` has **append semantics**: newly ingested media is added to existing media rather than replacing it, and ingestion is limited to 60 URLs/hour. It does **not** accept `content` or `platforms`. See [update-post](../endpoints/update-post.md). To change the text or target platforms after creation, use the Publora dashboard or create a new post.
+> **⚠️ Field semantics differ:** The external API `update-post` endpoint accepts `content`, `platforms`, `status`, `scheduledTime`, `platformSettings` (merged per-platform), and `mediaUrls`; every field is a patch, so an omitted field keeps its stored value. Three of them do **not** behave alike: `platformSettings` is *merged* per-platform, `platforms` *replaces* the whole target set, and `mediaUrls` *appends* to existing media rather than replacing it (ingestion is limited to 60 URLs/hour, and a retry re-appends — send an `Idempotency-Key`). See [update-post](../endpoints/update-post.md).
 
 Publora applies sensible defaults for platform-specific settings:
 

@@ -51,6 +51,33 @@ X has specific rules for character counting that Publora handles automatically:
 - URLs are counted by their literal length (Publora does NOT apply Twitter's 23-character URL shortening rule)
 - Publora calculates the character count before posting
 
+## Replies and Quote Posts
+
+Set X-specific targets in `platformSettings.twitter` when creating or updating a post:
+
+```json
+{
+  "content": "Thanks for the mention — here is the answer.",
+  "platforms": ["twitter-12345678"],
+  "scheduledTime": "2026-08-25T14:00:00.000Z",
+  "platformSettings": {
+    "twitter": {
+      "replyTo": "https://x.com/customer/status/1234567890123456789",
+      "quoteTweet": "987654321098765432"
+    }
+  }
+}
+```
+
+- `replyTo` publishes under the target post. If the content becomes a thread, the first post replies to the target and subsequent parts chain normally.
+- `quoteTweet` quotes the target from the single post or the first post of a thread.
+- Both fields accept a full `x.com`/`twitter.com` status URL or a bare 1–19 digit post ID. Send an empty string to clear a setting.
+- `replyTo` and `quoteTweet` can be used together. Quote posts can include media.
+
+> **Important X restriction:** self-serve X API tiers allow a programmatic reply or quote only when the target post's author **mentioned the connected account in that same post**, **quoted one of the account's posts**, or the connected account **authored the target itself**. Enterprise apps are exempt. This makes the feature suitable for inbound engagement and resurfacing your own posts, not arbitrary outreach.
+
+Publora cannot determine this relationship during create/update validation. An accepted scheduled post can later fail permanently with `X_REPLY_NOT_AUTHORIZED` when X rejects its target; repeating it unchanged will not succeed. An inaccessible, deleted, or protected target may instead fail with `X_TARGET_REJECTED`.
+
 ## Threading
 
 When your content exceeds the character limit, Publora automatically splits it into a thread (multiple connected tweets):

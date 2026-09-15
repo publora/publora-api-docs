@@ -2,7 +2,7 @@
 
 **Affordable REST API for scheduling and publishing social media posts across 10 platforms.**
 
-Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. **Free tier available**, paid plans from **$2.99/month** per connected account.
+Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. **Free tier available**, paid plans from **$3.99/month** per connected account (graduated volume discounts).
 
 **Website:** [publora.com](https://publora.com) | **Dashboard:** [app.publora.com](https://app.publora.com) | **Email:** serge@publora.com
 
@@ -24,7 +24,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   }'
 ```
 
-**3 API calls. 10 platforms. Free tier + $2.99/account.**
+**3 API calls. 10 platforms. Free tier + Pro from $3.99/account.**
 
 ## Why Publora?
 
@@ -33,7 +33,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | Feature | Publora | Ayrshare | Publer | Sprout Social |
 |---------|---------|----------|--------|---------------|
 | **Starting price** | **Free** | $49/mo | $12/mo | $249/mo |
-| Per-account pricing | $2.99-5.99 | N/A | N/A | N/A |
+| Per-account pricing | from $3.99 (graduated) | N/A | N/A | N/A |
 | Platforms | **10** | 13 | 9 | 6 |
 | API access | All plans | Paid only | Paid only | Enterprise |
 | Bluesky support | Yes | Yes | No | No |
@@ -44,7 +44,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 
 ### Why Developers Choose Publora
 
-1. **Affordable** — Free tier available, paid plans from $2.99/account. No enterprise tier required.
+1. **Affordable** — Free tier available, paid plans from $3.99/account with automatic volume discounts. No enterprise tier required.
 2. **10 Platforms** — X, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram.
 3. **API-First** — Clean REST API designed for developers, not a bloated dashboard.
 4. **AI-Ready** — Docs indexed on [Context7](https://context7.com) so AI coding assistants already know our API.
@@ -67,6 +67,8 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
+| `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-account-statistics` | Get LinkedIn account analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
 | `POST` | `/linkedin-reactions` | Add reaction to a LinkedIn post | [View](https://docs.publora.com/endpoints/linkedin-reactions) |
@@ -85,7 +87,7 @@ Base URL: `https://api.publora.com/api/v1`
 | X / Twitter | 280 chars | Up to 4 | 1 per post | Auto-split | — |
 | LinkedIn | 3,000 chars | Multiple | 1 per post | — | 5 metrics |
 | Instagram | 2,200 chars | Carousel (10) | Reels/Stories | — | — |
-| Threads | 500 chars | Carousel | 1 per post | Disabled | — |
+| Threads | 500 chars | Carousel | 1 per post | Auto-split | — |
 | TikTok | Caption | Up to 35 | 1 per post (MP4/MOV/WebM) | — | — |
 | YouTube | Description | — | 1 per post | — | — |
 | Facebook | 63,206 chars | Multiple | 1 per post | — | — |
@@ -108,13 +110,15 @@ See [Authentication Guide](https://docs.publora.com/authentication) for details.
 
 ## Pricing
 
-| Plan | Price | Posts/Month | Accounts | Platforms | Video |
-|------|-------|-------------|----------|-----------|-------|
-| **Starter** | Free | 15 | 3 | All 10 | 50 MB |
-| **Pro** | $2.99/account | 100/account | Unlimited | All 10 | 100 MB |
-| **Premium** | $5.99/account | 500/account | Unlimited | All 10 | 250 MB |
+| Plan | Monthly | Yearly −33% | Posts/Month | Accounts | Platforms | Video |
+|------|---------|-------------|-------------|----------|-----------|-------|
+| **Starter** | Free | Free | 15 | 3 | All platforms, except X | 50 MB |
+| **Pro**, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | 1–1,000 | All 10 | 250 MB |
+| **Agency** | Custom | Custom | Unlimited | Custom | All 10 | Custom |
 
-All plans include full API access. Pro/Premium use per-account pricing — add as many accounts as you need. [Get started free](https://publora.com).
+Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
+
+All plans include full API access. Machine-readable pricing: [publora.com/pricing.md](https://publora.com/pricing.md). [Get started free](https://publora.com).
 
 ## Documentation
 
@@ -136,6 +140,7 @@ All plans include full API access. Pro/Premium use per-account pricing — add a
 - [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
 - [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
 - [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON
+- [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics) — on-demand post engagement and follower counts
 - [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
 - [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
 - [LinkedIn Reshare](https://docs.publora.com/endpoints/linkedin-reshare) — repost an existing LinkedIn post
@@ -165,7 +170,7 @@ All plans include full API access. Pro/Premium use per-account pricing — add a
 - [JavaScript Examples](https://docs.publora.com/examples/javascript/quick-start) — fetch, axios, Node.js
 - [Python Examples](https://docs.publora.com/examples/python/quick-start) — requests, async workflows
 - [cURL Examples](https://docs.publora.com/examples/curl/all-endpoints) — command-line reference
-- [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — no-code automation
+- [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — native Zapier app (beta): instant triggers, post actions, searches
 - [Make Integration](https://docs.publora.com/examples/no-code/make-integration) — visual workflows
 
 ### API Specification

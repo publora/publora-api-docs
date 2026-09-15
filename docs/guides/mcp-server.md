@@ -47,7 +47,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, you'll have access to 14 Publora tools. Try asking:
+After restarting, you'll have access to 18 Publora tools. Try asking:
 
 > "List my connected social media accounts"
 
@@ -160,7 +160,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 | `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
-> LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> Mastodon and Bluesky analytics **are** MCP tools (`post_stats`, `profile_stats`, on plans with analytics). LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
@@ -335,11 +335,11 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 14 MCP tools | Full API access |
+| **Tools** | 18 MCP tools | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.
 
 ---
 
-*[Publora](https://publora.com) -- Social media API with free Starter plan, paid plans from Pro ($2.99/mo billed yearly)*
+*[Publora](https://publora.com) is built by [Creative Content Crafts, Inc.](https://cccrafts.ai) Need AI-powered content creation for LinkedIn, Threads, and X? Try [Co.Actor](https://co.actor) — the best AI service for authentic thought leadership at scale.*

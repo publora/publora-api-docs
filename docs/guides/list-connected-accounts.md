@@ -60,8 +60,8 @@ x-publora-key: YOUR_API_KEY
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
 | `profileUrl` | string/null | URL to profile page (null if unavailable) |
-| `accessTokenExpiresAt` | string/null | ISO 8601 expiration timestamp (null = no expiration) |
-| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown` |
+| `accessTokenExpiresAt` | string/null | Effective credential expiry — the date `tokenStatus` is derived from, not the raw access-token lifetime. `null` when no authoritative date exists: always for YouTube, and for the platforms that do not expire on a schedule. |
+| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown`. **Read this to decide about reconnecting** — do not compare `accessTokenExpiresAt` against the clock yourself. |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h") |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post |
 | `lastError` | object/null | Last posting error with `message` and `occurredAt` |
@@ -70,10 +70,10 @@ x-publora-key: YOUR_API_KEY
 
 | Status | Meaning | Action Required |
 |--------|---------|-----------------|
-| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring; YouTube/TikTok have no stored refresh expiry or it is at least 30 days away; other expiring OAuth credentials have at least 7 days left. A Bluesky row with a stored username is reported as valid by this endpoint, which does not re-check the app password. | None |
-| `expiring_soon` | YouTube/TikTok refresh credential expires in under 30 days, or another expiring OAuth access token expires in under 7 days | Reconnect soon |
-| `expired` | Token has expired | Reconnect required |
-| `unknown` | Stored expiry data is malformed; for Bluesky in this endpoint, the projected connection has no username. Missing YouTube/TikTok `refreshTokenExpiresAt` is `valid`. | Inspect the connection and reconnect if necessary |
+| `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring; YouTube is always valid unless flagged for reconnection, since its token is refreshed on demand before each publish; TikTok's refresh credential is at least 30 days away; other expiring OAuth credentials have at least 7 days left. A Bluesky row with a stored username is reported as valid by this endpoint, which does not re-check the app password. | None |
+| `expiring_soon` | TikTok refresh credential expires in under 30 days, or another expiring OAuth access token expires in under 7 days | Reconnect soon |
+| `expired` | The effective expiry has passed, **or** Publora flagged the connection for reconnection after the platform rejected its credential — the latter can happen on any platform, with `accessTokenExpiresAt` still `null` or in the future | Reconnect required |
+| `unknown` | Stored expiry data is malformed; for Bluesky in this endpoint, the projected connection has no username. Missing TikTok `refreshTokenExpiresAt` is `valid`. | Inspect the connection and reconnect if necessary |
 
 ## Platform ID Formats
 
