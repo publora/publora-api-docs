@@ -463,6 +463,8 @@ Fully published and partially published groups return **409**. A failed thread w
 
 An accepted TikTok or YouTube publication may still finish while Publora waits between status checks. These posts are protected even when the group says `scheduled` and no publisher is currently running. A stored TikTok rejection for the same publish request proves that request cannot go live; upload-only Instagram/Threads containers and Mastodon media IDs do not by themselves block deletion.
 
+Changing the media cannot clear this protection: removing, attaching, or reordering media is rejected once a child has published, may still publish, or is actively publishing. The dashboard uses the same publication evidence when choosing between recovery actions and hiding unavailable delete actions.
+
 This changes the previous API behavior that allowed published-history cleanup. There is no force-delete option. Handle the structured `code` field rather than matching the human-readable error text:
 
 - `POST_IS_PUBLISHED` / `POST_HAS_LIVE_CONTENT`: keep the published history. To recover or edit the content, create a separate draft. Deleting a Publora record cannot unpublish a social-network post.
