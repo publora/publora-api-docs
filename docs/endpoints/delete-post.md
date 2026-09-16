@@ -46,6 +46,8 @@ Before deleting anything, Publora checks ownership, the group state, and the sta
 
 For an eligible group, Publora reads the media references and conditionally removes the parent record only if its state has not changed. It then deletes the media records and platform-specific post records in the same database transaction. A concurrent scheduler claim or edit prevents the deletion.
 
+If MongoDB retries the transaction after a conflict, deletion still requires the original record revision. It cannot silently switch to deleting the newly edited version.
+
 After a successful commit, the associated files are removed from S3 storage.
 
 ### Deletion Behavior
@@ -458,6 +460,8 @@ If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, co
 Draft, scheduled, and failed groups can be deleted only when their platform-specific posts have no evidence of publication or active publishing. A `scheduled` group is not necessarily unpublished: one platform may have succeeded while another waits for a retry.
 
 Fully published and partially published groups return **409**. A failed thread with published parts, a stored post ID or published timestamp, and an unknown publish outcome are also protected. The group, platform-specific records, and media remain intact when deletion is blocked.
+
+An accepted TikTok or YouTube publication may still finish while Publora waits between status checks. These posts are protected even when the group says `scheduled` and no publisher is currently running. A stored TikTok rejection for the same publish request proves that request cannot go live; upload-only Instagram/Threads containers and Mastodon media IDs do not by themselves block deletion.
 
 This changes the previous API behavior that allowed published-history cleanup. There is no force-delete option. Handle the structured `code` field rather than matching the human-readable error text:
 
