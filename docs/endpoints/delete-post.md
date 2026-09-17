@@ -1,6 +1,8 @@
 # Delete Post
 
-Delete a post across all platforms where it was created. This endpoint removes the entire post group and all associated platform-specific posts in a single operation, regardless of the post's current status.
+Delete an **unpublished** post group and all its platform-specific records. Content that is already live, may be live, or is being published right now is protected and returns **409**.
+
+> **This does not remove anything from the social network.** Deleting a post group removes Publora's record of it, its media and its stats. A post already on LinkedIn, X or anywhere else stays there. To take a live post down, delete it on that platform.
 
 ## Endpoint
 
@@ -55,6 +57,7 @@ When you delete a post group, the following are removed (in this order):
 
 ### Deletion Behavior
 
+- **Guarded**: the group is checked before anything is written. If it is protected (see [Errors](#errors)) the request returns 409 and nothing is deleted, in the database or in S3.
 - **Atomic operation**: The deletion uses a MongoDB transaction to ensure all database records (post group, platform posts, and media records) are deleted atomically. If any database deletion fails, the entire operation is rolled back.
 - **S3 cleanup**: Media files are deleted from S3 storage after the database transaction completes. S3 deletion failures are logged but do not fail the request - your post will still be successfully deleted even if S3 cleanup encounters issues.
 
@@ -428,8 +431,25 @@ echo "Summary: $SUCCEEDED succeeded, $FAILED failed"
 | 403 | `{ "error": "Workspace access is not enabled for this key" }` | The API key does not have workspace/managed-user permissions |
 | 403 | `{ "error": "User is not managed by key" }` | The `x-publora-user-id` references a user not managed by this API key |
 | 404 | `{ "error": "Post group not found" }` | The post group ID doesn't exist or belongs to another user |
+| 409 | `{ "error": "...", "code": "POST_IS_PUBLISHED" }` | The group is fully published. **API and MCP only** — the dashboard still allows deleting fully published history |
+| 409 | `{ "error": "...", "code": "POST_HAS_LIVE_CONTENT" }` | Part of the group is already live, or a platform publish finished with an unknown outcome. Deleting would destroy the only record of something that is up |
+| 409 | `{ "error": "...", "code": "POST_IS_PROCESSING" }` | The group is being published right now. Retry once publishing finishes |
+| 409 | `{ "error": "...", "code": "POST_CHANGED" }` | The group was modified while the delete was running. Reload it and try again |
 | 500 | `{ "error": "Failed to delete post group" }` | Server error during database transaction (deletion is rolled back) |
 | 500 | `{ "error": "Internal server error" }` | Unexpected server error in middleware |
+
+Every **409** carries both fields, and the `error` text is written for people. Branch on `code`:
+
+```json
+{
+  "error": "This post is partially published — deleting it would also remove the already-live post's record and media. Use 'Duplicate as draft' to retry the failed platforms.",
+  "code": "POST_HAS_LIVE_CONTENT"
+}
+```
+
+On any 409 nothing is removed, in the database or in S3.
+
+> **Behaviour change, 2026-09-16.** This endpoint previously deleted any group, published ones included, and answered **200**. Those now return **409 `POST_IS_PUBLISHED`**. If your integration cleared published history through it, that path no longer works and there is currently no override parameter; clear it from the dashboard instead.
 
 > **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 
