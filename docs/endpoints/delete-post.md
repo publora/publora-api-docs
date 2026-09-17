@@ -1,6 +1,6 @@
 # Delete Post
 
-Delete a post across all platforms where it was created. This endpoint removes the entire post group and all associated platform-specific posts in a single operation, regardless of the post's current status.
+Delete an unpublished post group and its platform-specific records and media from Publora. Published content, uncertain publish outcomes, and publishing in progress are protected. This endpoint does **not** remove posts from social networks.
 
 ## Endpoint
 
@@ -42,16 +42,13 @@ Returns HTTP **200** with the following JSON body on success:
 
 ## What Gets Deleted
 
-When you delete a post group, the following are removed (in this order):
+Before deleting anything, Publora checks ownership, the group state, and the state of every platform-specific post. A group waiting for a retry is protected if another platform has already published, may have published, or is still publishing.
 
-**Inside the database transaction:**
-1. **The post group record** - Find and delete the parent container for all platform posts
-2. **Find media files** - Locate all media file references associated with the post group
-3. **Delete media file records from database** - Remove media references from the database
-4. **All platform-specific posts** - Delete Twitter post, LinkedIn post, Instagram post, etc.
+For an eligible group, Publora reads the media references and conditionally removes the parent record only if its state has not changed. It then deletes the media records and platform-specific post records in the same database transaction. A concurrent scheduler claim or edit prevents the deletion.
 
-**After the transaction commits:**
-5. **All media files from S3 storage** - The actual image and video files are deleted from S3
+If MongoDB retries the transaction after a conflict, deletion still requires the original record revision. It cannot silently switch to deleting the newly edited version.
+
+After a successful commit, the associated files are removed from S3 storage.
 
 ### Deletion Behavior
 
@@ -419,6 +416,7 @@ echo "Summary: $SUCCEEDED succeeded, $FAILED failed"
 
 | Status | Response | Cause |
 |--------|----------|-------|
+| 400 | `{ "error": "Invalid post group ID" }` | The path parameter is not a valid MongoDB ObjectId |
 | 400 | `{ "error": "Invalid x-publora-user-id" }` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `{ "error": "API key is required" }` | Missing `x-publora-key` header |
 | 401 | `{ "error": "Invalid API key" }` | `x-publora-key` value is incorrect or revoked |
@@ -428,6 +426,10 @@ echo "Summary: $SUCCEEDED succeeded, $FAILED failed"
 | 403 | `{ "error": "Workspace access is not enabled for this key" }` | The API key does not have workspace/managed-user permissions |
 | 403 | `{ "error": "User is not managed by key" }` | The `x-publora-user-id` references a user not managed by this API key |
 | 404 | `{ "error": "Post group not found" }` | The post group ID doesn't exist or belongs to another user |
+| 409 | `{ "error": "...", "code": "POST_IS_PUBLISHED" }` | The group is fully published; API deletion is not allowed |
+| 409 | `{ "error": "...", "code": "POST_HAS_LIVE_CONTENT" }` | Some content is live or its publish outcome is unknown, including while another platform waits for a retry |
+| 409 | `{ "error": "...", "code": "POST_IS_PROCESSING" }` | The group or one of its platform-specific posts is being published |
+| 409 | `{ "error": "...", "code": "POST_CHANGED" }` | A concurrent edit changed the group before deletion; fetch the current state before trying again |
 | 500 | `{ "error": "Failed to delete post group" }` | Server error during database transaction (deletion is rolled back) |
 | 500 | `{ "error": "Internal server error" }` | Unexpected server error in middleware |
 
@@ -446,16 +448,37 @@ Post Group (postGroupId: 507f1f77bcf86cd799439011)
 └── Instagram post
 
 DELETE /delete-post/507f1f77bcf86cd799439011
-→ Deletes ALL THREE platform posts in one request
+→ Deletes all three Publora records if none is published or being published
 ```
 
 ### Malformed Post Group IDs
 
-If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, contains invalid characters), the server returns a **500** error instead of a **400** validation error. Ensure you pass only valid ObjectId strings received from the create-post or list-posts endpoints.
+If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, contains invalid characters), the server returns **400** with `{ "error": "Invalid post group ID" }`. Ensure you pass only valid ObjectId strings received from the create-post or list-posts endpoints.
 
-### No Status Restrictions
+### Protected Publication States
 
-Any post can be deleted regardless of its current status (draft, scheduled, published, failed, or partially_published). Deleting a published post removes it from Publora but does not remove it from the platforms where it was already published.
+Draft, scheduled, and failed groups can be deleted only when their platform-specific posts have no evidence of publication or active publishing. A `scheduled` group is not necessarily unpublished: one platform may have succeeded while another waits for a retry.
+
+Fully published and partially published groups return **409**. A failed thread with published parts, a stored post ID or published timestamp, and an unknown publish outcome are also protected. The group, platform-specific records, and media remain intact when deletion is blocked.
+
+An accepted TikTok or YouTube publication may still finish while Publora waits between status checks. These posts are protected even when the group says `scheduled` and no publisher is currently running. A stored TikTok rejection for the same publish request proves that request cannot go live; upload-only Instagram/Threads containers and Mastodon media IDs do not by themselves block deletion.
+
+Changing the media cannot clear this protection: removing, attaching, or reordering media is rejected once a child has published, may still publish, or is actively publishing. The dashboard uses the same publication evidence when choosing between recovery actions and hiding unavailable delete actions.
+
+This changes the previous API behavior that allowed published-history cleanup. There is no force-delete option. Handle the structured `code` field rather than matching the human-readable error text:
+
+- `POST_IS_PUBLISHED` / `POST_HAS_LIVE_CONTENT`: keep the published history. To recover or edit the content, create a separate draft. Deleting a Publora record cannot unpublish a social-network post.
+- `POST_IS_PROCESSING`: wait for publishing to finish, then fetch the current state. A completed publication remains protected.
+- `POST_CHANGED`: fetch the current state before deciding whether to retry the deletion.
+
+Example blocked response:
+
+```json
+{
+  "error": "Published posts cannot be deleted through this operation.",
+  "code": "POST_IS_PUBLISHED"
+}
+```
 
 ### Media File Cleanup
 
