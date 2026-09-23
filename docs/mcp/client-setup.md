@@ -5,101 +5,45 @@ Detailed setup instructions for connecting Publora MCP to different AI clients.
 ## Prerequisites
 
 1. **Publora account** — Sign up at [publora.com](https://publora.com)
-2. **API key** — Get from **API** in sidebar (starts with `sk_`)
-3. **Connected social account** — At least one platform connected
+2. **Connected social account** — At least one platform connected in the Publora dashboard
+3. **API key** — only for clients that authenticate with a static key. Get it from **API** in the sidebar (starts with `sk_`). Claude and other clients that sign in with OAuth don't need one.
 
-> **Auth headers:** Direct REST API calls to `api.publora.com` require `x-publora-key: sk_...`. MCP accepts `Authorization: Bearer sk_...` (recommended for MCP clients) and also `x-publora-key: sk_...`. The examples below use the recommended Bearer format.
+> **Both auth paths work.** OAuth is the default in Claude — the client opens a browser window and you never paste a key — and Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and other browser-capable clients can complete the same flow. Static API-key headers (`Authorization: Bearer sk_...` or `x-publora-key: sk_...`) remain fully supported for any client that can send a header, and are the only option for headless / non-interactive environments.
+
+> **Auth headers:** Direct REST API calls to `api.publora.com` require `x-publora-key: sk_...`. MCP accepts `Authorization: Bearer sk_...` (recommended for MCP clients) and also `x-publora-key: sk_...`. The key-based examples below use the recommended Bearer format.
 
 > **MCP client header:** The MCP server automatically sends an `x-publora-client: "mcp"` header on internal API calls. This identifies MCP traffic server-side. Your account must have `mcpAccess` enabled. All standard plans — including the free Starter plan — have MCP access; only custom accounts with `mcpAccess` disabled will receive a `403` error.
 
 ---
 
-## Claude Code (CLI)
+## Claude (web, desktop and mobile)
 
-Claude Code is Anthropic's command-line interface for Claude.
+Publora is in the Claude connectors directory. Open the listing and select **Connect**:
 
-### Option 1: CLI Command
+**[claude.ai/directory/publora](https://claude.ai/directory/publora)**
 
-```bash
-claude mcp add publora --transport http https://mcp.publora.com --header "Authorization: Bearer sk_YOUR_API_KEY"
-```
+1. Claude opens a Publora window. Sign in to Publora if you aren't already; the consent page reads *"An application is requesting access to your Publora account"* and shows which account you are authorizing as.
+2. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
+3. The 18 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
 
-### Option 2: Global Configuration
+No API key, no config file, no URL to paste. The connector belongs to your Claude account, so the same connection works in Claude on the web, in Claude Desktop and in the Claude mobile apps.
 
-Edit `~/.claude.json`:
+### Adding it by URL instead
 
-```json
-{
-  "mcpServers": {
-    "publora": {
-      "type": "http",
-      "url": "https://mcp.publora.com",
-      "headers": {
-        "Authorization": "Bearer sk_YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
+You can still add Publora as a custom connector by hand:
 
-### Option 3: Project Configuration
-
-Create `.mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "publora": {
-      "type": "http",
-      "url": "https://mcp.publora.com",
-      "headers": {
-        "Authorization": "Bearer sk_YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-### Verification
-
-After restarting Claude Code:
-
-```bash
-# Check connected MCP servers
-/mcp
-
-# Test Publora connection
-"Show my connected social accounts"
-```
+1. In Claude, open **Customize → Connectors** ([claude.ai/customize/connectors](https://claude.ai/customize/connectors)), click **+** and choose **Add custom connector**.
+2. Name it **Publora** and enter the URL `https://mcp.publora.com/mcp`.
+3. Leave **OAuth Client ID** and **OAuth Client Secret** under **Advanced settings** empty. Claude registers itself with Publora automatically through **OAuth 2.1** (Dynamic Client Registration + PKCE).
+4. Click **Add**, then **Connect** — the same Publora window opens.
 
 ---
 
 ## Claude Desktop
 
-Claude Desktop is Anthropic's desktop application for Claude.
+Claude Desktop uses the same connectors as Claude on the web: open [the listing](https://claude.ai/directory/publora) and select **Connect**, or add Publora by URL as described above. There is no config file to edit. If Claude Desktop was already running when you connected on the web, restart it to see Publora.
 
-### Setup Steps
-
-1. Open Claude Desktop
-2. Go to **Settings** → **Developer** → **Edit Config**
-3. Add the Publora configuration:
-
-```json
-{
-  "mcpServers": {
-    "publora": {
-      "type": "http",
-      "url": "https://mcp.publora.com",
-      "headers": {
-        "Authorization": "Bearer sk_YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-4. Save the file
-5. Restart Claude Desktop completely
+The **Settings → Developer → Edit Config** file (`claude_desktop_config.json`) is for local MCP servers that run on your own machine. Publora is a remote server, so you don't need it.
 
 ### Verification
 
@@ -113,17 +57,76 @@ Claude should list the 18 active Publora tools, including `post_stats`, `profile
 
 ---
 
-## Claude.ai (web) — Custom Connector
+## Claude Code (CLI)
 
-The Publora MCP server supports **OAuth 2.1** (Dynamic Client Registration + PKCE) — no config file, no manual API-key header. The claude.ai **custom connector** uses it:
+Claude Code is Anthropic's command-line interface for Claude.
 
-1. In claude.ai go to **Settings → Connectors → Add custom connector**.
-2. Set the URL to `https://mcp.publora.com` and add it.
-3. Click **Connect**. Claude runs the OAuth flow and opens Publora's consent page: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
-4. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
-5. The 18 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
+### Option 1: Sign in with OAuth (recommended)
 
-> **Both auth paths work.** OAuth is what most clients use today — claude.ai, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others complete it in the browser. Static API-key headers (`Authorization: Bearer sk_...` / `x-publora-key`) remain fully supported for any client that can send a header, and are the only option for headless / non-interactive clients.
+```bash
+claude mcp add --transport http --scope user publora https://mcp.publora.com/mcp
+```
+
+Then run `/mcp` inside Claude Code, select **publora**, choose **Authenticate** and sign in to Publora in the browser window that opens. No API key needed. `--scope user` makes Publora available in every project; leave it out to add Publora to the current project only.
+
+### Option 2: CLI Command with an API Key
+
+For CI, a shared machine, or any environment that cannot open a browser, send a static key instead:
+
+```bash
+claude mcp add --transport http --scope user publora https://mcp.publora.com/mcp \
+  --header "Authorization: Bearer sk_YOUR_API_KEY"
+```
+
+### Option 3: Global Configuration
+
+Edit `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "publora": {
+      "type": "http",
+      "url": "https://mcp.publora.com/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+### Option 4: Project Configuration
+
+Create `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "publora": {
+      "type": "http",
+      "url": "https://mcp.publora.com/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Leave out the `headers` block in either file to sign in with OAuth through `/mcp` instead.
+
+### Verification
+
+After restarting Claude Code:
+
+```bash
+# Check connected MCP servers
+/mcp
+
+# Test Publora connection
+"Show my connected social accounts"
+```
 
 ---
 
@@ -183,7 +186,7 @@ Publora MCP is a standard MCP Streamable HTTP endpoint. Most MCP clients accept 
 - **Header:** `Authorization: Bearer sk_YOUR_API_KEY` (or `x-publora-key: sk_YOUR_API_KEY`)
 - **Transport:** HTTP (Streamable HTTP)
 
-Refer to your client's MCP configuration docs for the exact config-file path and top-level JSON key (commonly `mcpServers`, `servers`, or a client-specific path). The Claude Desktop, Cursor, Claude Code, and mcporter examples above cover the most common config shapes.
+Refer to your client's MCP configuration docs for the exact config-file path and top-level JSON key (commonly `mcpServers`, `servers`, or a client-specific path). The Claude Code, Cursor, and mcporter examples on this page cover the most common config shapes.
 
 ---
 
@@ -543,7 +546,7 @@ Some clients support environment variable interpolation:
 1. **Restart your client** — MCP servers load on startup
 2. **Check JSON syntax** — Validate at [jsonlint.com](https://jsonlint.com)
 3. **Verify type is "http"** — Not "url" or "sse"
-4. **Check the URL** — Use `https://mcp.publora.com` (recommended) or `https://mcp.publora.com/mcp` (both work)
+4. **Check the URL** — Both `https://mcp.publora.com/mcp` (the address in the Claude directory listing and the server card) and `https://mcp.publora.com` work
 
 ### Authentication errors
 

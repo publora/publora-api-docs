@@ -163,7 +163,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Workspace / B2B API](https://docs.publora.com/guides/workspace) — managed users, white-label
 
 ### AI Integration
-- [MCP Server](https://docs.publora.com/guides/mcp-server) — Claude Code, Claude Desktop, Cursor integration
+- [MCP Server](https://docs.publora.com/guides/mcp-server) — Claude, Cursor and other MCP clients. In Claude, install from the [connectors directory](https://claude.ai/directory/publora)
 - [Cursor AI Guide](https://docs.publora.com/guides/cursor-ai) — AI-assisted development with Publora
 - [Official agent skills](https://github.com/publora/skills) — nine `SKILL.md` files for Claude Code, Codex, Cursor and OpenClaw (`npx skills add publora/skills`)
 

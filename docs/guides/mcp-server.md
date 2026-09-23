@@ -21,6 +21,10 @@ Control Publora directly from AI assistants like Claude Code, Claude Desktop, Cu
 
 ## Quick Start
 
+### Using Claude? Start here
+
+Publora is in the Claude connectors directory. Open [claude.ai/directory/publora](https://claude.ai/directory/publora) and select **Connect** — that is the whole setup, on web, desktop and mobile alike. The steps below cover other MCP clients and Claude Code, which can sign in with OAuth or use a static key.
+
 ### 1. Get Your API Key
 
 Log in to [Publora](https://publora.com) → **API** in the sidebar → Copy your key (`sk_...`). Click **MCP** in the sidebar for additional setup instructions.
@@ -57,14 +61,22 @@ After restarting, you'll have access to 18 Publora tools. Try asking:
 
 ### Claude Code (CLI)
 
-Edit `~/.claude.json` or create `.mcp.json` in your project:
+Sign in with OAuth — no API key:
+
+```bash
+claude mcp add --transport http --scope user publora https://mcp.publora.com/mcp
+```
+
+Then run `/mcp`, select **publora**, choose **Authenticate** and sign in to Publora in the browser.
+
+To use a static key instead (CI, headless machines), edit `~/.claude.json` or create `.mcp.json` in your project:
 
 ```json
 {
   "mcpServers": {
     "publora": {
       "type": "http",
-      "url": "https://mcp.publora.com",
+      "url": "https://mcp.publora.com/mcp",
       "headers": {
         "Authorization": "Bearer sk_YOUR_API_KEY"
       }
@@ -77,9 +89,7 @@ Restart Claude Code. Verify with `/mcp` command.
 
 ### Claude Desktop
 
-1. Open Claude Desktop → **Settings** → **Developer** → **Edit Config**
-2. Add the Publora server configuration (same JSON as above)
-3. Restart Claude Desktop
+Claude Desktop uses the same connectors as Claude on the web: open [claude.ai/directory/publora](https://claude.ai/directory/publora) and select **Connect**. There is no config file to edit — **Settings → Developer → Edit Config** is for local MCP servers only. To add Publora by URL instead, see [MCP Client Setup](../mcp/client-setup.md).
 
 ### Cursor
 
@@ -123,7 +133,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (14)
+## Available Tools (18)
 
 ### Posts
 
@@ -142,12 +152,20 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `get_upload_url` | Get a presigned S3 URL for media upload |
 | `complete_media` | Finalize a file uploaded via `get_upload_url` |
 | `delete_media` | Remove a media slot from a post |
+| `prune_media_reference` | Remove a stale media reference that `delete_media` cannot handle (fixes `MEDIA_REFERENCE_MISSING`) |
 
 ### Platform Connections
 
 | Tool | Description |
 |------|-------------|
 | `list_connections` | List all connected social media accounts |
+
+### Statistics (Mastodon and Bluesky)
+
+| Tool | Description |
+|------|-------------|
+| `post_stats` | Engagement counters for published Mastodon or Bluesky posts |
+| `profile_stats` | Followers, following and post count of a connected Mastodon or Bluesky account |
 
 ### LinkedIn Engagement
 
@@ -160,13 +178,13 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 | `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
-> Mastodon and Bluesky analytics **are** MCP tools (`post_stats`, `profile_stats`, on plans with analytics). LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
 ## Example Conversations
 
-> **Note:** Analytics examples below illustrate REST-API capabilities. MCP itself exposes engagement *actions* (reactions/comments), not analytics reads — pull metrics via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml).
+> **Note:** Analytics examples below illustrate REST-API capabilities. Over MCP, statistics reads cover only Mastodon and Bluesky (`post_stats`, `profile_stats`); LinkedIn metrics come from the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml).
 
 ### Schedule a Post
 
@@ -287,12 +305,10 @@ curl -X POST https://mcp.publora.com \
 
 ## Authentication
 
-Every request requires your Publora API key via one of:
+Tool calls are authenticated in one of two ways:
 
-- `Authorization: Bearer sk_...` (recommended)
-- `x-publora-key: sk_...`
-
-This is the same key used for the REST API.
+- **OAuth 2.1 sign-in** — Claude, Claude Code and other browser-capable clients open a Publora window; approving it mints a dedicated key for that client.
+- **Your Publora API key** (the same key as for the REST API) via `Authorization: Bearer sk_...` (recommended) or `x-publora-key: sk_...`.
 
 ---
 
@@ -300,9 +316,9 @@ This is the same key used for the REST API.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/` | MCP messages (Streamable HTTP) |
-| GET | `/` | SSE stream (server notifications) |
-| DELETE | `/` | Close session |
+| POST | `/mcp` or `/` | MCP messages (Streamable HTTP) |
+| GET | `/mcp` or `/` | SSE stream (server notifications) |
+| DELETE | `/mcp` or `/` | Close session |
 | GET | `/health` | Health check |
 
 ---

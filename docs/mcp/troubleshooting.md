@@ -53,7 +53,7 @@ MCP servers load on startup. Close and reopen your client completely.
 |--------|-----------------|
 | Claude Code | `~/.claude.json` or `.mcp.json` in project |
 | Cursor | `~/.cursor/mcp.json` or `.cursor/mcp.json` in project |
-| Claude Desktop | Settings → Developer → Edit Config |
+| Claude (web, desktop) | No config file — added under **Customize → Connectors** ([setup](./client-setup.md)) |
 
 **Solution 3: Validate JSON syntax**
 
@@ -213,10 +213,10 @@ curl -v -X POST https://mcp.publora.com \
 
 ### OAuth (browser-based clients)
 
-**`mcp.publora.com` supports OAuth 2.1** (Dynamic Client Registration + PKCE) in addition to static API keys. Most clients that can open a browser use it — claude.ai's custom connector, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others. Using the claude.ai connector as the example:
+**`mcp.publora.com` supports OAuth 2.1** (Dynamic Client Registration + PKCE) in addition to static API keys. Most clients that can open a browser use it — Claude, Claude Code, Codex/ChatGPT, Cursor, VS Code, Manus and others. Using Claude as the example:
 
-1. claude.ai → **Settings → Connectors → Add custom connector** → URL `https://mcp.publora.com`.
-2. Click **Connect** → Publora's consent page opens: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
+1. Open the directory listing at [claude.ai/directory/publora](https://claude.ai/directory/publora) — or add Publora by URL: **Customize → Connectors → + → Add custom connector**, URL `https://mcp.publora.com/mcp`.
+2. Click **Connect** → a Publora window opens (sign in if asked), then the consent page: *"An application is requesting access to your Publora account"*, showing which account you are authorizing as.
 3. Click **Approve**. Publora mints a dedicated API key for that client (named `MCP (<client> #<id>)`) and returns it as the access token — there is nothing to paste. Manage or revoke it any time on the **API** page in your dashboard.
 
 **If you instead see** `{"error":"oauth_not_supported"}` **(404) on `/register` or `/.well-known/oauth-*`:** you are hitting a deployment running in **static-key-only mode** (OAuth disabled). The public `mcp.publora.com` has OAuth enabled; a self-hosted/older instance without the OAuth signing secret does not. On such an instance, disable OAuth in your client and send a static key header (`Authorization: Bearer sk_...` or `x-publora-key: sk_...`).
@@ -363,13 +363,6 @@ If persistent:
   "headers": {
     "Authorization": "sk_abc123..."
   }
-}
-```
-
-**Wrong - trailing slash in URL:**
-```json
-{
-  "url": "https://mcp.publora.com/"
 }
 ```
 
