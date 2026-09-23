@@ -418,7 +418,15 @@ async def edit_post():
 
 ### delete_post
 
-Delete a post from all platforms.
+Delete an unpublished post group and its platform-specific records and media.
+
+Published or partially published content, uncertain publish outcomes, and posts
+being published right now are protected and return **409** with a `code` of
+`POST_IS_PUBLISHED`, `POST_HAS_LIVE_CONTENT`, `POST_IS_PROCESSING` or
+`POST_CHANGED` — see [Delete Post](../endpoints/delete-post.md#errors).
+
+This never removes a post from the social network itself. It removes Publora's
+record of it.
 
 **Parameters:**
 
