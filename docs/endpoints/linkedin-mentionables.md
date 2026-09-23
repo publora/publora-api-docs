@@ -97,7 +97,7 @@ There is **no way to add an arbitrary person by profile URL** — the `ACoAA…`
 
 ## MCP Tool
 
-The same directory is available to MCP clients as the `linkedin_list_mentionables` tool, with the same `q`/`limit` parameters and the same paid-plan requirement. See the [MCP Tools Reference](../mcp/tools-reference.md#linkedin_list_mentionables).
+The same directory is available to MCP clients as the `linkedin_list_mentionables` tool, with the same `q`/`limit` parameters and the same paid-plan requirement. See the [MCP Tools Reference](../mcp/tools-reference.md#linkedin-mentionables-tool).
 
 ## Errors
 
