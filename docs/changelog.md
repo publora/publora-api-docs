@@ -4,6 +4,13 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### LinkedIn image-only comments — pending backend deployment
+
+- **Affected surface:** REST `POST /linkedin-comments` and MCP `linkedin_create_comment`.
+- **Tag:** Additive validation change.
+- **Change:** `message` remains a required string, but `message: ""` with a valid `imageUrl` is accepted for personal and organization comments. Text and image URLs are trimmed. Blank text without an image still returns HTTP 400, now with `message cannot be empty without imageUrl`. No placeholder text is inserted; failed image validation or upload prevents publication.
+- **Migration action:** After deployment, callers can send an empty string with `imageUrl` instead of padding image-only comments with text. Existing text comments are unchanged.
+
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.

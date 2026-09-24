@@ -21,9 +21,10 @@ Publora allows you to create and delete comments on any LinkedIn post visible to
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123` or `urn:li:ugcPost:123`) |
-| `message` | string | Yes | Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports `@{urn:li:person:ID\|Name}` mention syntax. |
+| `message` | string | Yes | May be `""` with `imageUrl`; otherwise non-whitespace text is required. Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports `@{urn:li:person:ID\|Name}` mention syntax. |
 | `platformId` | string | Yes | Your LinkedIn platform ID (e.g., `linkedin-ABC123`) |
 | `parentComment` | string | No | Comment URN for nested replies |
+| `imageUrl` | string | No | Public HTTPS URL of one JPEG, PNG or GIF image, up to 10 MB. |
 
 ### JavaScript Example
 
@@ -86,6 +87,21 @@ curl -X POST https://api.publora.com/api/v1/linkedin-comments \
     "platformId": "linkedin-ABC123"
   }'
 ```
+
+## Send an Image Without Text
+
+Include both `message: ""` and `imageUrl` in the request body:
+
+```json
+{
+  "postedId": "urn:li:share:7123456789012345678",
+  "platformId": "linkedin-ABC123",
+  "message": "",
+  "imageUrl": "https://cdn.example.com/reaction.png"
+}
+```
+
+The message field is still required. Empty or whitespace-only text without an image returns HTTP 400, and failed image validation or upload prevents publication. Publora does not insert spaces or placeholder text. This applies to connected personal profiles and organization pages. See the [endpoint reference](../endpoints/linkedin-comments.md) for image limits and response fields.
 
 ## Reply to a Comment
 

@@ -3637,6 +3637,8 @@ paths:
         Post a comment on a LinkedIn post. Supports replies to existing comments
         via the parentComment parameter. Raw input may be up to 10000 characters;
         after mention processing, the text sent to LinkedIn must be at most 1250 characters.
+        The message string is required but may be empty with a non-blank imageUrl.
+        Empty or whitespace-only text without an image returns HTTP 400.
         Supports @mentions using @{urn:li:person:ID|Name} or @{urn:li:organization:ID|Company} syntax.
       operationId: createLinkedInComment
       tags:
@@ -3648,6 +3650,14 @@ paths:
             schema:
               type: object
               required: [postedId, message, platformId]
+              anyOf:
+                - properties:
+                    message:
+                      pattern: '\S'
+                - required: [imageUrl]
+                  properties:
+                    imageUrl:
+                      pattern: '\S'
               properties:
                 postedId:
                   type: string
@@ -3655,7 +3665,7 @@ paths:
                   example: "urn:li:share:7123456789012345678"
                 message:
                   type: string
-                  description: "Raw comment input (max 10000 characters); after mention conversion, the sent text is limited to 1250 characters. Supports @{urn:li:person:ID|Name} and organization mentions."
+                  description: "Required string; may be empty with imageUrl. Raw comment input (max 10000 characters); after mention conversion, the sent text is limited to 1250 characters. Supports @{urn:li:person:ID|Name} and organization mentions."
                   example: "Great insights @{urn:li:person:ACoAABcD1234EfG|Jane Smith}! Thanks for sharing."
                 platformId:
                   type: string
@@ -3665,6 +3675,17 @@ paths:
                   type: string
                   description: "Optional parent comment URN for replies"
                   example: "urn:li:comment:(urn:li:activity:123,456)"
+                imageUrl:
+                  type: string
+                  description: "Public HTTPS URL of one JPEG, PNG or GIF image (max 10 MB, fewer than 36152320 pixels, at most 250 GIF frames). Required for empty or whitespace-only message text. Upload must succeed before the comment is created."
+                  example: "https://cdn.example.com/reaction.png"
+            examples:
+              imageOnly:
+                value:
+                  postedId: "urn:li:share:7123456789012345678"
+                  platformId: "linkedin-Tz9W5i6ZYG"
+                  message: ""
+                  imageUrl: "https://cdn.example.com/reaction.png"
       responses:
         "201":
           description: Comment created
@@ -3684,6 +3705,9 @@ paths:
                         description: "Comment URN"
                       message:
                         type: string
+                      imageUrn:
+                        type: string
+                        description: "LinkedIn image URN, present when an image is attached."
                       actor:
                         type: string
                       object:
@@ -3700,7 +3724,7 @@ paths:
                 invalidUrn:
                   value: { "error": "postedId must be a valid LinkedIn URN" }
                 emptyMessage:
-                  value: { "error": "message cannot be empty" }
+                  value: { "error": "message cannot be empty without imageUrl" }
                 rawMessageTooLong:
                   value: { "error": "comment text cannot exceed 10000 characters" }
                 processedMessageTooLong:

@@ -790,8 +790,11 @@ Post a comment on a LinkedIn post.
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN (e.g., `urn:li:share:123456` or `urn:li:ugcPost:123456`) |
 | `platformId` | string | Yes | Platform connection ID |
-| `message` | string | Yes | Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports mentions: `@{urn:li:person:ID\|Name}` or `@{urn:li:organization:ID\|Company}` |
+| `message` | string | Yes | May be `""` with `imageUrl`; otherwise non-whitespace text is required. Raw input up to 10,000 characters; after mention processing, the text sent to LinkedIn must be at most 1,250 characters. Supports mentions: `@{urn:li:person:ID\|Name}` or `@{urn:li:organization:ID\|Company}` |
 | `parentComment` | string | No | Parent comment URN for nested replies |
+| `imageUrl` | string | No | Public HTTPS URL of one JPEG, PNG or GIF image, up to 10 MB. |
+
+For an image-only comment, supply `message: ""` and a non-blank `imageUrl`. The message field must not be omitted. Blank text without an image is rejected, and no placeholder text is added. See [LinkedIn Comments](../endpoints/linkedin-comments.md) for image limits.
 
 **Example prompts:**
 

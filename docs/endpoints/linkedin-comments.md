@@ -20,9 +20,14 @@ POST https://api.publora.com/api/v1/linkedin-comments
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `postedId` | string | Yes | LinkedIn post URN: `urn:li:share:xxx`, `urn:li:ugcPost:xxx`, or `urn:li:activity:xxx` |
-| `message` | string | Yes | Raw input up to 10,000 characters. After mention syntax is converted, the text sent to LinkedIn must be at most 1,250 characters. |
+| `message` | string | Yes | May be `""` when `imageUrl` is provided; otherwise must contain non-whitespace text. Raw input up to 10,000 characters. After mention syntax is converted, the text sent to LinkedIn must be at most 1,250 characters. |
 | `platformId` | string | Yes | LinkedIn connection ID (format: `linkedin-ABC123`) |
 | `parentComment` | string | No | Parent comment URN for threaded replies |
+| `imageUrl` | string | No | Public HTTPS URL of one JPEG, PNG or GIF image, up to 10 MB. |
+
+`message` remains a required string, including for image-only comments. Text and image URLs are trimmed; an empty or whitespace-only message without a non-blank `imageUrl` returns HTTP 400. No placeholder text is inserted. Image validation and upload must succeed before the comment is sent to LinkedIn.
+
+LinkedIn image limits also apply: fewer than 36,152,320 pixels and at most 250 frames for GIFs. A successful creation response does not guarantee how LinkedIn renders the image.
 
 ### Response (HTTP 201 Created)
 
@@ -97,6 +102,21 @@ curl -X POST https://api.publora.com/api/v1/linkedin-comments \
     "platformId": "linkedin-Tz9W5i6ZYG"
   }'
 ```
+
+### Image-Only Comment
+
+Use the same request with an explicitly empty message:
+
+```json
+{
+  "postedId": "urn:li:share:7123456789012345678",
+  "platformId": "linkedin-Tz9W5i6ZYG",
+  "message": "",
+  "imageUrl": "https://cdn.example.com/reaction.png"
+}
+```
+
+This works for connected personal profiles and organization pages. A successful response includes `comment.imageUrn`, the LinkedIn image URN attached to the comment.
 
 ### Reply to a Comment
 
@@ -243,7 +263,9 @@ For posts created via Publora, prefer the exact `postedId` returned by [get-post
 | 400 | `"postedId, message, and platformId are required"` | Missing required fields |
 | 400 | `"platformId must be a string"` | platformId is not a string type |
 | 400 | `"postedId must be a valid LinkedIn URN"` | Not a valid LinkedIn URN format |
-| 400 | `"message cannot be empty"` | Message is an empty string |
+| 400 | `"message cannot be empty without imageUrl"` | Message is empty or whitespace-only and `imageUrl` is missing or blank |
+| 400 | `"message must be a string"` | Message is not a string |
+| 400 | `"imageUrl must be a string"` | Supplied imageUrl is not a string |
 | 400 | `"comment text cannot exceed 10000 characters"` | Raw input exceeds the defensive pre-processing cap |
 | 400 | `"comment text cannot exceed 1250 characters after mention processing"` | Converted LinkedIn comment text exceeds the platform limit |
 | 400 | `"parentComment must be a valid LinkedIn URN"` | parentComment is not a valid URN format |
