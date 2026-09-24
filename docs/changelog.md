@@ -4,19 +4,21 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
-### LinkedIn image-only comments — pending backend deployment
-
-- **Affected surface:** REST `POST /linkedin-comments` and MCP `linkedin_create_comment`.
-- **Tag:** Additive validation change.
-- **Change:** `message` remains a required string, but `message: ""` with a valid `imageUrl` is accepted for personal and organization comments. Text and image URLs are trimmed. Blank text without an image still returns HTTP 400, now with `message cannot be empty without imageUrl`. No placeholder text is inserted; failed image validation or upload prevents publication.
-- **Migration action:** After deployment, callers can send an empty string with `imageUrl` instead of padding image-only comments with text. Existing text comments are unchanged.
-
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-09-24
+
+### LinkedIn image-only comments
+
+- **Affected surface:** REST `POST /linkedin-comments` and MCP `linkedin_create_comment`.
+- **Tag:** Additive validation change.
+- **Change:** `message` remains a required string, but `message: ""` with a valid `imageUrl` is accepted for personal and organization comments. Text and image URLs are trimmed. Blank text without an image still returns HTTP 400, now with `message cannot be empty without imageUrl`. No placeholder text is inserted; failed image validation or upload prevents publication.
+- **Migration action:** Callers can send an empty string with `imageUrl` instead of padding image-only comments with text. Existing text comments are unchanged.
 
 ## 2026-09-14
 
