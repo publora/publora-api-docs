@@ -482,7 +482,7 @@ components:
       description: |
         A text comment Publora posts under the account's own post right after
         it publishes (the usual place for a link or hashtags). Wave 1 platforms:
-        LinkedIn member profiles, X, Threads, Bluesky, Mastodon; other targets
+        LinkedIn (profiles and company Pages), X, Threads, Bluesky, Mastodon; other targets
         are skipped and reported in warnings[]. Length is validated per
         applicable platform with that platform's own counting. Best effort:
         attempted once right after publish, never retried; a failed comment
@@ -531,7 +531,7 @@ components:
           type: string
           nullable: true
           enum: [unsupported_platform, feature_disabled, workspace_post, connection_unavailable, connection_disabled, unsupported_account_type, null]
-          description: Why nothing was attempted; unsupported_account_type = LinkedIn company Page.
+          description: Why nothing was attempted; unsupported_account_type appears only on results recorded before LinkedIn company Pages were supported.
         attemptedAt:
           type: string
           format: date-time

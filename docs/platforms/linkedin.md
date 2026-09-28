@@ -177,7 +177,7 @@ response = requests.post(
 
 Publora can post a text comment under your own post right after it publishes — pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and read the outcome in [`get-post` → `posts[].firstCommentResult`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult).
 
-- **Member profiles only** in wave 1. Company Pages are skipped with `skipReason: "unsupported_account_type"`.
+- **Profiles and company Pages.** A member profile comments as the person; a Page comments as the organization (`urn:li:organization:<id>`), which needs the Page admin permission the connection was granted at connect time — a refusal shows up as `FIRST_COMMENT_PERMISSION_REQUIRED` (reconnect the Page).
 - Up to **1,250 characters**, plain text (no mentions or images — use [`POST /linkedin-comments`](../endpoints/linkedin-comments.md) once the post is live for those).
 - `firstCommentResult.commentId` is the comment's `urn:li:comment:…` URN, usable with [`DELETE /linkedin-comments`](../endpoints/linkedin-comments.md).
 

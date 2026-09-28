@@ -166,7 +166,7 @@ parts. `get-post` reports that progress per target.
 |-------|------|-------------|
 | `status` | string | `pending` (published, comment attempt not recorded yet — it is attempted right after publish), `posted`, `failed`, `skipped` |
 | `commentId` | string/null | The platform's ID of the comment: LinkedIn `urn:li:comment:…` URN, X tweet ID, Threads media ID, Bluesky `at://` URI, Mastodon status ID |
-| `skipReason` | string/null | Why nothing was attempted: `unsupported_platform`, `feature_disabled`, `workspace_post`, `connection_unavailable`, `connection_disabled`, `unsupported_account_type` (LinkedIn company Pages) |
+| `skipReason` | string/null | Why nothing was attempted: `unsupported_platform`, `feature_disabled`, `workspace_post`, `connection_unavailable`, `connection_disabled`, `unsupported_account_type` (only on results recorded before LinkedIn company Pages were supported) |
 | `attemptedAt` | string/null | When the attempt was claimed (ISO 8601 UTC) |
 | `postedAt` | string/null | When the platform confirmed the comment |
 | `error` | object/null | For `failed`: `{ code, message, platformStatusCode, outcomeUnknown }`. **`outcomeUnknown: true` means the request was sent but no definitive answer came back — the comment may exist; check the platform before commenting manually.** |
