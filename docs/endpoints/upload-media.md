@@ -82,6 +82,8 @@ If you create a post with `scheduledTime` set immediately, the scheduler may att
 
 > **⚠ Attaching media demotes a scheduled post to draft.** If you call `get-upload-url` against a post that is already `scheduled`, the post is automatically demoted back to `draft` so the new media set gets re-validated. The response carries `postGroupDemoted: true` and a `message`. **You must re-schedule** it afterward with `PUT /update-post/:postGroupId` (`status: "scheduled"` + `scheduledTime`). Skipping the re-schedule is the most common cause of media that "uploaded fine" but never published — the post silently sits in `draft`. The same demote happens when you remove media with `DELETE /media/:mediaId`.
 
+> **No presigned upload needed?** If the file is already reachable over HTTPS, you can skip steps 2–3. Pass public URLs as `mediaUrls` on [`create-post`](./create-post.md) or [`update-post`](./update-post.md). For a file reference with a stable file ID, such as the ones ChatGPT supplies, use [`attach-media`](./attach-media.md). In both cases Publora downloads the file on the server.
+
 ### Quick workflow (text-only posts):
 
 ```

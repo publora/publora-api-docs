@@ -27,6 +27,7 @@ For retry patterns and idempotency guidance, see [Error Handling](./error-handli
 | `MEDIA_VALIDATION_PENDING` | 200 | `warnings[].code` | Scheduling succeeded while bounded media probing remained transiently incomplete | Not an error | Monitor the post; media is checked again before publishing |
 | `MEDIA_NOT_READY` | 400 | top-level `code` | Attached upload bytes are missing, still uploading, or previously failed validation | After fixing media | Complete/re-upload the media, then schedule again |
 | `MEDIA_URL_RATE_LIMITED` | 429 | top-level `code` | The fixed-window allowance of 60 ingested URLs was exceeded | Yes | Wait the `Retry-After` seconds, then retry; preserve the idempotency key when applicable |
+| `INVALID_MEDIA_FILE` | 400 | top-level `code` | `attach-media` received a field other than `file` or `fileName`, a malformed file reference, a `download_url` that fails the static URL checks, or an invalid file name. Nothing was downloaded. | No, unchanged | Send only `file` (with `download_url` and `file_id`) and an optional `fileName`, then schedule separately with `update-post` |
 | `FIRST_COMMENT_INVALID` | 400 | top-level `code` | `firstComment` is not an object `{ text, platforms? }`, or carries an unknown field | No | Send the object form; `field` names the offending key |
 | `FIRST_COMMENT_PLATFORM_UNKNOWN` | 400 | top-level `code` | `firstComment.platforms` names something other than a platform type (for example a connection ID) | No | Use types such as `linkedin` or `twitter`; `allowed` lists the valid types |
 | `FIRST_COMMENT_TOO_LONG` | 400 | top-level `code` | The comment exceeds a targeted platform's limit, or the absolute 25,000-character cap | No | Shorten it; `platform`, `limit`, `count` and `unit` say which limit was hit |
@@ -64,7 +65,7 @@ These codes are returned by `POST /complete-media/{mediaFileId}`.
 
 ## `mediaUrls` per-URL codes
 
-When create/update ingestion fails, the request returns HTTP 400 with `error: "Media ingestion failed"`; the URL/fetch codes below can appear in `mediaResults[].code`. Probe failures are forwarded into the same field using the applicable code from [Media completion codes](#media-completion-codes). The batch is all-or-nothing.
+When create/update or `attach-media` ingestion fails, the request returns HTTP 400 with `error: "Media ingestion failed"`; the URL/fetch codes below can appear in `mediaResults[].code`. On `attach-media`, a `download_url` that fails the static checks (not a URL, not HTTPS, embedded credentials, a non-443 port, a private or loopback IP address, or a `localhost`, `.local` or `.internal` name) is rejected before any download with top-level `INVALID_MEDIA_FILE`. Everything found later, including DNS results, redirects, fetch errors, size, format and probe failures, is reported in `mediaResults[]`. Probe failures are forwarded into the same field using the applicable code from [Media completion codes](#media-completion-codes). The batch is all-or-nothing.
 
 | Code | HTTP | Location | Meaning | Retryable? | Recovery |
 |---|---:|---|---|---|---|
@@ -207,6 +208,7 @@ These lowercase codes are top-level response fields from `POST /workspace/users`
 - Plan/workspace entitlement responses: `backend/src/app/services/limitsService.js`.
 - Scheduling guards and media state: `backend/src/app/helpers/scheduledPlatformsGuard.js`, `mediaStatusTransitions.js`, and `probeMediaUpload.js`.
 - Per-URL ingestion: `backend/src/app/helpers/mediaUrlIngest.js` and `mediaUrlSecurity.js`.
+- File-reference input for `attach-media`: `backend/src/app/helpers/mediaFileInput.js`.
 - Validation codes actually emitted by scheduling: `backend/src/app/services/postValidationService.js` and `errors/ValidationError.js`.
 - Threads chain permission and publish errors: `backend/src/app/helpers/threadsPermissions.js`, `backend/src/app/services/threadsPostPreflight.js`, and `scheduler-service/src/app/controllers/threadsController.js`.
 - Workspace attachment responses: `backend/src/app/controllers/workspaceApiController.js`.

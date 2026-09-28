@@ -60,6 +60,20 @@ Real-world examples of using Publora MCP with AI assistants like Claude, Cursor,
 >
 > Draft created. It will not publish until you schedule it with `update_post` using `status: "scheduled"` and a future `scheduledTime`.
 
+### Attach an Image from ChatGPT
+
+> **You** *(in ChatGPT, after uploading an image to the conversation)*: Put this image on a LinkedIn draft saying "Our spring collection is here" and name the file spring-launch-banner.png
+
+> **ChatGPT:** I created a draft with `create_post`, attached the image with `attach_media`, and checked it with `get_post`.
+>
+> - **Post ID:** 67e5f6a7b8c9d0e1f2a3b4c5
+> - **Status:** draft (nothing is published yet)
+> - **Media:** spring-launch-banner.png, ready
+>
+> Tell me when to schedule it.
+
+Images ChatGPT generates work the same way when ChatGPT passes them over as a file reference. If it can't, use a public image URL instead. See [Troubleshooting](./troubleshooting.md).
+
 ### Schedule a Thread
 
 > **You:** Schedule a Twitter thread for tomorrow at 10am:

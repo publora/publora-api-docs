@@ -90,6 +90,21 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 
 > **Read-after-write:** `scheduledTime`, `platforms` and `platformSettings` echo **what the server actually stored**, not what you sent. A permitted past-time clamp may change `scheduledTime`; schedule-horizon violations are rejected, not adjusted. See [past scheduled times](../guides/scheduling.md#past-scheduled-times).
 
+### Media inventory (`media[]`)
+
+One entry per attached file, in the order the files are attached to the post.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mediaId` | string | The media ID, used by `DELETE /media/:mediaId` and `complete-media` |
+| `sourceFileName` | string/null | The client-facing file name: the cleaned `fileName` from `get-upload-url` or [`attach-media`](./attach-media.md), or the URL's file name for `mediaUrls` |
+| `fileName` | string/null | The storage key, e.g. `images/1790000000000-0-1a2b3c4d-spring-launch-banner.png` |
+| `type` | string/null | `image`, `video` or `document` |
+| `mimeType` | string/null | The MIME type of the stored file |
+| `status` | string | `uploading` (not verified yet), `ready`, `failed` (see `failureReason`) or `deleting`. Files attached before statuses existed report `ready` |
+| `failureReason` | string/null | Why validation failed, when `status` is `failed` |
+| `url` | string/null | The public URL of the stored file |
+
 ### Per-platform fields (`posts[]`)
 
 | Field | Type | Description |

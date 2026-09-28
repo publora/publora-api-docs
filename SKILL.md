@@ -66,6 +66,7 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | `/update-post/:postGroupId` | PUT | Edit content, targets, timing, or status of a draft/scheduled post |
 | `/delete-post/:postGroupId` | DELETE | Delete a post |
 | `/get-upload-url` | POST | Get presigned URL for media |
+| `/attach-media/:postGroupId` | POST | Attach one file by reference (`download_url` + `file_id`, e.g. from ChatGPT); leaves the post in draft |
 | `/upload-instagram-cover` | POST | Upload a custom Instagram Reel cover (multipart) |
 | `/upload-youtube-thumbnail` | POST | Upload a custom YouTube thumbnail (multipart) |
 | `/platform-limits` | GET | Get live per-platform limits (no params) |
@@ -229,7 +230,7 @@ A `200` can still mean the API adjusted your request — read `warnings`, don't 
 
 ### Retry Safety (Idempotency-Key)
 
-Send an optional `Idempotency-Key` header on `create-post` / `update-post`. A timeout never tells you whether the request landed — without a key, the retry **creates a second post** (and on `update-post` with `mediaUrls`, appends the media twice).
+Send an optional `Idempotency-Key` header on `create-post` / `update-post` / `attach-media`. A timeout never tells you whether the request landed — without a key, the retry **creates a second post** (and on `update-post` with `mediaUrls`, or on `attach-media`, appends the media twice). On `attach-media` the key matches the post, `file_id` and file name, so a refreshed `download_url` still replays.
 
 ```javascript
 const key = crypto.randomUUID();  // one key per logical operation — reuse it for every retry
@@ -269,7 +270,7 @@ Available events:
 - `post.scheduled` - Post was scheduled
 - `post.published` - Post was successfully published
 - `post.failed` - Post failed to publish
-- `post.demoted` - Scheduled post returned to draft after media attach/detach
+- `post.demoted` - Scheduled post returned to draft after media attach/detach (not emitted by `attach-media`)
 - `token.expiring` - Defined and subscribable, but not currently dispatched; do not depend on it
 
 ## Error Handling
@@ -292,6 +293,7 @@ Machine-readable `code` values (branch on `code`, not on the message text):
 - `SCHEDULED_TIME_IN_PAST` (400) — `scheduledTime` 5+ min in the past; body carries `serverTime`
 - `PLATFORM_SETTING_UNKNOWN` (400) — unknown `platformSettings` path; body carries the exact `field`
 - `FIRST_COMMENT_INVALID` / `FIRST_COMMENT_PLATFORM_UNKNOWN` / `FIRST_COMMENT_TOO_LONG` (400) — `firstComment` shape, platform type (types, never connection IDs) or per-platform length; body carries `field` and, for length, `platform`, `limit`, `count`, `unit`
+- `INVALID_MEDIA_FILE` (400) — `attach-media` body is not `{ file, fileName? }`, the file reference is malformed, `download_url` fails the URL checks, or the file name is unusable
 - `IDEMPOTENCY_KEY_CONFLICT` (422) — key reused with a different body
 - `IDEMPOTENCY_IN_FLIGHT` (409) — same key still processing; retry the identical call
 

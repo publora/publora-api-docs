@@ -63,6 +63,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `PUT` | `/update-post/:postGroupId` | Edit a draft/scheduled post: content, targets, timing, or status | [View](https://docs.publora.com/endpoints/update-post) |
 | `DELETE` | `/delete-post/:postGroupId` | Delete a scheduled post | [View](https://docs.publora.com/endpoints/delete-post) |
 | `POST` | `/get-upload-url` | Get pre-signed URL for media upload | [View](https://docs.publora.com/endpoints/upload-media) |
+| `POST` | `/attach-media/:postGroupId` | Attach a file by reference (e.g. a ChatGPT file); leaves the post in draft | [View](https://docs.publora.com/endpoints/attach-media) |
 | `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](https://docs.publora.com/endpoints/upload-instagram-cover) |
 | `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
@@ -137,6 +138,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Test Connection](https://docs.publora.com/endpoints/test-connection) — validate a connection before posting
 - [Webhooks](https://docs.publora.com/endpoints/webhooks) — real-time notifications for post events
 - [Upload Media](https://docs.publora.com/endpoints/upload-media) — images and video uploads
+- [Attach Media](https://docs.publora.com/endpoints/attach-media) — attach a file by download URL and file ID (ChatGPT file references), with an SEO file name
 - [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
 - [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
 - [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON

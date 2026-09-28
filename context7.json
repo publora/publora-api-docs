@@ -11,7 +11,7 @@
     "MCP server is at mcp.publora.com with type http not url",
     "Platform IDs format: {platform}-{id} e.g. twitter-123",
     "scheduledTime must be ISO 8601 UTC format",
-    "Media uploads use pre-signed S3 URLs via get-upload-url",
+    "Media attaches three ways: public https URLs as mediaUrls on create-post/update-post, a file reference (download_url + file_id, e.g. from ChatGPT) via POST /attach-media or MCP attach_media, or a pre-signed S3 upload via get-upload-url",
     "Threads long content is split into a native multi-post chain; the connection needs threads_manage_replies"
   ]
 }

@@ -114,7 +114,7 @@ Production configuration can force strict mode on or off, or move the sunset, so
 
 ### Idempotency Errors
 
-Applies to `POST /create-post` and `PUT /update-post` when you send an `Idempotency-Key` header.
+Applies to `POST /create-post`, `PUT /update-post` and `POST /attach-media` when you send an `Idempotency-Key` header. On `attach-media`, only the post, `file_id` and final file name are compared, so a changed `download_url` or `mime_type` replays the original response instead of conflicting.
 
 The `code` field is the contract — branch on it, not on the message text.
 
@@ -889,11 +889,11 @@ if result['failed']:
 
 1. **Always check the HTTP status code.** Do not assume every response is successful. Parse the error body for details.
 
-2. **Do not retry most 4xx responses unchanged.** They usually indicate a problem with the request. The exception is `429 MEDIA_URL_RATE_LIMITED` from `mediaUrls` ingestion: wait the number of seconds in `Retry-After` (also returned as `retryAfterSec`), then retry with the same `Idempotency-Key` described in item 4.
+2. **Do not retry most 4xx responses unchanged.** They usually indicate a problem with the request. The exception is `429 MEDIA_URL_RATE_LIMITED` from `mediaUrls` or `attach-media` ingestion: wait the number of seconds in `Retry-After` (also returned as `retryAfterSec`), then retry with the same `Idempotency-Key` described in item 4.
 
 3. **Use exponential backoff for retries.** Start at 1 second and double with each attempt. Cap at 3-5 retries to avoid infinite loops.
 
-4. **Send an `Idempotency-Key` on every `create-post` / `update-post` you might retry.** A timeout does not tell you whether the post was created. Without a key, the retry double-posts (and on `update-post` with `mediaUrls`, double-appends the media). With one, the retry replays the original response.
+4. **Send an `Idempotency-Key` on every `create-post` / `update-post` / `attach-media` call you might retry.** A timeout does not tell you whether the post was created. Without a key, the retry double-posts (and on `update-post` with `mediaUrls`, or on `attach-media`, double-appends the media). With one, the retry replays the original response.
 
 5. **Read `warnings[]` on successful responses.** A `200` can still mean the API changed something about your request — most often `SCHEDULED_TIME_COERCED`. Log warnings; do not discard them.
 

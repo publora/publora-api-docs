@@ -24,7 +24,7 @@ Publora is in the Claude connectors directory. Open the listing and select **Con
 
 1. Claude opens a Publora window. Sign in to Publora if you aren't already; the consent page reads *"An application is requesting access to your Publora account"* and shows which account you are authorizing as.
 2. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
-3. The 18 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
+3. The 19 Publora tools appear in the connector. Re-authorize the same way if you revoke the key.
 
 No API key, no config file, no URL to paste. The connector belongs to your Claude account, so the same connection works in Claude on the web, in Claude Desktop and in the Claude mobile apps.
 
@@ -53,7 +53,7 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 18 active Publora tools, including `post_stats`, `profile_stats`, `linkedin_create_reshare` and `linkedin_list_mentionables` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
+Claude should list the 19 active Publora tools, including `post_stats`, `profile_stats`, `linkedin_create_reshare` and `linkedin_list_mentionables` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval).
 
 ---
 
@@ -566,6 +566,6 @@ Some clients support environment variable interpolation:
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — All 18 active tools with parameters
+- [Tools Reference](./tools-reference.md) — All 19 active tools with parameters
 - [Examples](./examples.md) — Real-world conversation examples
 - [Troubleshooting](./troubleshooting.md) — Common issues and solutions

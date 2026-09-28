@@ -22,6 +22,8 @@ Media is automatically attached to the post group via the `postGroupId` you prov
 
 > **One-shot alternative:** `create-post` (and `update-post`) accept an optional `mediaUrls` array of public **https** URLs (up to 10). Publora downloads them server-side and attaches them before validation, so you can attach media and schedule in a single call — no `get-upload-url`/`PUT`/`complete-media` round-trip. Rate-limited to 60 URLs/hour.
 
+> **File-reference alternative (ChatGPT):** [`POST /attach-media/:postGroupId`](../endpoints/attach-media.md), or the MCP tool `attach_media`, attaches one image or video from an HTTPS download URL plus a stable file ID. That is the form in which ChatGPT supplies a file from the conversation. You can pass an optional descriptive `fileName`. Publora downloads the file right away, so there is no `get-upload-url`/`PUT`/`complete-media` step. When you send an `Idempotency-Key` (the MCP tool always does), a retry with a refreshed URL is matched on the post, file ID and file name and doesn't attach a duplicate; without one, every call attaches another copy. It uses the same 60 URLs/hour allowance and always leaves the post in `draft`, so schedule it with `update-post` afterward.
+
 ### Supported Formats
 
 | Upload family | Accepted by `get-upload-url` |

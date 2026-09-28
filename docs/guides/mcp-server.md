@@ -51,7 +51,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, you'll have access to 18 Publora tools. Try asking:
+After restarting, you'll have access to 19 Publora tools. Try asking:
 
 > "List my connected social media accounts"
 
@@ -133,7 +133,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (18)
+## Available Tools (19)
 
 ### Posts
 
@@ -149,6 +149,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 | Tool | Description |
 |------|-------------|
+| `attach_media` | Attach a file from ChatGPT (for example, one the user uploaded) with an optional SEO `fileName`; Publora downloads and checks it and leaves the post as a draft |
 | `get_upload_url` | Get a presigned S3 URL for media upload |
 | `complete_media` | Finalize a file uploaded via `get_upload_url` |
 | `delete_media` | Remove a media slot from a post |
@@ -351,7 +352,7 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 18 MCP tools | Full API access |
+| **Tools** | 19 MCP tools | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.

@@ -97,7 +97,7 @@ POST https://api.publora.com/api/v1/webhooks
 | `post.scheduled` | Post was scheduled |
 | `post.published` | Post was successfully published |
 | `post.failed` | Post failed to publish |
-| `post.demoted` | A scheduled post was returned to draft after media changed |
+| `post.demoted` | A scheduled post was returned to draft after media changed (not emitted by `attach-media`) |
 | `token.expiring` | Defined and subscribable, but not currently dispatched; do not build flows that depend on it |
 
 ---
@@ -253,7 +253,7 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 }
 ```
 
-`changeType` is `attach` or `detach`. The event is emitted when that media change demotes a scheduled group back to draft.
+`changeType` is `attach` or `detach`. The event is emitted when that media change demotes a scheduled group back to draft. [`attach-media`](./attach-media.md) also leaves a scheduled post in draft, but it does so by setting the status explicitly and does not emit this event.
 
 #### post.published
 

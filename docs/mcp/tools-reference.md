@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 18 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 19 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -116,7 +116,7 @@ Create and schedule a post to one or more platforms.
 
 > **A `scheduledTime` in the past is not taken literally.** Under 5 minutes late it is always clamped with `SCHEDULED_TIME_COERCED`. At 5+ minutes it is scheduled to become `400 SCHEDULED_TIME_IN_PAST` on 2026-08-25, unless production configuration overrides the date either way.
 
-> **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
+> **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media` (or, for a file in ChatGPT, `attach_media`), then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
 > **First comment.** `firstComment: { "text": "…", "platforms": ["linkedin"] }` posts one text comment under the account's own post right after it publishes — the usual place for a link or hashtags, so nobody has to be online at publish time. Wave 1 covers LinkedIn (profiles and company Pages — a Page comments as the organization), X, Threads (the connection must grant `threads_manage_replies`), Bluesky and Mastodon; other targets are skipped with a `FIRST_COMMENT_UNSUPPORTED_PLATFORMS` warning. Length is checked per platform (X 280 / 25,000 on Premium, LinkedIn 1,250, Threads 500, Bluesky 300 graphemes and 3,000 bytes, Mastodon 500 with links counted as 23) and fails with `400 FIRST_COMMENT_TOO_LONG`; connection IDs in `platforms` fail with `400 FIRST_COMMENT_PLATFORM_UNKNOWN`. Best effort: attempted once, never retried, and a failed comment never changes the published post. Read the outcome with `get_post` → `posts[].firstCommentResult` (`pending | posted | failed | skipped`, `commentId`, `skipReason`, `error.outcomeUnknown` = check the platform before commenting manually). Edit it with `update_post` while the post is scheduled; `firstComment: null` removes it; a time change leaves it untouched.
 
@@ -466,6 +466,75 @@ async def delete_post():
 
 ---
 
+### attach_media
+
+Attach one image or video from ChatGPT to an existing post. The tool declares `_meta["openai/fileParams"]: ["file"]`, so ChatGPT turns a file in the conversation (for example, one the user uploaded) into the `file` object: a temporary `download_url` and a stable `file_id`. Images that ChatGPT generates can be attached too, as long as the client exposes them as file references. Publora downloads, validates and stores the file right away, with no HTTP PUT or `complete_media` step, and leaves the post in **draft**. A scheduled post goes back to draft. The tool calls [`POST /attach-media/:postGroupId`](../endpoints/attach-media.md).
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `postGroupId` | string | Yes | ID of an existing post (24 hexadecimal characters). If needed, create a draft first with `create_post`, leaving out `scheduledTime`. |
+| `file` | object | Yes | The file reference ChatGPT supplies. `download_url` (a temporary HTTPS URL) and `file_id` (a stable ID) are required; `mime_type` and `file_name` are optional. No other keys are allowed. |
+| `fileName` | string | No | A descriptive file name with an extension, 1–255 characters (e.g. `spring-launch-banner.png`). Takes precedence over `file.file_name`; if both are missing the name is `chatgpt-media`. It is reduced to a safe ASCII file name, and other characters are dropped. |
+| `idempotencyKey` | string | No | An explicit retry key. By default the tool derives a stable key from `postGroupId` and `file.file_id`. |
+
+> **Never make up the file object.** Pass the reference the client supplies. A bare string as `file` (a sandbox path such as `/mnt/data/…`, base64 data or a URL on its own) fails the tool's schema, and a `download_url` that isn't an absolute `https://` URL is rejected with `400 INVALID_MEDIA_FILE`. An invented URL can't be detected: Publora simply tries to download whatever it points to. If the client can't turn a generated image into a file reference, use a real public image URL with `mediaUrls` instead, or the upload dance from a client that has the file's bytes.
+
+> **Retries don't attach duplicates.** Publora matches a retry on the file ID and the final file name, not on the download URL, which ChatGPT refreshes. Calling again with the same file for the same post within 24 hours replays the first result. Changing `fileName` for the same file and post under the default key returns `422 IDEMPOTENCY_KEY_CONFLICT`. Likewise, attaching the same file to the same post again within 24 hours (for example after `delete_media`) replays the earlier result and attaches nothing. Pass a new `idempotencyKey` when you really want another copy. A failed download attaches nothing (for example `MEDIA_URL_HTTP_ERROR` in `mediaResults` when the URL has expired), and you can retry with a fresh file reference.
+
+> **One file per call.** Accepted formats are JPEG, PNG, GIF, WebP, TIFF and AVIF images up to 25 MB, and MP4, MOV and WebM videos up to 150 MB. Each attempt that reaches the download uses one URL from the 60-per-hour allowance shared with `mediaUrls`; replays don't count. Platform rules such as media count, format and duration are checked when the post is scheduled.
+
+**Example prompts:**
+
+```text
+"Attach the photo I just uploaded to my LinkedIn draft and name it spring-launch-banner.png"
+"Add this image to post 67a1b2c3d4e5f6a7b8c9d0e1"
+"Attach the image you just generated to that draft" (works when ChatGPT exposes the generated image as a file)
+```
+
+**Python example** (for a client that already has a downloadable file reference):
+
+```python
+async def attach_file():
+    headers = {"Authorization": "Bearer sk_YOUR_API_KEY"}
+
+    async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            result = await session.call_tool("attach_media", {
+                "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+                "file": {
+                    "download_url": "https://files.example.com/download/abc123?signature=TEMPORARY",
+                    "file_id": "file-abc123",
+                    "mime_type": "image/png"
+                },
+                "fileName": "spring-launch-banner.png"
+            })
+            print(result.content[0].text)
+```
+
+**Response example:**
+
+```json
+{
+  "success": true,
+  "message": "Post updated successfully",
+  "scheduledTime": null,
+  "postGroup": {
+    "_id": "67a1b2c3d4e5f6a7b8c9d0e1",
+    "status": "draft",
+    "content": "Spring launch is here.",
+    "platforms": ["linkedin-abc123"]
+  }
+}
+```
+
+> **Check, then schedule.** The response doesn't include a media ID. Call `get_post` and confirm that `media[]` lists the file with `status: "ready"` and the expected `sourceFileName`. Schedule with `update_post` (`status: "scheduled"` and a future `scheduledTime`) only once the user asks to publish.
+
+---
+
 ### get_upload_url
 
 Get a presigned URL to upload media files.
@@ -486,7 +555,7 @@ Get a presigned URL to upload media files.
 | Images | The MCP tool accepts an `image/*` MIME string; scheduling applies the target platform's format allowlist |
 | Videos | The MCP tool accepts a `video/*` MIME string; scheduling applies the target platform's format allowlist |
 
-> **⚠ Attaching media demotes a scheduled post to draft.** Calling `get_upload_url` on an already-`scheduled` post demotes it back to `draft` (`postGroupDemoted: true` in the response). Attach media on a **draft**, then schedule with `update_post`. Companion media tools: **`complete_media`** (finalize/validate an uploaded `mediaId` — optional, the scheduling gate probes lazily) and **`delete_media`** (remove one attached media file; also demotes a scheduled post). Media attached via `mediaUrls` needs neither.
+> **⚠ Attaching media demotes a scheduled post to draft.** Calling `get_upload_url` on an already-`scheduled` post demotes it back to `draft` (`postGroupDemoted: true` in the response). Attach media on a **draft**, then schedule with `update_post`. Companion media tools: **`complete_media`** (finalize/validate an uploaded `mediaId` — optional, the scheduling gate probes lazily) and **`delete_media`** (remove one attached media file; also demotes a scheduled post). Media attached via `mediaUrls` or `attach_media` needs neither.
 
 **Python example:**
 
@@ -522,7 +591,7 @@ async def upload_image_to_post():
 
 ### complete_media
 
-Finalize a file uploaded via `get_upload_url` (probes the object, persists type/metadata). Call it after the presigned `PUT` succeeds. *(Optional — scheduling also finalizes pending media — but calling it early surfaces format/probe errors before publish.)* Not needed for media attached via `mediaUrls`.
+Finalize a file uploaded via `get_upload_url` (probes the object, persists type/metadata). Call it after the presigned `PUT` succeeds. *(Optional — scheduling also finalizes pending media — but calling it early surfaces format/probe errors before publish.)* Not needed for media attached via `mediaUrls` or `attach_media`.
 
 **Parameters:**
 
@@ -540,9 +609,12 @@ Remove a media slot from a post (detaches and deletes the underlying file). Dele
 |-----------|------|----------|-------------|
 | `mediaId` | string | Yes | The `mediaId` of the slot to remove (see the `media` array in `get_post`). |
 
-> **Two ways to attach media:**
-> 1. **Fast path** — pass `mediaUrls` (public https URLs) to `create_post`/`update_post`; the server downloads them. No upload steps.
-> 2. **Upload dance** — `get_upload_url` → `PUT` the bytes to the presigned URL → `complete_media`. Use `delete_media` to drop a slot.
+> **Three ways to attach media:**
+> 1. **Fast path**: pass `mediaUrls` (public https URLs) to `create_post`/`update_post`, and the server downloads them. No upload steps.
+> 2. **File reference (ChatGPT)**: create a draft, then call `attach_media` with the file ChatGPT supplies. The server downloads it, and the post stays a draft.
+> 3. **Upload dance**: `get_upload_url` → `PUT` the bytes to the presigned URL → `complete_media`. Needs a client that can send HTTP requests itself.
+>
+> Use `delete_media` to drop a slot.
 
 ### prune_media_reference
 

@@ -1847,6 +1847,314 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /attach-media/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    post:
+      summary: Attach a file to a post by reference
+      description: |
+        Attach one image or video to an existing draft or scheduled post using a
+        file reference: an HTTPS download URL plus a stable file ID, the shape
+        ChatGPT supplies through `openai/fileParams` to the MCP `attach_media`
+        tool. Publora downloads the file right away through the same guarded
+        pipeline as `mediaUrls`, which detects the type from the bytes and probes
+        the file. Accepted: JPEG, PNG, GIF, WebP, TIFF and AVIF images up to 25 MB;
+        MP4, MOV and WebM videos up to 150 MB. The file is attached with status
+        `ready`, and no presigned PUT or complete-media call is needed.
+        The post is always left in `draft`. A scheduled post is demoted to draft
+        and keeps its stored time; schedule it again with update-post. The body
+        accepts only `file` and `fileName`, and publishing parameters are rejected
+        with INVALID_MEDIA_FILE. The response has the update-post shape and does
+        not include the media ID, so read `media[]` from get-post. Each attempt that
+        reaches the download counts one URL against the media URL ingestion limit
+        of 60 URLs per hour, shared with `mediaUrls`; idempotent replays don't count.
+      operationId: attachMedia
+      tags: [Media]
+      parameters:
+        - name: postGroupId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "507f1f77bcf86cd799439011"
+        - name: x-publora-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: |
+            Recommended. Publora recognises a retry by the post ID, `file.file_id`
+            and the sanitized file name. `download_url` and `mime_type` are
+            excluded, so a retry with a refreshed temporary URL replays the
+            original response instead of attaching the file twice. Reusing the
+            key with a different post, file ID or file name returns 422. A failed
+            download frees the key for a retry with a fresh reference. Without a
+            key, every call attaches another copy. Keys are kept for 24 hours.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file]
+              additionalProperties: false
+              properties:
+                file:
+                  type: object
+                  required: [download_url, file_id]
+                  additionalProperties: false
+                  description: "File reference. A string is rejected, including a local path, base64 data or a bare URL."
+                  properties:
+                    download_url:
+                      type: string
+                      format: uri
+                      minLength: 1
+                      description: "HTTPS URL to download from; temporary signed URLs work. Same checks as mediaUrls: https only, no embedded credentials, port 443, no private or loopback hosts."
+                      example: "https://files.example.com/download/abc123?signature=TEMPORARY"
+                    file_id:
+                      type: string
+                      minLength: 1
+                      maxLength: 512
+                      description: "Stable file identifier; part of the idempotency fingerprint"
+                      example: "file-abc123"
+                    mime_type:
+                      type: string
+                      description: "Hint only; the type is detected from the bytes"
+                      example: "image/png"
+                    file_name:
+                      type: string
+                      description: "Original file name; used when fileName is absent"
+                      example: "image.png"
+                fileName:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: |
+                    Descriptive file name with an extension. Takes precedence over
+                    `file.file_name`; if both are absent the name is `chatgpt-media`.
+                    Only the last path segment is kept; it is trimmed, each run of
+                    whitespace becomes `_`, and any character other than an ASCII
+                    letter, digit, `_`, `.` or `-` is removed. A name that ends up
+                    empty or only dots is rejected, including one taken from
+                    `file.file_name`. get-post returns the result as
+                    `media[].sourceFileName`.
+                  example: "spring-launch-banner.png"
+            example:
+              file:
+                download_url: "https://files.example.com/download/abc123?signature=TEMPORARY"
+                file_id: "file-abc123"
+                mime_type: "image/png"
+                file_name: "image.png"
+              fileName: "spring-launch-banner.png"
+      responses:
+        "200":
+          description: File downloaded, validated and attached; the post is in draft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Post updated successfully"
+                  scheduledTime:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: |
+                      The stored scheduled time. A post demoted from scheduled keeps
+                      its time while in draft; `null` when no time is stored.
+                  postGroup:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      status:
+                        type: string
+                        enum: [draft]
+                      content:
+                        type: string
+                      platforms:
+                        type: array
+                        items:
+                          type: string
+                      scheduledTime:
+                        type: string
+                        format: date-time
+                        description: "Only included when a scheduled time is stored"
+              example:
+                success: true
+                message: "Post updated successfully"
+                scheduledTime: null
+                postGroup:
+                  _id: "507f1f77bcf86cd799439011"
+                  status: "draft"
+                  content: "Our spring collection is here."
+                  platforms: ["linkedin-ABC123"]
+        "400":
+          description: |
+            One of: invalid file input (INVALID_MEDIA_FILE, nothing downloaded); an
+            invalid post ID; a failed download or validation (`Media ingestion
+            failed` with per-URL `mediaResults`, nothing attached, and the
+            idempotency key freed); a post that can no longer be edited
+            (POST_NOT_EDITABLE); or a YouTube target connection that is no longer
+            the caller's (INVALID_PLATFORM_CONNECTION, downloaded file discarded).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Error"
+                  - type: object
+                    properties:
+                      mediaResults:
+                        type: array
+                        description: "Present when ingestion failed: one entry per URL"
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                            ok:
+                              type: boolean
+                            code:
+                              type: string
+                              example: "MEDIA_URL_HTTP_ERROR"
+                            error:
+                              type: string
+              examples:
+                publishingParameter:
+                  summary: "A field other than file or fileName"
+                  value:
+                    {
+                      "error": "Only file and fileName are accepted; attaching media leaves the post in draft",
+                      "code": "INVALID_MEDIA_FILE",
+                    }
+                localPath:
+                  summary: "file sent as a string instead of a resolved file object"
+                  value:
+                    {
+                      "error": "file must be a file object with download_url and file_id, not a local path or base64 string",
+                      "code": "INVALID_MEDIA_FILE",
+                    }
+                unsafeUrl:
+                  summary: "download_url fails the media URL checks"
+                  value:
+                    {
+                      "error": "Only https:// media URLs are allowed (got http://)",
+                      "code": "INVALID_MEDIA_FILE",
+                    }
+                invalidPostGroupId:
+                  value: { "error": "Invalid post group ID" }
+                downloadFailed:
+                  summary: "The temporary URL expired before Publora fetched it"
+                  value:
+                    {
+                      "error": "Media ingestion failed",
+                      "mediaResults":
+                        [
+                          {
+                            "url": "https://files.example.com/download/abc123?signature=EXPIRED",
+                            "ok": false,
+                            "code": "MEDIA_URL_HTTP_ERROR",
+                            "error": "Fetching https://files.example.com/download/abc123?signature=EXPIRED returned HTTP 403",
+                          },
+                        ],
+                    }
+                notEditable:
+                  value:
+                    {
+                      "error": "Cannot update post: post is currently in published status",
+                      "code": "POST_NOT_EDITABLE",
+                    }
+                invalidPlatformConnection:
+                  summary: "A YouTube target connection is no longer the caller's"
+                  value:
+                    {
+                      "error": "Invalid platform connection(s): youtube-UCxxxxxxxxxxxx. Check connected accounts or call GET /platform-connections.",
+                      "code": "INVALID_PLATFORM_CONNECTION",
+                      "invalidPlatforms": ["youtube-UCxxxxxxxxxxxx"],
+                    }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Post not found or owned by another user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Post group not found"
+        "409":
+          description: |
+            Nothing was changed. Either a request with this `Idempotency-Key` is
+            still in flight, or the post is being published, or another write
+            committed first. Match on `code`, and re-read the post with get-post
+            before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                inFlight:
+                  value:
+                    {
+                      "error": "A request with this idempotency key is still in flight",
+                      "code": "IDEMPOTENCY_IN_FLIGHT",
+                    }
+                publishInProgress:
+                  value:
+                    {
+                      "error": "Publishing has already started; media cannot be changed. Duplicate the post to recover its content.",
+                      "code": "POST_PUBLISH_IN_PROGRESS",
+                    }
+                versionConflict:
+                  value:
+                    {
+                      "error": "Post group state changed concurrently; please retry.",
+                      "code": "POST_GROUP_VERSION_CONFLICT",
+                    }
+        "422":
+          description: |
+            This `Idempotency-Key` was already used for a different post, file ID
+            or file name. Nothing was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Idempotency key was already used with a different request body"
+                code: "IDEMPOTENCY_KEY_CONFLICT"
+        "429":
+          description: Media URL ingestion rate limit reached (60 URLs per fixed one-hour window)
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUrlRateLimitError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Failed to update post"
+
   /upload-instagram-cover:
     parameters:
       - $ref: "#/components/parameters/XPubloraClient"

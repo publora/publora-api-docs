@@ -74,6 +74,18 @@ curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
 
 For public HTTPS assets, `mediaUrls` on create/update is a shorter ingestion path. See [Media Uploads](../../guides/media-uploads.md) for its limits and append semantics.
 
+For a file reference, meaning a download URL plus a stable file ID such as ChatGPT supplies, use `attach-media`. It downloads the file right away and leaves the post in `draft`. The idempotency key matches on the file ID and name, so a retry with a refreshed URL doesn't attach the file twice:
+
+```bash
+curl -sS -X POST "$PUBLORA_BASE_URL/attach-media/$POST_GROUP_ID" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: attach-$POST_GROUP_ID-file-abc123" \
+  -d '{"file":{"download_url":"https://files.example.com/download/abc123?signature=TEMPORARY","file_id":"file-abc123"},"fileName":"spring-launch-banner.png"}'
+```
+
+Then schedule with `update-post` as above. See [Attach Media](../../endpoints/attach-media.md).
+
 ## 4. Update a post
 
 Update accepts at least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls`. Omitted fields keep their stored value. `mediaUrls` appends media rather than replacing existing items; `platforms` does the opposite — it replaces the whole target set.

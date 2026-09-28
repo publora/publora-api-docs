@@ -309,6 +309,22 @@ tomorrow at 9am (AI converts this, but tool needs ISO 8601)
 
 ---
 
+### ChatGPT: image not attached, or media stuck in `uploading`
+
+**Cause:** ChatGPT can't do the presigned upload itself. If it calls `get_upload_url`, nothing sends the HTTP `PUT` afterwards, so the media slot stays in `uploading` and scheduling is refused: `503 MEDIA_UPLOAD_PENDING` at first, then `400 MEDIA_NOT_READY` once the missing upload has been marked failed. An image generated in ChatGPT also has no public URL that could be passed as `mediaUrls`.
+
+**Solution:**
+
+1. **Use `attach_media`.** Ask ChatGPT to attach the file to the draft with `attach_media`. ChatGPT passes its own file reference, Publora downloads the file right away, and the post stays a draft.
+2. **Check the result.** In `get_post`, `media[]` should list the file with `status: "ready"`. Remove a leftover `uploading` slot with `delete_media`, using its `mediaId` from `media[]`.
+3. **Schedule** with `update_post` (`status: "scheduled"` and a future `scheduledTime`) when you're ready to publish.
+
+**`attach_media` is not in ChatGPT's tool list:** the connector is still using the tool list it loaded before the tool existed. Refresh the Publora connector's tools in ChatGPT, or remove the connector and add it again.
+
+**ChatGPT can't hand over a generated image as a file** (for example, it sends a `/mnt/data/…` path, which is rejected): use a public image URL with `mediaUrls`, or attach the image to the draft in the Publora web app.
+
+---
+
 ## Session Issues
 
 ### "Invalid or missing session. Send a POST without mcp-session-id to start."
