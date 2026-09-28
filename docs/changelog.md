@@ -11,13 +11,6 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
-### First comment for LinkedIn company Pages — publora.com #533, #534
-
-- **Affected surface:** REST `create-post`, `update-post`, `get-post`; MCP `create_post`, `update_post`, `get_post` — LinkedIn targets only.
-- **Tag:** Additive.
-- **Change:** A LinkedIn company Page connection now gets the first comment too, posted as the organization (`urn:li:organization:<id>`), the way its posts are published. Until this ships, Page targets are recorded as `skipped` with `skipReason: "unsupported_account_type"`; that reason then only remains on results recorded before the change.
-- **Migration action:** none.
-
 ## 2026-09-28
 
 ### ChatGPT file attachments — publora.com #539
@@ -30,6 +23,13 @@ This page records externally relevant REST and MCP contract changes. Dates are d
   - `Idempotency-Key` matches on the post ID, `file_id` and file name, not the expiring `download_url`, so a retry with a refreshed URL replays the first result instead of attaching the file twice. The MCP tool sends a stable key by default. A failed download frees the key.
   - New top-level 400 code `INVALID_MEDIA_FILE` for any other body field, a malformed file object, a `download_url` that fails the static URL checks, or an invalid file name.
 - **Migration action:** None for existing callers. ChatGPT users who already added the Publora connector should refresh its tool list so `attach_media` appears.
+
+### First comment for LinkedIn company Pages — publora.com #533, #534
+
+- **Affected surface:** REST `create-post`, `update-post`, `get-post`; MCP `create_post`, `update_post`, `get_post` — LinkedIn targets only.
+- **Tag:** Additive.
+- **Change:** A LinkedIn company Page connection now gets the first comment too, posted as the organization (`urn:li:organization:<id>`), the way its posts are published. Before this change, Page targets were recorded as `skipped` with `skipReason: "unsupported_account_type"`; that reason now only remains on results recorded before the change.
+- **Migration action:** none.
 
 ### First comment (wave 1) — publora.com #529, #530
 
