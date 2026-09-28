@@ -282,6 +282,10 @@ console.log(response.data);
 // Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
+## First Comment
+
+Pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and Publora posts a reply under your own post right after it publishes. Limits are Bluesky's: **300 graphemes and 3,000 UTF-8 bytes**; links and mentions get rich-text facets like a normal post. The reply's `at://` URI is returned in [`get-post` → `posts[].firstCommentResult.commentId`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult).
+
 ## Platform Quirks
 
 - **App password required**: You must use a Bluesky app password, not your main account password. Generate one at Settings > App Passwords in the Bluesky app.

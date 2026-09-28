@@ -291,6 +291,7 @@ Common errors:
 Machine-readable `code` values (branch on `code`, not on the message text):
 - `SCHEDULED_TIME_IN_PAST` (400) — `scheduledTime` 5+ min in the past; body carries `serverTime`
 - `PLATFORM_SETTING_UNKNOWN` (400) — unknown `platformSettings` path; body carries the exact `field`
+- `FIRST_COMMENT_INVALID` / `FIRST_COMMENT_PLATFORM_UNKNOWN` / `FIRST_COMMENT_TOO_LONG` (400) — `firstComment` shape, platform type (types, never connection IDs) or per-platform length; body carries `field` and, for length, `platform`, `limit`, `count`, `unit`
 - `IDEMPOTENCY_KEY_CONFLICT` (422) — key reused with a different body
 - `IDEMPOTENCY_IN_FLIGHT` (409) — same key still processing; retry the identical call
 

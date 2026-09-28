@@ -11,6 +11,19 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-09-28
+
+### First comment (wave 1) — publora.com #529, #530
+
+- **Affected surface:** REST `create-post`, `update-post` and `get-post`; MCP `create_post`, `update_post` and `get_post`.
+- **Tag:** Additive.
+- **Changes:**
+  - New optional top-level `firstComment { text, platforms? }` on create and update: a text comment posted under the account's own post right after it publishes. `platforms` are platform types (never connection IDs); omitted = every supported target. Wave 1 platforms: LinkedIn member profiles (company Pages are skipped), X, Threads, Bluesky, Mastodon.
+  - Length is validated per applicable platform (X 280 / 25,000 Premium-only, LinkedIn 1,250, Threads 500 code points, Bluesky 300 graphemes and 3,000 bytes, Mastodon 500 with links = 23) with an absolute cap of 25,000. New 400 codes `FIRST_COMMENT_INVALID`, `FIRST_COMMENT_PLATFORM_UNKNOWN`, `FIRST_COMMENT_TOO_LONG`; new warnings `FIRST_COMMENT_PLATFORM_NOT_TARGETED`, `FIRST_COMMENT_UNSUPPORTED_PLATFORMS`.
+  - `get-post` / `get_post` return the stored `firstComment` (or `null`) and a per-target `posts[].firstCommentResult` (`pending | posted | failed | skipped`, `commentId`, `skipReason`, `attemptedAt`, `postedAt`, `error` with `outcomeUnknown`). The comment is attempted once, right after publish, and never retried; a failed comment never changes the published post.
+  - On `update-post`, `firstComment: null` removes the comment; changing only the time leaves it untouched; the stored comment is re-validated when `platforms` change.
+- **Migration action:** none. Clients that mirror `get-post` responses should tolerate the two new keys.
+
 ## 2026-09-24
 
 ### LinkedIn image-only comments

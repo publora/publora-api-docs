@@ -124,6 +124,10 @@ Threads supports a `replyControl` setting that controls who can reply to your po
 | `"accounts_you_follow"` | Only accounts you follow can reply |
 | `"mentioned_only"` | Only accounts mentioned in the post can reply |
 
+## First Comment
+
+Pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and Publora replies to your own post right after it publishes (on a chain, under the last part). Up to **500 characters**; the connected account must grant `threads_manage_replies`, otherwise the result is `failed` with `FIRST_COMMENT_PERMISSION_REQUIRED` — reconnect the account in Publora Channels. The reply's media ID is returned in [`get-post` → `posts[].firstCommentResult.commentId`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult).
+
 ## Reply Management
 
 Threads supports reply management through the Publora dashboard. The `getReplies` endpoint retrieves replies to a Threads post, and the `manageReply` endpoint allows you to hide or unhide individual replies. These endpoints are accessible via the dashboard API routes.

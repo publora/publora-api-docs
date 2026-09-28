@@ -27,6 +27,11 @@ For retry patterns and idempotency guidance, see [Error Handling](./error-handli
 | `MEDIA_VALIDATION_PENDING` | 200 | `warnings[].code` | Scheduling succeeded while bounded media probing remained transiently incomplete | Not an error | Monitor the post; media is checked again before publishing |
 | `MEDIA_NOT_READY` | 400 | top-level `code` | Attached upload bytes are missing, still uploading, or previously failed validation | After fixing media | Complete/re-upload the media, then schedule again |
 | `MEDIA_URL_RATE_LIMITED` | 429 | top-level `code` | The fixed-window allowance of 60 ingested URLs was exceeded | Yes | Wait the `Retry-After` seconds, then retry; preserve the idempotency key when applicable |
+| `FIRST_COMMENT_INVALID` | 400 | top-level `code` | `firstComment` is not an object `{ text, platforms? }`, or carries an unknown field | No | Send the object form; `field` names the offending key |
+| `FIRST_COMMENT_PLATFORM_UNKNOWN` | 400 | top-level `code` | `firstComment.platforms` names something other than a platform type (for example a connection ID) | No | Use types such as `linkedin` or `twitter`; `allowed` lists the valid types |
+| `FIRST_COMMENT_TOO_LONG` | 400 | top-level `code` | The comment exceeds a targeted platform's limit, or the absolute 25,000-character cap | No | Shorten it; `platform`, `limit`, `count` and `unit` say which limit was hit |
+| `FIRST_COMMENT_PLATFORM_NOT_TARGETED` | 200 | `warnings[].code` | `firstComment.platforms` lists a type the post is not published to; it is ignored | Not an error | Remove the type or add a target on that platform |
+| `FIRST_COMMENT_UNSUPPORTED_PLATFORMS` | 200 | `warnings[].code` | Some targets are on platforms without first-comment support; they will be skipped | Not an error | Nothing required; restrict `firstComment.platforms` to silence it |
 
 ## Plan and workspace limit codes
 

@@ -138,6 +138,10 @@ When explicit markers are detected, Publora preserves them exactly as written an
 - Subsequent tweets in the thread are text-only
 - Images and video cannot be combined in the same tweet
 
+## First Comment
+
+Pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and Publora replies to your own post right after it publishes (on a thread, under the last part). Counted like a tweet: **280 weighted characters**, 25,000 only when every targeted X connection is Premium; links count as 23. The reply's tweet ID is returned in [`get-post` → `posts[].firstCommentResult.commentId`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult). Self-serve X API tiers can refuse the reply (`X_REPLY_NOT_AUTHORIZED`); the post itself is unaffected.
+
 ## Examples
 
 ### Post a Text Update

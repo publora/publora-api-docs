@@ -26,7 +26,7 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 
 ## Request Body
 
-At least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls` must be provided. Missing all six returns `400 { "error": "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" }`.
+At least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, or `mediaUrls` must be provided. Missing all seven returns `400 { "error": "At least one of status, scheduledTime, content, platforms, platformSettings, firstComment, or mediaUrls must be provided" }`.
 
 Every field is a **patch**: omit it and the stored value is left unchanged.
 
@@ -37,6 +37,7 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 | `status` | string | No | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No | New ISO 8601 UTC datetime |
 | `platformSettings` | object | No | Per-platform settings using the canonical [create-post allowlist](./create-post.md#unknown-platformsettings-paths), including X reply/quote and LinkedIn repost settings. Merged with existing settings server-side — fields you omit are preserved. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
+| `firstComment` | object/null | No | Replacement first comment `{ "text": "…", "platforms": ["linkedin"] }` — **the whole object replaces the stored one** — or `null` to remove it. Validated against the effective targets with the same rules as [create-post](./create-post.md#first-comment); the stored comment is also re-validated whenever `platforms` change or the post is scheduled, so a channel added later cannot make it overflow at publish time. Changing only the time leaves it untouched. |
 | `mediaUrls` | string[] | No | Public **`https://`** URLs (1–10 per request) that the server downloads and attaches to the post. **Semantics are APPEND** — the media is added to the post's existing media, never replacing it. Ingestion is all-or-nothing: if any URL fails, none are attached. Plain `http://`, embedded credentials, non-443 ports, and internal/loopback hosts are rejected. Because a retry re-appends, **send an [`Idempotency-Key`](#idempotency) whenever this field is present.** |
 
 > **YouTube playlist & thumbnail (partial update):** `platformSettings` supports partial per-platform updates, so you can change `youtube.playlist` or set/clear `youtube.thumbnail` without resending the other YouTube fields. The **thumbnail can only be set here** (not on `create-post`, which has no `postGroupId` yet). Clear either by sending empty strings — `youtube.playlist` as `{ "id": "", "platformId": "" }`, or `youtube.thumbnail` as `{ "url": "" }`. Playlist or thumbnail changes return **`409`** while the post is publishing/processing (e.g. *"Post group is currently being published; cannot change YouTube playlist. Retry once publishing completes."*). See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings).
@@ -511,7 +512,8 @@ def update_post_safely(post_group_id, updates):
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"` | None of the six fields was provided (see note below) |
+| 400 | `"At least one of status, scheduledTime, content, platforms, platformSettings, firstComment, or mediaUrls must be provided"` | None of the seven fields was provided (see note below) |
+| 400 | `"firstComment must be an object { text, platforms? }"` / `"Unknown first comment platform …"` / `"First comment is too long for <platform>: …"` — codes `FIRST_COMMENT_INVALID`, `FIRST_COMMENT_PLATFORM_UNKNOWN`, `FIRST_COMMENT_TOO_LONG` | The first comment failed shape, platform-type or per-platform length validation — also raised when a `platforms` change makes the **stored** comment too long for a newly added platform. See [Create Post → First comment](./create-post.md#first-comment). |
 | 400 | `"Content must be a string"` — code `INVALID_CONTENT` | `content` was sent as something other than a string. Response includes `field: "content"`. |
 | 400 | `"Platforms must be an array"` / `"Invalid platforms JSON format"` / `"Invalid platform ID format: {id}"` / `"Platforms must not contain duplicates"` — code `INVALID_PLATFORMS` | `platforms` failed shape validation. Response includes `field: "platforms"`. |
 | 400 | `"Invalid platform connection(s): {ids}. Check connected accounts or call GET /platform-connections."` — code `INVALID_PLATFORM_CONNECTION` | A newly added platform ID is not a connection owned by the acting user. Response includes `invalidPlatforms`. |

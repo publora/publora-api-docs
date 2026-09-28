@@ -444,6 +444,14 @@ components:
             array instead of resubmitting the post after a partial failure.
           items:
             $ref: '#/components/schemas/ThreadPart'
+        firstCommentResult:
+          nullable: true
+          description: |
+            Outcome of the group's first comment on this target. Null when no
+            comment applies to the target (no intent, the platform is excluded
+            by firstComment.platforms) or the post is not published yet.
+          allOf:
+            - $ref: '#/components/schemas/FirstCommentResult'
 
     ThreadPart:
       type: object
@@ -468,6 +476,90 @@ components:
             The platform's own ID for that part; null until confirmed. The
             target's postedId equals threadParts[0].publishedId.
           example: "17900000000000001"
+
+    FirstCommentInput:
+      type: object
+      description: |
+        A text comment Publora posts under the account's own post right after
+        it publishes (the usual place for a link or hashtags). Wave 1 platforms:
+        LinkedIn member profiles, X, Threads, Bluesky, Mastodon; other targets
+        are skipped and reported in warnings[]. Length is validated per
+        applicable platform with that platform's own counting. Best effort:
+        attempted once right after publish, never retried; a failed comment
+        never changes the published post.
+      required: [text]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          maxLength: 25000
+          description: |
+            The comment. Stored verbatim, measured and posted trimmed;
+            whitespace-only text clears the comment.
+          example: "Full write-up with the numbers: https://example.com/launch-week"
+        platforms:
+          type: array
+          description: |
+            Platform TYPES that get the comment (never connection IDs). Omit
+            or send [] for every supported target. Types the post is not
+            published to only produce a FIRST_COMMENT_PLATFORM_NOT_TARGETED
+            warning.
+          items:
+            type: string
+            enum: [linkedin, twitter, threads, bluesky, mastodon, instagram, facebook, youtube, tiktok, telegram]
+          example: ["linkedin"]
+
+    FirstCommentResult:
+      type: object
+      description: Outcome of the first comment on one platform target.
+      properties:
+        status:
+          type: string
+          enum: [pending, posted, failed, skipped]
+          description: |
+            pending = published, attempt not recorded yet (it runs right after
+            publish); posted; failed; skipped.
+          example: "posted"
+        commentId:
+          type: string
+          nullable: true
+          description: |
+            The platform's ID of the comment: LinkedIn comment URN, X tweet ID,
+            Threads media ID, Bluesky at:// URI, Mastodon status ID.
+          example: "urn:li:comment:(urn:li:activity:7654321,1234)"
+        skipReason:
+          type: string
+          nullable: true
+          enum: [unsupported_platform, feature_disabled, workspace_post, connection_unavailable, connection_disabled, unsupported_account_type, null]
+          description: Why nothing was attempted; unsupported_account_type = LinkedIn company Page.
+        attemptedAt:
+          type: string
+          format: date-time
+          nullable: true
+        postedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: object
+          nullable: true
+          description: Present for status = failed.
+          properties:
+            code:
+              type: string
+              example: "FIRST_COMMENT_PERMISSION_REQUIRED"
+            message:
+              type: string
+              nullable: true
+            platformStatusCode:
+              type: integer
+              nullable: true
+            outcomeUnknown:
+              type: boolean
+              description: |
+                True when the comment request was sent but no definitive answer
+                came back: the comment may exist on the platform. Check there
+                before commenting manually.
 
     Warning:
       type: object
@@ -834,6 +926,8 @@ paths:
                   example: "2027-03-01T14:00:00.000Z"
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
+                firstComment:
+                  $ref: "#/components/schemas/FirstCommentInput"
                 mediaUrls:
                   type: array
                   minItems: 1
@@ -1032,6 +1126,14 @@ paths:
                       /update-post.
                     example:
                       { "youtube": { "privacy": "public", "madeForKids": false } }
+                  firstComment:
+                    nullable: true
+                    description: |
+                      The stored first comment, or null when none is set. Its
+                      platforms key is omitted when the comment applies to every
+                      supported target.
+                    allOf:
+                      - $ref: "#/components/schemas/FirstCommentInput"
                   platforms:
                     type: array
                     items:
@@ -1189,6 +1291,15 @@ paths:
                     time — a long-stale draft can therefore be rejected.
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
+                firstComment:
+                  nullable: true
+                  description: |
+                    Replacement first comment (the whole object replaces the
+                    stored one) or null to remove it. Re-validated against the
+                    effective targets whenever platforms change or the post is
+                    scheduled. Omit to leave the stored comment unchanged.
+                  allOf:
+                    - $ref: "#/components/schemas/FirstCommentInput"
                 mediaUrls:
                   type: array
                   minItems: 1

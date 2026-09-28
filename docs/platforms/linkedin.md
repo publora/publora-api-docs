@@ -173,6 +173,23 @@ response = requests.post(
 )
 ```
 
+## First Comment
+
+Publora can post a text comment under your own post right after it publishes — pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and read the outcome in [`get-post` → `posts[].firstCommentResult`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult).
+
+- **Member profiles only** in wave 1. Company Pages are skipped with `skipReason: "unsupported_account_type"`.
+- Up to **1,250 characters**, plain text (no mentions or images — use [`POST /linkedin-comments`](../endpoints/linkedin-comments.md) once the post is live for those).
+- `firstCommentResult.commentId` is the comment's `urn:li:comment:…` URN, usable with [`DELETE /linkedin-comments`](../endpoints/linkedin-comments.md).
+
+```json
+{
+  "content": "Three lessons from our launch week.",
+  "platforms": ["linkedin-Tz9W5i6ZYG"],
+  "scheduledTime": "2027-03-01T14:00:00.000Z",
+  "firstComment": { "text": "Full write-up: https://example.com/launch-week" }
+}
+```
+
 ## Analytics
 
 Publora can retrieve analytics for your LinkedIn posts. Available metrics:

@@ -277,6 +277,10 @@ console.log(response.data);
 // Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
 
+## First Comment
+
+Pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment) and Publora posts a public reply under your own status right after it publishes. Up to **500 characters**, with each `http(s)://` link counted as 23 (punctuation glued to a link counts as ordinary characters). The reply's status ID is returned in [`get-post` → `posts[].firstCommentResult.commentId`](../endpoints/get-post.md#first-comment-result-postsfirstcommentresult).
+
 ## Platform Quirks
 
 - **mastodon.social only**: New connections are limited to the mastodon.social instance (the OAuth flow uses a hardcoded instance URL). The test-connection validator attempts to extract the instance URL from the connection's `profileUrl` field, but `profileUrl` is never set during Mastodon connection creation, so it always falls back to mastodon.social. Support for other instances may be added in the future.

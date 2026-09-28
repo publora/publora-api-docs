@@ -46,6 +46,7 @@ x-publora-key: YOUR_API_KEY
 | `platforms` | string[] | No* | Replacement target set — **replaces the whole array** |
 | `status` | string | No* | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No* | ISO 8601 UTC datetime (must be future) |
+| `firstComment` | object/null | No* | Replacement [first comment](../endpoints/create-post.md#first-comment) `{ text, platforms? }`, or `null` to remove it |
 
 *At least one of `content`, `platforms`, `status`, `scheduledTime`, `platformSettings`, or `mediaUrls` must be provided. Omitted fields keep their stored value.
 
