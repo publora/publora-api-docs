@@ -288,7 +288,7 @@ Pass `firstComment` to [`create-post`](../endpoints/create-post.md#first-comment
 - **Up to 4 images**: A maximum of 4 images can be attached to a single post. Publora enforces this limit at scheduling time via `postValidationService.js` and will reject posts that exceed it before they reach the Mastodon API.
 - **Image formats**: Publora's validator accepts JPEG, PNG, GIF, WebP, HEIF, HEIC, and AVIF for Mastodon. The publisher passes supported media through rather than converting it.
 - **MP4, WebM, and MOV for videos**: Mastodon accepts MP4, WebM, and MOV video formats. Publora accepts all three as input, but the scheduler currently reports the MIME type as `video/mp4` to Mastodon regardless of the actual format. MP4 uploads work correctly; WebM and MOV files may experience processing issues due to the mismatched MIME type.
-- **500-character limit**: Mastodon enforces a strict 500-character limit. Publora will return an error if your content exceeds this. Mastodon and Meta Threads do not auto-thread in Publora; only X/Twitter threading is currently enabled.
+- **500-character limit**: Mastodon enforces a strict 500-character limit. Publora will return an error if your content exceeds this. Mastodon does not auto-thread in Publora; only X/Twitter and Meta Threads split long content into a chain.
 - **Hashtags**: Hashtags in Mastodon are part of the post body and count toward the character limit. They become clickable and searchable on the platform.
 - **Content warnings**: Mastodon supports content warnings (CW), but this feature is not currently available through the Publora API.
 - **Federation delay**: Because Mastodon is federated, posts may take a few seconds to propagate to other instances in the fediverse.

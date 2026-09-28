@@ -524,7 +524,7 @@ if (status.posts) {
 | Problem | Cause | Solution |
 |---|---|---|
 | Post succeeds on some platforms but not others | Different requirements per platform (e.g., Instagram needs media) | Check which platforms need media and ensure your post includes it, or create separate post groups |
-| Twitter post appears as a thread | Text exceeds the connected account's applicable limit | This is expected behavior -- Publora auto-threads long Twitter content |
+| Twitter or Threads post appears as a thread | Text exceeds the connected account's applicable limit (500 characters per part on Threads) | This is expected behavior -- Publora auto-threads long X/Twitter and Meta Threads content. A Threads chain needs `threads_manage_replies` on the connection |
 | `400` error with invalid platform ID | Platform ID does not match the `{platform}-{id}` format, or account is not connected | Verify the format and check `GET /api/v1/platform-connections` for valid IDs |
 | Content rejected on some platforms | Platform character limit is lower than your text length and platform does not support threading | Shorten content to fit within the platform's limit, or post to those platforms separately with shorter text |
 | Video post fails on Instagram | Instagram requires specific video formats for Reels | Ensure your video is MP4, meets Instagram's aspect ratio requirements, and is within duration limits |
