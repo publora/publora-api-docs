@@ -38,6 +38,9 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
     "text": "Full write-up with the numbers: https://example.com/launch",
     "platforms": ["linkedin"]
   },
+  "firstComments": [
+    { "text": "Full write-up with the numbers: https://example.com/launch", "platforms": ["linkedin"] }
+  ],
   "posts": [
     {
       "_id": "663a1b2c3d4e5f6a7b8c9d01",
@@ -49,7 +52,8 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
       "permalink": null,
       "isThread": false,
       "threadParts": [],
-      "firstCommentResult": null
+      "firstCommentResult": null,
+      "firstCommentResults": []
     },
     {
       "_id": "663a1b2c3d4e5f6a7b8c9d02",
@@ -68,7 +72,17 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
         "error": null,
         "attemptedAt": "2026-02-22T14:30:04.120Z",
         "postedAt": "2026-02-22T14:30:05.310Z"
-      }
+      },
+      "firstCommentResults": [
+        {
+          "status": "posted",
+          "commentId": "urn:li:comment:(urn:li:activity:7654321,1234)",
+          "skipReason": null,
+          "error": null,
+          "attemptedAt": "2026-02-22T14:30:04.120Z",
+          "postedAt": "2026-02-22T14:30:05.310Z"
+        }
+      ]
     }
   ],
   "media": []
@@ -84,7 +98,8 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 | `scheduledTime` | string/null | **The effective scheduled time as actually stored by the server** — `null` if the group has none |
 | `platforms` | array | The effective platform list stored on the group (compound `platform-platformId` form) |
 | `platformSettings` | object | The stored per-platform settings (`{}` if none were stored) |
-| `firstComment` | object/null | The stored [first comment](./create-post.md#first-comment) `{ text, platforms? }` — `null` when none is set. `platforms` is omitted when the comment applies to every supported target |
+| `firstComment` | object/null | Legacy alias for `firstComments[0]`, or `null` when none is set |
+| `firstComments` | array | Stored ordered [first comments](./create-post.md#first-comment) `{ text, platforms?, delaySeconds? }`; old one-comment documents read as a one-element array without a migration |
 | `posts` | array | One entry per platform target (see below) |
 | `media` | array | Attached media inventory in group order; always present and empty when none is attached |
 
@@ -104,6 +119,7 @@ GET https://api.publora.com/api/v1/get-post/:postGroupId
 | `isThread` | boolean | `true` when this target was published as a multi-part chain. Always present |
 | `threadParts` | array | Per-part publication progress — see [Thread parts](#thread-parts). Always present, `[]` when the target is not a chain |
 | `firstCommentResult` | object/null | Outcome of the [first comment](./create-post.md#first-comment) on this target — see [First comment result](#first-comment-result-postsfirstcommentresult). `null` when no comment applies to this target or the post is not published yet |
+| `firstCommentResults` | array | Per-comment outcomes in order on this target; the singular field is an alias for item 0. An empty array means no result applies yet |
 
 > **Stable shape:** `platformId`, `postedId` and `permalink` are **always present** on every `posts[]` entry. When a value is unavailable it is explicitly `null` — the key never disappears, so you can read it without existence checks.
 
@@ -160,13 +176,14 @@ parts. `get-post` reports that progress per target.
 
 ### First comment result (`posts[].firstCommentResult`)
 
-`null` means no comment applies to this target: the group has no `firstComment`, the target's platform is excluded by `firstComment.platforms`, or the post is not published yet. Once the post is published the object is always present for applicable targets:
+Read `firstCommentResults[]` in the same order as group `firstComments[]`. The legacy `firstCommentResult` mirrors item 0 and is `null` when no result applies. Comments become due on scheduler ticks in order; item N+1 waits until N is `posted`, and failure stops later items. A `pending` result may have a future `dueAt`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | string | `pending` (published, comment attempt not recorded yet — it is attempted right after publish), `posted`, `failed`, `skipped` |
+| `status` | string | `pending` (waiting for its due time or attempt), `posted`, `failed`, `skipped` |
+| `dueAt` | string/null | Earliest scheduler time for this comment (ISO 8601 UTC) |
 | `commentId` | string/null | The platform's ID of the comment: LinkedIn `urn:li:comment:…` URN, X tweet ID, Threads media ID, Bluesky `at://` URI, Mastodon status ID |
-| `skipReason` | string/null | Why nothing was attempted: `unsupported_platform`, `feature_disabled`, `workspace_post`, `connection_unavailable`, `connection_disabled`, `unsupported_account_type` (only on results recorded before LinkedIn company Pages were supported) |
+| `skipReason` | string/null | Why nothing was attempted, such as `unsupported_platform`, `feature_disabled`, or an unavailable connection. Older records may retain `workspace_post` or `unsupported_account_type` |
 | `attemptedAt` | string/null | When the attempt was claimed (ISO 8601 UTC) |
 | `postedAt` | string/null | When the platform confirmed the comment |
 | `error` | object/null | For `failed`: `{ code, message, platformStatusCode, outcomeUnknown }`. **`outcomeUnknown: true` means the request was sent but no definitive answer came back — the comment may exist; check the platform before commenting manually.** |

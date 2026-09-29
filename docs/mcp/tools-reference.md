@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 18 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Reference for personal Publora MCP tools with parameters, examples, and code snippets. Media can be attached two ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`) or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`. Agency client work uses the `company_*` tools; see the note under `update_post` for its single first-comment contract.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -107,7 +107,8 @@ Create and schedule a post to one or more platforms.
 | `scheduledTime` | string | No | When to publish (ISO 8601): `2026-03-01T14:00:00Z`. Omit to create a **draft**. |
 | `mediaUrls` | string[] | No | Up to 10 public **https** image/video URLs, downloaded server-side and attached before validation. Pass together with `scheduledTime` to attach **and** schedule in one call. |
 | `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
-| `firstComment` | object | No | `{ "text": "…", "platforms": ["linkedin"] }` — a text comment posted under the account's own post right after it publishes. `platforms` are platform **types** (never connection IDs); omit for every supported target. See the note below. |
+| `firstComment` | object | No | Legacy single-comment form `{ "text": "…", "platforms": ["linkedin"] }`; do not combine with `firstComments`. |
+| `firstComments` | object[]/null | No | Up to three ordered `{ text, platforms?, delaySeconds? }` comments; `delaySeconds` is an integer 0–86,400. Platform types, never connection IDs. |
 | `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request replays the original response without creating another post. |
 
 > **Draft behavior:** `scheduledTime` is optional in both MCP and REST — omit it to create a **draft**. Publishable media-required platforms (Instagram, TikTok, YouTube) must be created as a draft first (or given media via `mediaUrls`), then scheduled once media is attached. Pinterest is connect-only: passing media may satisfy registry validation, but it cannot be published because scheduler dispatch is not implemented.
@@ -118,7 +119,7 @@ Create and schedule a post to one or more platforms.
 
 > **Publishable media-required platforms (Instagram, TikTok, YouTube):** scheduling one of these with no media fails validation with `MEDIA_REQUIRED` (HTTP 400, `{ "error": "Validation failed", "validation": {…} }`; the error's `suggestions` name the exact recovery tool calls). To satisfy it: pass `mediaUrls` in the same `create_post` call, **or** create a draft (omit `scheduledTime`), attach with `get_upload_url` → `complete_media`, then `update_post` with `status: "scheduled"`. Do not schedule Pinterest; it is connect-only.
 
-> **First comment.** `firstComment: { "text": "…", "platforms": ["linkedin"] }` posts one text comment under the account's own post right after it publishes — the usual place for a link or hashtags, so nobody has to be online at publish time. Wave 1 covers LinkedIn (profiles and company Pages — a Page comments as the organization), X, Threads (the connection must grant `threads_manage_replies`), Bluesky and Mastodon; other targets are skipped with a `FIRST_COMMENT_UNSUPPORTED_PLATFORMS` warning. Length is checked per platform (X 280 / 25,000 on Premium, LinkedIn 1,250, Threads 500, Bluesky 300 graphemes and 3,000 bytes, Mastodon 500 with links counted as 23) and fails with `400 FIRST_COMMENT_TOO_LONG`; connection IDs in `platforms` fail with `400 FIRST_COMMENT_PLATFORM_UNKNOWN`. Best effort: attempted once, never retried, and a failed comment never changes the published post. Read the outcome with `get_post` → `posts[].firstCommentResult` (`pending | posted | failed | skipped`, `commentId`, `skipReason`, `error.outcomeUnknown` = check the platform before commenting manually). Edit it with `update_post` while the post is scheduled; `firstComment: null` removes it; a time change leaves it untouched.
+> **First comments.** `firstComments: [{ "text": "…", "platforms": ["linkedin"], "delaySeconds": 60 }]` posts up to three comments in order under the account's own post. The first delay starts at publication; later delays start when the previous comment posts. Omitted delay means zero, with delivery on a scheduler tick. A failed comment stops the following ones; each is attempted at most once. Supported targets are LinkedIn (profiles and Pages), X, Threads, Bluesky and Mastodon. Text is checked per platform (X 280 / 25,000 on Premium, LinkedIn 1,250, Threads 500, Bluesky 300 graphemes and 3,000 bytes, Mastodon 500 with links counted as 23); unsupported targets are skipped. Read `get_post` → `posts[].firstCommentResults[]` in order. While one is `pending` or has `error.outcomeUnknown`, do not post it manually. Legacy `firstComment` and `firstCommentResult` remain aliases for item 0. Send either input field, never both; `firstComments: null` or `[]` clears the list on update.
 
 > **`platformSettings` via MCP** — supported on `create_post` and `update_post`. The schema is **strict**: a mistyped platform or key (e.g. `coverUrl` → `coverurl`) is rejected with a validation error rather than silently dropped. These seven platforms accept settings:
 >
@@ -294,6 +295,7 @@ async def get_post_details():
   "scheduledTime": "2026-07-20T14:30:00.000Z",
   "platformSettings": {},
   "firstComment": { "text": "Full write-up: https://example.com/update" },
+  "firstComments": [{ "text": "Full write-up: https://example.com/update" }],
   "platforms": ["linkedin-abc123"],
   "posts": [
     {
@@ -306,14 +308,15 @@ async def get_post_details():
       "permalink": null,
       "isThread": false,
       "threadParts": [],
-      "firstCommentResult": null
+      "firstCommentResult": null,
+      "firstCommentResults": []
     }
   ],
   "media": []
 }
 ```
 
-> **Note:** `get_post` returns group-level `status`, `scheduledTime`, `platformSettings`, `firstComment` (or `null`), `platforms`, and `media[]`, plus one `posts[]` entry per platform target. Each post includes nullable `platformId`, `postedId`, and `permalink`, plus `isThread` and `threadParts` — both always present — and `firstCommentResult`: `null` until the post is published (or when no comment applies to that target), then `{ status: pending | posted | failed | skipped, commentId, skipReason, attemptedAt, postedAt, error }`. An `error.outcomeUnknown: true` means the comment may already be on the platform: check there before commenting manually.
+> **Note:** `get_post` returns group-level `firstComments[]` and legacy `firstComment`, plus one `posts[]` entry per target. Each post includes ordered `firstCommentResults[]` and legacy `firstCommentResult` (item 0). Result fields include `status: pending | posted | failed | skipped`, `dueAt`, `commentId`, `skipReason`, `attemptedAt`, `postedAt`, and `error`. An `error.outcomeUnknown: true` means the comment may already be on the platform: check there before commenting manually.
 
 **Thread progress.** For an X/Twitter or Meta Threads target published as a chain, `isThread` is `true` and `threadParts[]` carries one entry per part with `index` (zero-based), `content`, `status` (`pending`, `published`, `failed`) and `publishedId` (`null` until confirmed). The target's `postedId` is the first part's ID.
 
@@ -353,9 +356,12 @@ Edit a draft or scheduled post — its text, its target accounts, its schedule, 
 | `mediaUrls` | string[] | No | Public https URLs (≤10) to download and **append** to the post's media. |
 | `platformSettings` | object | No | Per-platform options to merge (same strict schema as `create_post`). |
 | `firstComment` | object/null | No | Replacement first comment (`{ text, platforms? }`, the whole object replaces the stored one) or `null` to remove it. Re-validated against the targets whenever `platforms` change; a time change leaves it untouched. |
+| `firstComments` | object[]/null | No | Replace all ordered comments (`{ text, platforms?, delaySeconds? }`, up to three); `null` or `[]` clears them. Do not send with `firstComment`. |
 | `idempotencyKey` | string | No | Retry key (min length 1), forwarded as the `Idempotency-Key` header. Reusing it with the identical request prevents repeated media appends and replays the original response. |
 
-> **Note:** Provide at least one of `content`, `platforms`, `status`, `scheduledTime`, `mediaUrls`, `platformSettings`, or `firstComment`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
+> **Note:** Provide at least one of `content`, `platforms`, `status`, `scheduledTime`, `mediaUrls`, `platformSettings`, `firstComment`, or `firstComments`. `update_post` is **not idempotent by default** — repeating a call with `mediaUrls` appends the same media a second time. Pass `idempotencyKey` to make a retry safe: the repeated call replays the original response instead of appending again.
+
+> **Agency:** `company_save_post` accepts one `draft.firstComment: { text, platforms? }` with the same length and platform-type rules; `null` clears it. `company_posts` action `detail` returns the stored comment and each target's `firstCommentResult`. The multi-comment `firstComments` field is personal-only.
 
 > **Editing content and targets:** a `content` edit rewrites each platform post to its effective text and preserves explicit per-account overrides. A `platforms` edit deletes the platform posts for IDs you drop and creates them for IDs you add — added connections are validated for ownership and plan entitlement, and adding a target to a **scheduled** post re-runs scheduling limits plus full content/media validation. Scheduling with an empty target set returns `PLATFORMS_REQUIRED`. The write is all-or-nothing: a rejected edit leaves the post exactly as it was.
 
