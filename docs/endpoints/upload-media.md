@@ -421,7 +421,7 @@ Response:
 }
 ```
 
-> Note: `complete-media` only probes an already-attached file — it does **not** attach media and does **not** demote a scheduled post. Only `get-upload-url` (attach) and `DELETE /media` (detach) trigger the demote-to-draft behavior.
+> Note: `complete-media` only probes an already-attached file — it does **not** attach media and does **not** demote a scheduled post. Attaching media (`get-upload-url`, [`attach-media`](./attach-media.md)) or removing it (`DELETE /media/:mediaId`, `DELETE /post/:postGroupId/media/:mediaId`) demotes a scheduled post to draft; `mediaUrls` on `update-post` keeps it scheduled and re-validates it instead. See `post.demoted` in [Webhooks](./webhooks.md).
 
 ## File URLs
 
