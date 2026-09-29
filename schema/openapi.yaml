@@ -447,11 +447,14 @@ components:
         firstCommentResult:
           nullable: true
           description: |
-            Outcome of the group's first comment on this target. Null when no
-            comment applies to the target (no intent, the platform is excluded
-            by firstComment.platforms) or the post is not published yet.
+            Legacy alias for firstCommentResults[0], or null when none applies.
           allOf:
             - $ref: '#/components/schemas/FirstCommentResult'
+        firstCommentResults:
+          type: array
+          description: Ordered results for this target, corresponding to group firstComments.
+          items:
+            $ref: '#/components/schemas/FirstCommentResult'
 
     ThreadPart:
       type: object
@@ -480,13 +483,12 @@ components:
     FirstCommentInput:
       type: object
       description: |
-        A text comment Publora posts under the account's own post right after
-        it publishes (the usual place for a link or hashtags). Wave 1 platforms:
+        One text comment Publora posts under the account's own post. Supported platforms:
         LinkedIn (profiles and company Pages), X, Threads, Bluesky, Mastodon; other targets
         are skipped and reported in warnings[]. Length is validated per
         applicable platform with that platform's own counting. Best effort:
-        attempted once right after publish, never retried; a failed comment
-        never changes the published post.
+        attempted at most once, never retried; a failed comment never changes
+        the published post.
       required: [text]
       additionalProperties: false
       properties:
@@ -509,17 +511,55 @@ components:
             enum: [linkedin, twitter, threads, bluesky, mastodon, instagram, facebook, youtube, tiktok, telegram]
           example: ["linkedin"]
 
+    FirstCommentsInput:
+      type: array
+      maxItems: 3
+      description: |
+        Up to three ordered first comments. Send this or legacy firstComment,
+        never both. Null or [] clears them. Later comments run only after the
+        preceding comment is posted; failure stops the sequence.
+      items:
+        $ref: '#/components/schemas/FirstCommentSequenceItem'
+
+    FirstCommentSequenceItem:
+      type: object
+      required: [text]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          maxLength: 25000
+          description: Comment text; per-platform limits are also validated.
+        platforms:
+          type: array
+          description: Platform types, never connection IDs; omit for all supported targets.
+          items:
+            type: string
+            enum: [linkedin, twitter, threads, bluesky, mastodon, instagram, facebook, youtube, tiktok, telegram]
+        delaySeconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+          description: |
+            Delay after publication for item 0, or after the previous comment
+            posts for later items. Omitted means zero; actual delivery is
+            within one scheduler tick of the due time.
+
     FirstCommentResult:
       type: object
-      description: Outcome of the first comment on one platform target.
+      description: Outcome of one ordered first comment on a platform target.
       properties:
         status:
           type: string
           enum: [pending, posted, failed, skipped]
           description: |
-            pending = published, attempt not recorded yet (it runs right after
-            publish); posted; failed; skipped.
+            pending = waiting for due time or attempt; posted; failed; skipped.
           example: "posted"
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Earliest scheduler time for the attempt.
         commentId:
           type: string
           nullable: true
@@ -530,8 +570,7 @@ components:
         skipReason:
           type: string
           nullable: true
-          enum: [unsupported_platform, feature_disabled, workspace_post, connection_unavailable, connection_disabled, unsupported_account_type, null]
-          description: Why nothing was attempted; unsupported_account_type appears only on results recorded before LinkedIn company Pages were supported.
+          description: Why nothing was attempted. Older records may retain workspace_post or unsupported_account_type.
         attemptedAt:
           type: string
           format: date-time
@@ -928,6 +967,10 @@ paths:
                   $ref: "#/components/schemas/PlatformSettingsInput"
                 firstComment:
                   $ref: "#/components/schemas/FirstCommentInput"
+                firstComments:
+                  nullable: true
+                  allOf:
+                    - $ref: "#/components/schemas/FirstCommentsInput"
                 mediaUrls:
                   type: array
                   minItems: 1
@@ -1129,11 +1172,14 @@ paths:
                   firstComment:
                     nullable: true
                     description: |
-                      The stored first comment, or null when none is set. Its
-                      platforms key is omitted when the comment applies to every
-                      supported target.
+                      Legacy alias for firstComments[0], or null when none is set.
                     allOf:
                       - $ref: "#/components/schemas/FirstCommentInput"
+                  firstComments:
+                    type: array
+                    description: Stored ordered first comments; old single-comment documents read as a one-element array.
+                    items:
+                      $ref: "#/components/schemas/FirstCommentSequenceItem"
                   platforms:
                     type: array
                     items:
@@ -1294,12 +1340,15 @@ paths:
                 firstComment:
                   nullable: true
                   description: |
-                    Replacement first comment (the whole object replaces the
-                    stored one) or null to remove it. Re-validated against the
-                    effective targets whenever platforms change or the post is
-                    scheduled. Omit to leave the stored comment unchanged.
+                    Legacy single-comment replacement, or null to remove it.
+                    Do not send with firstComments.
                   allOf:
                     - $ref: "#/components/schemas/FirstCommentInput"
+                firstComments:
+                  nullable: true
+                  description: Replace the ordered list; null or [] clears it. Do not send with firstComment.
+                  allOf:
+                    - $ref: "#/components/schemas/FirstCommentsInput"
                 mediaUrls:
                   type: array
                   minItems: 1
