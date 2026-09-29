@@ -13,6 +13,16 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## 2026-09-29
 
+### Telegram: private channels over a bot connection — publora.com #570
+
+- **Affected surface:** Telegram bot connections (dashboard and client connection pages); REST `GET /platform-connections` and `POST /test-connection/{platformId}`; MCP `list_connections`.
+- **Tag:** Additive; **potentially breaking** for clients that assume `username` is always a string. Behavioral change for `test-connection`: a Telegram bot connection whose token still works can now return `error` where it returned `ok`, and its message strings changed.
+- **Changes:**
+  - The channel field accepts a public channel's `@username` or `t.me/username`, and for a private channel its `-100…` chat ID or a `t.me/c/…` link to any of its messages. Invite links (`t.me/+…`, `t.me/joinchat/…`) are rejected with guidance, because the Bot API cannot identify a channel from them. See [Telegram](platforms/telegram.md#bot-connection-default).
+  - A channel without a public username is saved with `username: null`, and `displayName` holds the channel title. `GET /platform-connections`, `test-connection` and `list_connections` return that `null`. The platform ID comes from the chat ID, as for any bot connection, for example `telegram--1001234567890`.
+  - `test-connection` on a Telegram bot connection now also checks that the bot can read the channel and is an administrator allowed to post, not only that the token works. A passing check returns `Bot can post to <channel title>` instead of `Connected as @<bot username>`; the new failure messages include `Channel is unavailable` and `Bot needs channel administrator posting rights`, and Telegram API errors from the new channel checks (for example, a bot removed from a private channel) return `Request failed with status code <code>`. MTProto connections now fail with `Invalid bot connection` instead of `Invalid bot token`. See [Test Connection](endpoints/test-connection.md#telegram-connections).
+- **Migration action:** Treat `username` as nullable and label connections by `displayName` when it is `null`. Keep targeting posts by `platformId`. If you gate scheduling on `test-connection`, a Telegram connection that now returns `error` needs its bot's administrator posting rights restored in Telegram.
+
 ### Media URL errors: hosts that resolve to private addresses report `MEDIA_URL_BLOCKED_HOST` — publora.com #565
 
 - **Affected surface:** REST `create-post` and `update-post` (`mediaUrls`) and `POST /attach-media/{postGroupId}`; MCP `create_post`, `update_post` and `attach_media`.

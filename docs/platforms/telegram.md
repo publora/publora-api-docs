@@ -25,13 +25,13 @@ Publora provides a unified REST API for publishing content to Telegram channels 
 telegram-{chatId}
 ```
 
-Where `{chatId}` is your Telegram channel or group chat ID assigned during bot connection setup.
+Where `{chatId}` is your Telegram channel or group chat ID assigned during bot connection setup. Bot API chat IDs of channels and supergroups are negative and start with `-100`, so a bot connection's platform ID has a double dash, for example `telegram--1001234567890`. MTProto connections store the channel's own positive ID, so their platform ID has a single dash, for example `telegram-1234567890`. Copy `platformId` verbatim from [`GET /platform-connections`](../endpoints/platform-connections.md) instead of building it.
 
 ## Requirements
 
 - A Telegram bot created via [@BotFather](https://t.me/BotFather)
-- The bot's token and target channel/group name provided during setup
-- The bot must be added as an **administrator** of the target channel or group with the **`can_post_messages`** permission explicitly enabled (being an admin alone is not enough)
+- The bot's token and the target channel, identified during setup by its public `@username` or, for a private channel, by its `-100…` chat ID or a `t.me/c/…` message link
+- The bot must be added as an **administrator** of the target channel or supergroup. In a channel, the **`can_post_messages`** (Post Messages) permission must be explicitly enabled; being an admin alone is not enough. Regular (basic) groups are not supported; convert the group to a supergroup or use a channel
 - API key from Publora
 
 ## Connection Types
@@ -42,9 +42,15 @@ Publora supports two connection types for Telegram:
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) on Telegram
 2. Copy the bot token provided by BotFather
-3. Add the bot as an administrator to your target channel or group
-4. In the Publora dashboard, provide the bot token and channel name (e.g., `@mychannel`)
+3. Add the bot as an administrator to your target channel or supergroup
+4. In the Publora dashboard, provide the bot token and identify the channel:
+   - **Public channel:** its username, e.g. `@mychannel`, `mychannel`, or `t.me/mychannel`
+   - **Private channel** (no public username): its chat ID, e.g. `-1001234567890`, or a link to any message in the channel (choose **Copy Link** on the message), e.g. `https://t.me/c/1234567890/42`. The number after `t.me/c/` is the chat ID without its `-100` prefix.
 5. Publora will verify the connection and assign a platform ID
+
+Invite links (`t.me/+…`, `t.me/joinchat/…`) are rejected: the Bot API cannot identify a channel from an invite link. Use the chat ID or a message link instead.
+
+A channel without a public username is saved with `username: null`, and `displayName` holds the channel title. [`GET /platform-connections`](../endpoints/platform-connections.md) and the MCP `list_connections` tool return both fields; [`test-connection`](../endpoints/test-connection.md) returns `username: null` and has no `displayName`.
 
 ### MTProto Connection
 
@@ -109,7 +115,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '*Exclusive Update*\n\nThis content is protected and cannot be forwarded.',
-    platforms: ['telegram-1001234567890'],
+    platforms: ['telegram--1001234567890'],
     platformSettings: {
       telegram: {
         disableNotification: true,      // Send silently
@@ -138,7 +144,7 @@ response = requests.post(
     },
     json={
         'content': '*Exclusive Update*\n\nThis content is protected and cannot be forwarded.',
-        'platforms': ['telegram-1001234567890'],
+        'platforms': ['telegram--1001234567890'],
         'platformSettings': {
             'telegram': {
                 'disableNotification': True,
@@ -200,7 +206,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '*Product Update v2.5*\n\nWe have shipped the following improvements:\n\n- _Faster API response times_ (avg 45ms)\n- New `batch` endpoint for bulk operations\n- Improved error messages with `error_code` field\n\n> This update is backward compatible. No migration needed.\n\nFull changelog: [docs.example.com/changelog](https://docs.example.com/changelog)',
-    platforms: ['telegram-1001234567890']
+    platforms: ['telegram--1001234567890']
   })
 });
 
@@ -234,7 +240,7 @@ response = requests.post(
     },
     json={
         'content': content,
-        'platforms': ['telegram-1001234567890']
+        'platforms': ['telegram--1001234567890']
     }
 )
 
@@ -251,7 +257,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "*Product Update v2.5*\n\nWe have shipped the following improvements:\n\n- _Faster API response times_ (avg 45ms)\n- New `batch` endpoint for bulk operations\n- Improved error messages with `error_code` field\n\n> This update is backward compatible. No migration needed.\n\nFull changelog: [docs.example.com/changelog](https://docs.example.com/changelog)",
-    "platforms": ["telegram-1001234567890"]
+    "platforms": ["telegram--1001234567890"]
   }'
 # Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
@@ -275,7 +281,7 @@ Full changelog: [docs.example.com/changelog](https://docs.example.com/changelog)
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content,
-  platforms: ['telegram-1001234567890']
+  platforms: ['telegram--1001234567890']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -300,7 +306,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '*New Dashboard Preview*\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-    platforms: ['telegram-1001234567890']
+    platforms: ['telegram--1001234567890']
   })
 });
 
@@ -322,7 +328,7 @@ response = requests.post(
     },
     json={
         'content': '*New Dashboard Preview*\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-        'platforms': ['telegram-1001234567890']
+        'platforms': ['telegram--1001234567890']
     }
 )
 
@@ -339,7 +345,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "*New Dashboard Preview*\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.",
-    "platforms": ["telegram-1001234567890"]
+    "platforms": ["telegram--1001234567890"]
   }'
 # Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
@@ -351,7 +357,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: '*New Dashboard Preview*\n\nHere is a sneak peek at our redesigned analytics dashboard. Key improvements include real-time data refresh and customizable widgets.',
-  platforms: ['telegram-1001234567890']
+  platforms: ['telegram--1001234567890']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -378,7 +384,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   },
   body: JSON.stringify({
     content: '*Feature Demo*\n\nWatch our 60-second demo of the new collaboration tools.',
-    platforms: ['telegram-1001234567890']
+    platforms: ['telegram--1001234567890']
   })
 });
 
@@ -400,7 +406,7 @@ response = requests.post(
     },
     json={
         'content': '*Feature Demo*\n\nWatch our 60-second demo of the new collaboration tools.',
-        'platforms': ['telegram-1001234567890']
+        'platforms': ['telegram--1001234567890']
     }
 )
 
@@ -417,7 +423,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "content": "*Feature Demo*\n\nWatch our 60-second demo of the new collaboration tools.",
-    "platforms": ["telegram-1001234567890"]
+    "platforms": ["telegram--1001234567890"]
   }'
 # Response: { "success": true, "postGroupId": "abc123...", "scheduledTime": null }
 ```
@@ -429,7 +435,7 @@ const axios = require('axios');
 
 const response = await axios.post('https://api.publora.com/api/v1/create-post', {
   content: '*Feature Demo*\n\nWatch our 60-second demo of the new collaboration tools.',
-  platforms: ['telegram-1001234567890']
+  platforms: ['telegram--1001234567890']
 }, {
   headers: {
     'Content-Type': 'application/json',
@@ -443,16 +449,17 @@ console.log(response.data);
 
 ## Platform Quirks
 
-- **Bot must be admin**: The Telegram bot must be added as an administrator to the target channel or group with `can_post_messages` permission. The admin permission check happens at **connection time**, not at posting time — if the bot is not an admin with `can_post_messages`, the connection will be rejected during setup.
+- **Bot must be admin**: The Telegram bot must be added as an administrator to the target channel or supergroup, with the `can_post_messages` permission in a channel. The admin permission check happens at **connection time** and again when you call [`test-connection`](../endpoints/test-connection.md#telegram-connections), not at posting time — if the bot lacks these rights, the connection will be rejected during setup. If the bot loses posting rights later, `test-connection` returns `Bot needs channel administrator posting rights`, or `Request failed with status code <code>` if the bot was removed from a private channel.
 - **Caption overflow behavior**: When posting with media, the text is sent as a caption (1,024-character limit via bot API). If the content exceeds 1,024 characters and media is attached, the text is sent as a separate reply message to the media post rather than being truncated or rejected. Text-only messages support up to 4,096 characters via MTProto.
 - **Caption validation gap**: Publora's validation layer (`postValidationService.js`) does **not** currently validate caption length for Telegram. A 1,024-character caption limit exists at the Telegram API level, but Publora does not pre-check this. If your caption exceeds 1,024 characters on a media post, the error will come from Telegram's API at publish time, not from Publora's validation.
 - **WebP auto-conversion**: WebP images are automatically converted to JPEG before sending to Telegram.
 - **Markdown formatting**: Telegram supports a subset of markdown. Publora's `safeParseMarkdown` uses single asterisks for bold: `*bold*`, `_italic_`, `` `code` ``, `[text](url)`, and `> blockquote`. Note that this differs from standard Markdown where `**double asterisks**` denote bold. Not all markdown features are supported (e.g., headers are not rendered as headers).
 - **Mixed media types not supported**: A single post cannot contain both images and videos. Attempting to send mixed media types will result in an error. Note that Publora's backend validation does **not** enforce mixed media type restrictions for Telegram (it only does so for Instagram). If Telegram rejects mixed media, the error comes from the Telegram API itself, not from Publora's validation layer.
 - **Bot connection media group limitations**: Bot connections support either a single video OR multiple photos in a media group, but not multiple videos. Multi-video posts are not supported for bot connections. If you need to post multiple videos, create separate posts for each video.
-- **Channel name format**: When setting up the connection, provide the channel name with the `@` prefix (e.g., `@mychannel`). The `channelName` field also accepts a numeric chat ID, which is required for private channels that do not have a public `@username`.
+- **Channel identifier format**: For a public channel, provide its username with or without the `@` prefix, or its `t.me/mychannel` link. For a private channel without a public `@username`, provide its `-100…` chat ID or a `t.me/c/…` link to any of its messages. Invite links (`t.me/+…`, `t.me/joinchat/…`) and public message links (`t.me/mychannel/123`) are not accepted.
+- **Private channels have no username**: A channel without a public username is saved with `username: null`; its title is in `displayName`. Label such connections by `displayName`, and keep targeting posts by `platformId`.
 - **Bot token security**: Your bot token is stored by Publora in the connection record and is never exposed in API responses. Treat your bot token like a password. Bot tokens are stored in plaintext in the connection record. Encryption at rest is planned but not yet implemented. MTProto sessions, however, ARE encrypted at rest (the service user's session is stored encrypted and decrypted at runtime).
-- **MTProto test-connection limitation**: The `test-connection` endpoint always fails for MTProto connections. The validator checks `connectionType === 'bot'` before validating the bot token. MTProto connections have `connectionType: 'mtproto'`, so they skip the bot validation block entirely and fall through to the default failure response with a misleading `'Invalid bot token'` error. This is a known limitation; MTProto connections work correctly for posting despite failing the test-connection check.
+- **MTProto test-connection limitation**: The `test-connection` endpoint always fails for MTProto connections. The Telegram validator only checks bot connections, so an MTProto connection (`connectionType: 'mtproto'`) returns `status: "error"` with the message `Invalid bot connection`. This is a known limitation; MTProto connections work correctly for posting despite failing the test-connection check.
 - **Message editing**: Once posted, Telegram messages can be edited, but this capability is not currently exposed through the Publora API.
 
 ## API Limits

@@ -56,7 +56,7 @@ x-publora-key: YOUR_API_KEY
 | Field | Type | Description |
 |-------|------|-------------|
 | `platformId` | string | Unique ID for creating posts (e.g., `twitter-123456789`) |
-| `username` | string | Platform username or handle |
+| `username` | string/null | Platform username or handle; `null` for a Telegram channel without a public username (use `displayName`) |
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
 | `profileUrl` | string/null | URL to profile page (null if unavailable) |
@@ -208,7 +208,8 @@ async function listAllConnections() {
 
     console.log(`Found ${connections.length} connected accounts:`);
     for (const conn of connections) {
-      console.log(`  ${conn.platformId}: ${conn.displayName} (@${conn.username})`);
+      const handle = conn.username ? ` (@${conn.username})` : ''; // null for private Telegram channels
+      console.log(`  ${conn.platformId}: ${conn.displayName}${handle}`);
     }
 
     return connections;
@@ -407,7 +408,8 @@ def list_all_connections():
 
         print(f"Found {len(connections)} connected accounts:")
         for conn in connections:
-            print(f"  {conn['platformId']}: {conn['displayName']} (@{conn['username']})")
+            handle = f" (@{conn['username']})" if conn.get('username') else ""  # None for private Telegram channels
+            print(f"  {conn['platformId']}: {conn['displayName']}{handle}")
 
         return connections
     except PubloraError as e:

@@ -86,7 +86,7 @@ The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because the
 | Field | Type | Description |
 |-------|------|-------------|
 | `platformId` | string | Unique ID in format `platform-id`. Use this in the `platforms` array when creating posts. |
-| `username` | string | Platform username or handle. Note: the stored username may or may not include a `@` prefix depending on what was saved during OAuth. |
+| `username` | string/null | Platform username or handle. Note: the stored username may or may not include a `@` prefix depending on what was saved during OAuth. `null` for a Telegram channel without a public username (a private channel connected by chat ID or message link); `displayName` then holds the channel title. |
 | `displayName` | string/null | Display name on the platform. Returns `null` if not set during OAuth. |
 | `profileImageUrl` | string/null | Profile image URL. Returns `null` if not available. |
 | `profileUrl` | string/null | URL to the user's profile on the platform. Can be null if not available for the platform. |

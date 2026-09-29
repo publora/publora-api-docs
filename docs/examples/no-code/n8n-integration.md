@@ -515,7 +515,7 @@ const connections = $input.first().json.connections;
 console.log('Platform IDs:');
 connections.forEach(conn => {
   const platform = conn.platformId.split('-', 1)[0];
-  console.log(`  ${platform}: ${conn.platformId} (${conn.username})`);
+  console.log(`  ${platform}: ${conn.platformId} (${conn.username ?? conn.displayName})`);
 });
 
 return connections.map(conn => ({ json: conn }));

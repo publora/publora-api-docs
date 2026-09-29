@@ -242,6 +242,8 @@ components:
           example: "twitter-123456789"
         username:
           type: string
+          nullable: true
+          description: "Platform username or handle. Null for a Telegram channel without a public username (a private channel); displayName then holds the channel title."
           example: "@yourhandle"
         displayName:
           type: string
@@ -3818,6 +3820,8 @@ paths:
                     example: "linkedin-Tz9W5i6ZYG"
                   username:
                     type: string
+                    nullable: true
+                    description: "Connected account username. Null for a Telegram channel without a public username."
                     example: "John Doe"
                   status:
                     type: string

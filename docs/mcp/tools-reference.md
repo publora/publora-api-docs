@@ -717,7 +717,7 @@ asyncio.run(list_connections())
 | Field | Type | Description |
 |-------|------|-------------|
 | `platformId` | string | Unique ID for creating posts (e.g., `twitter-123456789`) |
-| `username` | string | Platform username or handle |
+| `username` | string/null | Platform username or handle; `null` for a Telegram channel without a public username (use `displayName`) |
 | `displayName` | string | Display name on the platform |
 | `profileImageUrl` | string | Profile image URL |
 | `profileUrl` | string/null | URL to the profile on the platform |

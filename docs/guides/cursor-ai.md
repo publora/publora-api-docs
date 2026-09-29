@@ -261,7 +261,7 @@ declare namespace Publora {
   interface PlatformConnection {
     platformId: string;
     platform: 'twitter' | 'linkedin' | 'instagram' | 'threads' | 'tiktok' | 'youtube' | 'facebook' | 'bluesky' | 'mastodon' | 'telegram';
-    username: string;
+    username: string | null; // null for a private Telegram channel
     displayName: string;
     profileImageUrl?: string;
   }

@@ -67,7 +67,7 @@ POST https://api.publora.com/api/v1/test-connection/:platformId
 |-------|------|-------------|
 | `platform` | string | Platform name (twitter, linkedin, threads, etc.) |
 | `platformId` | string | Full platform ID |
-| `username` | string | Connected account username |
+| `username` | string/null | Connected account username. `null` for a Telegram channel without a public username (a private channel). |
 | `status` | string | `ok` or `error` |
 | `message` | string | Human-readable status message |
 | `permissions` | array | List of granted permissions/scopes |
@@ -160,9 +160,21 @@ if (healthy) {
 }
 ```
 
-### Telegram MTProto Connections
+### Telegram Connections
 
-> **Note:** Telegram MTProto connections will always fail the test-connection check because the validator only checks `connectionType === "bot"` connections. MTProto connections fall through to the default failure case, returning a misleading `"Invalid bot token"` error.
+For a Telegram bot connection, the check verifies the bot token, that the bot can still read the saved channel, and that the bot is an administrator allowed to post there. A private channel without a public username returns `"username": null`.
+
+| `status` | `message` | Meaning |
+|----------|-----------|---------|
+| `ok` | `Bot can post to <channel title>` | The token works and the bot is an administrator with posting rights |
+| `error` | `Bot needs channel administrator posting rights` | The bot is no longer an administrator, or lost the **Post Messages** right in a channel |
+| `error` | `Channel is unavailable` | The saved chat is not a channel or supergroup |
+| `error` | `Invalid bot token` | Telegram answered without confirming the bot. A revoked token normally fails with `Request failed with status code 401` instead (see below) |
+| `error` | `Invalid bot connection` | Not a usable bot connection (no bot token or chat ID). Every MTProto connection returns this |
+
+Errors returned by the Telegram API itself, such as a revoked bot token or a private channel the bot was removed from, come back as `Request failed with status code <code>`.
+
+> **Note:** Telegram MTProto connections will always fail the test-connection check because the validator only checks bot connections. They return `"Invalid bot connection"`, but still publish normally.
 
 ### Unknown Platform
 
@@ -188,7 +200,7 @@ If the platform has no test-connection validator implemented (e.g., Pinterest), 
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"Invalid platformId format"` | `platformId` doesn't contain a dash or is malformed. **Note:** This endpoint uses a simple dash-split validation. `create-post` instead parses at the first dash, requires a lowercase-letter prefix, and rejects whitespace, `/`, `?`, or `#` in the non-empty ID; colons are allowed. |
+| 400 | `"Invalid platformId format"` | `platformId` doesn't contain a dash or is malformed. **Note:** Parsed the same way as in `create-post`: split at the first dash (so a Telegram bot ID such as `telegram--1001234567890` is valid), with a lowercase-letter prefix; the non-empty ID may not contain whitespace, `/`, `?`, or `#`; colons are allowed. |
 | 400 | `"Invalid x-publora-user-id"` | `x-publora-user-id` header contains an invalid ObjectId |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is not a valid key |
