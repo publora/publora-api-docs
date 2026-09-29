@@ -518,6 +518,7 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 409 | `"A request with this idempotency key is still in flight"` | `code: "IDEMPOTENCY_IN_FLIGHT"`. An earlier request with the same `Idempotency-Key` has not finished. Retry the identical request shortly. See [Idempotency](#idempotency) |
 | 422 | `"Idempotency key was already used with a different request body"` | `code: "IDEMPOTENCY_KEY_CONFLICT"`. The same `Idempotency-Key` was reused with a different body. Generate a fresh key per logical create |
 | 500 | `"Failed to create post group"` | Unexpected server error |
+| 503 | `"Unable to check Threads permissions. Please try scheduling again shortly."` | `code: "THREADS_PERMISSIONS_UNAVAILABLE"`. Scheduling a Threads chain (a Threads target with more than one part) needed a permission check that Publora could not complete. The body is only `{ code, error }`. Retry in a few seconds; it never means reconnect. See [Threads chain codes](../guides/error-codes.md#at-scheduling). |
 
 > **Publishable media-required platforms (Instagram, TikTok, YouTube):** when `scheduledTime` is set, `create-post` validates media presence and **rejects a media-less post with HTTP 400 `MEDIA_REQUIRED`** (the validator runs with an empty media list). Attach media first — pass `mediaUrls`, or use the draft flow. Pinterest is connect-only and cannot be published even if media validation passes. See [Posts with Media](#posts-with-media) and [Validation](../guides/validation.md). The 400 body shape:
 >

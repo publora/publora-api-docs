@@ -573,11 +573,17 @@ components:
       properties:
         code:
           type: string
-          enum: [SCHEDULED_TIME_COERCED]
+          enum: [SCHEDULED_TIME_COERCED, FIRST_COMMENT_PLATFORM_NOT_TARGETED, FIRST_COMMENT_UNSUPPORTED_PLATFORMS]
           description: |
             - `SCHEDULED_TIME_COERCED` — the requested `scheduledTime` was in the
               past and was clamped to server time. Carries `requested` and
               `effective`.
+            - `FIRST_COMMENT_PLATFORM_NOT_TARGETED` — `firstComment.platforms`
+              lists platform types the post is not published to; they are
+              ignored. Carries `platforms`.
+            - `FIRST_COMMENT_UNSUPPORTED_PLATFORMS` — some targets are on
+              platforms without first-comment support; the comment is skipped
+              there. Carries `platforms`.
 
             Pending media validation is not a warning: /update-post refuses to
             schedule with a 503 `MediaPendingError` instead.
@@ -596,6 +602,12 @@ components:
           format: date-time
           description: "SCHEDULED_TIME_COERCED only. The scheduledTime actually stored."
           example: "2026-03-01T14:02:11.412Z"
+        platforms:
+          type: array
+          description: "FIRST_COMMENT_* codes only. The platform types the warning is about."
+          items:
+            type: string
+          example: ["instagram"]
 
     PlatformPostMetrics:
       type: object
@@ -719,8 +731,8 @@ components:
       type: object
       description: |
         /update-post refused to schedule because attached media is still
-        pending. The post was not scheduled and the request changed nothing.
-        Sent with a `Retry-After` header.
+        pending. The post was not scheduled or changed; validation progress on
+        the media is kept for the retry. Sent with a `Retry-After` header.
       required: [error, code, retryable]
       properties:
         code:
@@ -763,6 +775,21 @@ components:
           description: One recovery hint, worded for MCP tools when `x-publora-client` is `mcp`.
           items:
             type: string
+
+    ThreadsPermissionsUnavailableError:
+      type: object
+      description: |
+        Scheduling a Threads chain needed a permission check that Publora could
+        not complete. Not an account problem; retry shortly and never ask the
+        user to reconnect. No `retryable` field and no `Retry-After` header.
+      required: [error, code]
+      properties:
+        code:
+          type: string
+          enum: [THREADS_PERMISSIONS_UNAVAILABLE]
+        error:
+          type: string
+          example: "Unable to check Threads permissions. Please try scheduling again shortly."
 
 paths:
   /platform-connections:
@@ -1097,6 +1124,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "503":
+          description: |
+            The Threads permission check needed to schedule a Threads chain could
+            not be completed. Nothing was created. Retry shortly; this never
+            means the account must reconnect.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThreadsPermissionsUnavailableError"
 
   /get-post/{postGroupId}:
     parameters:
@@ -1492,7 +1528,8 @@ paths:
                   description: |
                     `code` is `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`,
                     `MEDIA_REFERENCE_MISSING`, or the fallback `MEDIA_NOT_READY`.
-                    Nothing was changed.
+                    The post was not changed; a media file the check marked
+                    failed stays failed.
                   value:
                     {
                       "error": "Uploaded media is missing from storage. The upload did not complete; remove it and upload the file again.",
@@ -1589,18 +1626,33 @@ paths:
                 error: "Failed to update post"
         "503":
           description: |
-            Scheduling was refused because attached media is still pending. The
-            post was not scheduled and nothing was changed; retry after
-            `Retry-After` seconds.
+            Scheduling was refused and the post was not changed. `code` tells the
+            two cases apart:
+
+            - `MEDIA_UPLOAD_PENDING` or `MEDIA_VALIDATION_PENDING`
+              (`MediaPendingError`): attached media is still pending. Validation
+              progress on the media is kept; retry after `Retry-After` seconds.
+            - `THREADS_PERMISSIONS_UNAVAILABLE`
+              (`ThreadsPermissionsUnavailableError`): the Threads permission
+              check could not be completed. Only `code` and `error`, with no
+              `retryable` field and no `Retry-After` header; retry shortly.
           headers:
             Retry-After:
-              description: Seconds to wait before retrying
+              description: Seconds to wait before retrying. Sent only with `MediaPendingError`.
               schema:
                 type: integer
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MediaPendingError"
+                oneOf:
+                  - $ref: "#/components/schemas/MediaPendingError"
+                  - $ref: "#/components/schemas/ThreadsPermissionsUnavailableError"
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    MEDIA_UPLOAD_PENDING: "#/components/schemas/MediaPendingError"
+                    MEDIA_VALIDATION_PENDING: "#/components/schemas/MediaPendingError"
+                    THREADS_PERMISSIONS_UNAVAILABLE: "#/components/schemas/ThreadsPermissionsUnavailableError"
 
   /delete-post/{postGroupId}:
     parameters:
@@ -3922,7 +3974,7 @@ paths:
                   items:
                     type: string
                     enum: [post.scheduled, post.published, post.failed, post.demoted, token.expiring]
-                  description: "Events to subscribe to. token.expiring is defined but not currently dispatched; post.demoted fires when a media change (changeType attach, detach, prune_reference or reorder) returns a scheduled group to draft."
+                  description: "Events to subscribe to. token.expiring is defined but not currently dispatched; post.demoted fires when a scheduled group is returned to draft: reason media_changed (changeType attach, detach, prune_reference or reorder), media_backstop (changeType scheduler_media_backstop) or state_mismatch (changeType scheduler_state_repair). Tolerate unknown changeType and reason values."
                   example: ["post.published", "post.failed"]
       responses:
         "201":

@@ -294,7 +294,7 @@ Generate the key **once per logical update** and reuse it across retries. Genera
 | `postGroup.scheduledTime` | string | The same value; included only when the post has a scheduled time set. |
 | `warnings` | array | Present only when something was adjusted — e.g. a `SCHEDULED_TIME_COERCED` entry. See [Past scheduled times](#past-scheduled-times). |
 
-A post is never scheduled while its media is still being validated. If validation does not finish in time, the request returns `503` with `Retry-After` and nothing is changed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes).
+A post is never scheduled while its media is still being validated. If validation does not finish in time, the request returns `503` with `Retry-After` and the post is not changed; validation progress on the media is kept for the retry. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes).
 
 ## Examples
 
@@ -532,8 +532,9 @@ def update_post_safely(post_group_id, updates):
 | 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
 | 400 | `"Invalid scheduled time format"` | Malformed datetime string |
 | 400 | `"Cannot update post: post is currently in {status} status"` — code `POST_NOT_EDITABLE` | Post is in any status other than `draft` or `scheduled` |
-| 400 | codes `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`, `MEDIA_REFERENCE_MISSING`, `MEDIA_NOT_READY` | Scheduling found an attached media file that cannot be used. Nothing was changed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes). |
-| 503 | codes `MEDIA_UPLOAD_PENDING`, `MEDIA_VALIDATION_PENDING` | An attached upload is not in storage yet, or its validation did not finish in time. The post was not scheduled and nothing was changed. Retry after the `Retry-After` header (also `retryAfterSec`). |
+| 400 | codes `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`, `MEDIA_REFERENCE_MISSING`, `MEDIA_NOT_READY` | Scheduling found an attached media file that cannot be used. The post was not changed; a media file the check marked `failed` stays failed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes). |
+| 503 | codes `MEDIA_UPLOAD_PENDING`, `MEDIA_VALIDATION_PENDING` | An attached upload is not in storage yet, or its validation did not finish in time. The post was not scheduled or changed; validation progress on the media is kept. Retry after the `Retry-After` header (also `retryAfterSec`). |
+| 503 | `"Unable to check Threads permissions. Please try scheduling again shortly."` — code `THREADS_PERMISSIONS_UNAVAILABLE` | Scheduling a Threads chain (a Threads target with more than one part) needed a permission check that Publora could not complete. The body is only `{ code, error }`, with no `retryable` field and no `Retry-After` header. Retry in a few seconds; it never means reconnect. See [Threads chain codes](../guides/error-codes.md#at-scheduling). |
 | 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |

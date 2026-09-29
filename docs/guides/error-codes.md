@@ -47,25 +47,30 @@ These top-level codes are `LimitExceededError` responses with HTTP 403.
 
 ## Media completion codes
 
-These codes are returned by `POST /complete-media/{mediaFileId}`.
+These codes are returned by `POST /complete-media/{mediaFileId}`. Its error responses carry only `error` and `code`, and none sends a `Retry-After` header.
 
 | Code | HTTP | Location | Meaning | Retryable? | Recovery |
 |---|---:|---|---|---|---|
 | `INVALID_MEDIA_FILE_ID` | 400 | top-level `code` | `mediaFileId` is not a Mongo ObjectId | No | Use the `mediaId` returned by `get-upload-url` |
 | `MEDIA_FILE_NOT_FOUND` | 404 | top-level `code` | No media row belongs to the caller for that ID | No | Check the ID and API-key owner; upload again if it was deleted |
 | `MEDIA_FILE_INDETERMINATE_TYPE` | 400 | top-level `code` | Neither stored type nor MIME prefix identifies image, video, or PDF | No | Re-upload with the correct `Content-Type` |
-| `PROBE_FAILED` | 400 | top-level `code` | The stored media already failed byte-level validation | No | Re-upload a valid file |
+| `PROBE_FAILED` | 400 | top-level `code` | The bytes failed byte-level validation in this call (`PROBE_TIMEOUT` when probing took too long). The file is now `failed`, and later calls return `MEDIA_VALIDATION_FAILED`. Also returned for a file that failed earlier without a recorded failure code | No | Delete the file and upload a valid one |
+| `MEDIA_VALIDATION_FAILED` | 400 | top-level `code` | The file already failed validation, in an earlier `complete-media` call or a scheduling check | No, unchanged | Delete the file with `DELETE /media/:mediaId` and upload a valid one |
+| `MEDIA_UPLOAD_MISSING` | 400 | top-level `code` | No object appeared in storage within five minutes of the first `complete-media` call, so the file is now `failed`. Also returned for a file that failed this way earlier | No, unchanged | Delete the file with `DELETE /media/:mediaId`, upload it again, and use the new `mediaId` |
 | `MEDIA_FILE_MISSING_URL` | 500 | top-level `code` | The media row has no storage URL | No client-side retry contract | Upload again; contact support if newly created rows repeat this state |
 | `PROBE_VERSION_UNVERIFIED` | 503 | top-level `code` | The object version could not be verified before or after probing | Yes | Retry `complete-media` after a few seconds |
 | `PROBE_DOWNLOAD_FAILED` | 503 | top-level `code` | A transient S3/CDN download prevented probing | Yes | Retry `complete-media` after a few seconds |
 | `PROBE_VERSION_CHANGED` | 503 | top-level `code` | The uploaded object changed while it was being validated | Yes, after upload stabilizes | Stop overwriting the presigned object and retry |
+| `MEDIA_UPLOAD_PENDING` | 503 | top-level `code` | The uploaded object is not visible in storage yet: its `PUT` has not finished, or never happened | Yes | Finish the `PUT`, then retry `complete-media` after a few seconds. If there is still no object five minutes after the first `complete-media` call for the file, the file is marked failed and the call returns `400 MEDIA_UPLOAD_MISSING` |
+| `MEDIA_STATE_PERSIST_FAILED` | 503 | top-level `code` | The completion request or the validation result could not be saved | Yes | Retry `complete-media` after a few seconds |
+| `PROBE_BUSY` | 503 | top-level `code` | Too many media validations are running at once | Yes | Retry `complete-media` after a few seconds |
 | `MEDIA_FILE_RACE` | 409 | top-level `code` | The row was deleted or failed concurrently during probing | No | Re-upload and use the new media ID |
 
 ## Media scheduling codes
 
 `update-post` checks every attached media file whenever the post's resulting status is `scheduled`. A file still in `uploading` is validated on the spot, and the request waits up to about 23 seconds for that. `create-post` has no such check: the only media it can attach comes from `mediaUrls`, which is validated while it downloads.
 
-When the check does not pass, the post was not scheduled and the request changed nothing. Media from `mediaUrls` in the same request is removed again, and an `Idempotency-Key` is released, so a retry with the same key runs the request again instead of replaying the error.
+When the check does not pass, the post was not scheduled and none of its fields were saved. Media validation progress is kept: a file the check marked `ready` or `failed` stays that way, and a check still running when the response is sent can finish afterwards. Media from `mediaUrls` in the same request is removed again, and an `Idempotency-Key` is released, so a retry with the same key runs the request again instead of replaying the error.
 
 | Code | HTTP | Location | Meaning | Retryable? | Recovery |
 |---|---:|---|---|---|---|
@@ -96,7 +101,7 @@ The 503 responses carry a `Retry-After: 5` header and this body:
 
 The 400 responses return `{ error, code, mediaFileId, mediaStatus, reason, retryable, suggestions }`. `reason` is the file's recorded failure reason or `null`, and `retryable` is `false` once the file has failed.
 
-`POST /complete-media/{mediaFileId}` also returns `503 MEDIA_UPLOAD_PENDING`, with only `error` and `code`, while the uploaded object is not visible yet. Earlier versions of this page listed `MEDIA_VALIDATION_PENDING` as a `200` warning. Scheduling no longer succeeds while validation is pending; it returns the 503 above.
+Earlier versions of this page listed `MEDIA_VALIDATION_PENDING` as a `200` warning. Scheduling no longer succeeds while validation is pending; it returns the 503 above. `complete-media` reports a missing or pending upload with its own codes; see [Media completion codes](#media-completion-codes).
 
 ## `mediaUrls` per-URL codes
 
@@ -109,7 +114,7 @@ When create/update or `attach-media` ingestion fails, the request returns HTTP 4
 | `MEDIA_URL_CREDENTIALS` | 400 | `mediaResults[].code` | The URL embeds a username or password | No | Use a credential-free URL, such as a signed HTTPS URL |
 | `MEDIA_URL_PORT` | 400 | `mediaResults[].code` | The URL uses a non-default HTTPS port | No | Serve it on port 443 |
 | `MEDIA_URL_BLOCKED_HOST` | 400 | `mediaResults[].code` | The host name is blocked (`localhost`, `.local`, `.internal`), the URL uses a private or reserved IP address, or any address the host or a redirect target resolves to is private or reserved | No | Use a publicly reachable host |
-| `MEDIA_URL_DNS` | 400 | `mediaResults[].code` | DNS answered with no addresses for the host. A failed lookup, such as a nonexistent domain, is reported as `MEDIA_URL_FETCH_FAILED` | After DNS is fixed | Correct DNS, then retry the whole request |
+| `MEDIA_URL_DNS` | 400 | `mediaResults[].code` | Defensive code for a DNS answer that holds no addresses. The system resolver reports that case as a failed lookup instead, so this code is not currently expected: a nonexistent domain and a host with no A or AAAA records are both reported as `MEDIA_URL_FETCH_FAILED` | Not currently expected | If observed, correct the host's DNS, then retry the whole request |
 | `MEDIA_URL_REDIRECT` | 400 | `mediaResults[].code` | A redirect lacked a `Location` header | After the origin is fixed | Use the final URL or fix the redirect |
 | `MEDIA_URL_TOO_MANY_REDIRECTS` | 400 | `mediaResults[].code` | The fetch exceeded the redirect limit | No, unchanged | Use a direct URL |
 | `MEDIA_URL_HTTP_ERROR` | 400 | `mediaResults[].code` | The remote server returned a non-200 response | After the origin is available | Check access/expiry and retry with a working URL |
@@ -117,7 +122,7 @@ When create/update or `attach-media` ingestion fails, the request returns HTTP 4
 | `MEDIA_URL_TOO_LARGE` | 400 | `mediaResults[].code` | One image/video exceeds the URL-ingestion byte cap | No | Use a smaller file or `get-upload-url` |
 | `MEDIA_URL_AGGREGATE_TOO_LARGE` | 400 | `mediaResults[].code` | Combined downloaded bytes exceed 300 MiB | No | Reduce the batch or use presigned uploads |
 | `MEDIA_URL_UNSUPPORTED_FORMAT` | 400 | `mediaResults[].code` | Magic-byte detection found an unsupported format | No | Convert to a supported image/video format |
-| `MEDIA_URL_FETCH_FAILED` | 400 | `mediaResults[].code` | An unexpected network/download failure occurred | Conditionally | Verify the URL and retry once; otherwise use presigned upload |
+| `MEDIA_URL_FETCH_FAILED` | 400 | `mediaResults[].code` | An unexpected network/download failure occurred. This includes a failed DNS lookup, whether the domain does not exist or the host has no A or AAAA records | Conditionally | Verify the URL and the host's DNS, and retry once; otherwise use presigned upload |
 | `MEDIA_URL_PROBE_FAILED` | 400 | `mediaResults[].code` | Defensive fallback if a future failed probe supplies no specific code; current `probeAndPersistMedia` failure branches always supply one | Not currently expected | If observed, convert or re-upload valid media and report the unexpected fallback |
 | `MEDIA_URL_SKIPPED` | 400 | `mediaResults[].code` | This URL was not attempted after another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |
 | `MEDIA_URL_ROLLED_BACK` | 400 | `mediaResults[].code` | This URL succeeded, but its media was removed because another URL failed | After fixing the root failure | Correct the failing URL and retry the complete batch |

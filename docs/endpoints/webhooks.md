@@ -1,6 +1,6 @@
 # Webhooks
 
-Receive real-time post lifecycle notifications, including scheduled, published, failed, and media-demotion events. `token.expiring` is defined and subscribable but is not currently dispatched, so do not depend on it for token monitoring.
+Receive real-time post lifecycle notifications, including scheduled, published, failed, and demotion events. `token.expiring` is defined and subscribable but is not currently dispatched, so do not depend on it for token monitoring.
 
 ## Endpoints
 
@@ -97,7 +97,7 @@ POST https://api.publora.com/api/v1/webhooks
 | `post.scheduled` | Post was scheduled |
 | `post.published` | Post was successfully published |
 | `post.failed` | Post failed to publish |
-| `post.demoted` | A scheduled post was returned to draft after media changed (not emitted by `attach-media`) |
+| `post.demoted` | A scheduled post was returned to draft, after a media change or when a check before publishing failed (not emitted by `attach-media`) |
 | `token.expiring` | Defined and subscribable, but not currently dispatched; do not build flows that depend on it |
 
 ---
@@ -253,14 +253,18 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 }
 ```
 
-The event is emitted when a media change demotes a scheduled group back to draft. `changeType` names the change:
+The event is emitted when a scheduled group is returned to draft. `reason` says why, and `changeType` names the trigger:
 
-| `changeType` | Media change |
-|--------------|--------------|
-| `attach` | Media added with [`get-upload-url`](./upload-media.md) (MCP `get_upload_url`) or uploaded in the Publora dashboard |
-| `detach` | Media deleted with `DELETE /media/:mediaId` (MCP `delete_media`) or in the dashboard |
-| `prune_reference` | A stale media reference removed with `DELETE /post/:postGroupId/media/:mediaId` (MCP `prune_media_reference`) or in the dashboard |
-| `reorder` | Media reordered in the Publora dashboard. This payload has no `mediaFileId` |
+| `changeType` | `reason` | Trigger |
+|--------------|----------|---------|
+| `attach` | `media_changed` | Media added with [`get-upload-url`](./upload-media.md) (MCP `get_upload_url`) or uploaded in the Publora dashboard |
+| `detach` | `media_changed` | Media deleted with `DELETE /media/:mediaId` (MCP `delete_media`) or in the dashboard |
+| `prune_reference` | `media_changed` | A stale media reference removed with `DELETE /post/:postGroupId/media/:mediaId` (MCP `prune_media_reference`) or in the dashboard |
+| `reorder` | `media_changed` | Media reordered in the Publora dashboard. This payload has no `mediaFileId` |
+| `scheduler_media_backstop` | `media_backstop` | The media check made just before publishing found an attached file that cannot be published. `mediaFileId` names the file, and `errorCode` carries the media code, such as `MEDIA_REFERENCE_MISSING` or `MEDIA_VALIDATION_FAILED` |
+| `scheduler_state_repair` | `state_mismatch` | Publishing found the group in an inconsistent state (a scheduled group that still held a draft platform post) and returned it to draft. `mediaFileId` is `null` |
+
+The last two payloads come from the publishing scheduler and always carry `mediaFileId` (`null` when there is none), `errorCode` (`null` when there is none) and `demotedAt`, the ISO 8601 time of the demotion. More `changeType` and `reason` values may be added: treat an unknown value as a generic demotion and re-read the post with `GET /get-post`.
 
 [`attach-media`](./attach-media.md) also leaves a scheduled post in draft, but it does so by setting the status explicitly and does not emit this event.
 

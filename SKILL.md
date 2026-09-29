@@ -270,7 +270,7 @@ Available events:
 - `post.scheduled` - Post was scheduled
 - `post.published` - Post was successfully published
 - `post.failed` - Post failed to publish
-- `post.demoted` - Scheduled post returned to draft after a media change; `changeType` is `attach`, `detach`, `prune_reference` or `reorder` (not emitted by `attach-media`)
+- `post.demoted` - Scheduled post returned to draft. `reason` is `media_changed` (`changeType` `attach`, `detach`, `prune_reference` or `reorder`), `media_backstop` (`changeType` `scheduler_media_backstop`, with `errorCode`) or `state_mismatch` (`changeType` `scheduler_state_repair`); tolerate unknown values. Not emitted by `attach-media`
 - `token.expiring` - Defined and subscribable, but not currently dispatched; do not depend on it
 
 ## Error Handling
