@@ -253,7 +253,16 @@ When an event occurs, Publora sends a POST request to your webhook URL:
 }
 ```
 
-`changeType` is `attach` or `detach`. The event is emitted when that media change demotes a scheduled group back to draft. [`attach-media`](./attach-media.md) also leaves a scheduled post in draft, but it does so by setting the status explicitly and does not emit this event.
+The event is emitted when a media change demotes a scheduled group back to draft. `changeType` names the change:
+
+| `changeType` | Media change |
+|--------------|--------------|
+| `attach` | Media added with [`get-upload-url`](./upload-media.md) (MCP `get_upload_url`) or uploaded in the Publora dashboard |
+| `detach` | Media deleted with `DELETE /media/:mediaId` (MCP `delete_media`) or in the dashboard |
+| `prune_reference` | A stale media reference removed with `DELETE /post/:postGroupId/media/:mediaId` (MCP `prune_media_reference`) or in the dashboard |
+| `reorder` | Media reordered in the Publora dashboard. This payload has no `mediaFileId` |
+
+[`attach-media`](./attach-media.md) also leaves a scheduled post in draft, but it does so by setting the status explicitly and does not emit this event.
 
 #### post.published
 

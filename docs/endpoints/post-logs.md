@@ -222,6 +222,7 @@ async function debugFailedPost(postGroupId) {
 
 | Status | Error | Cause |
 |--------|-------|-------|
+| 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ID |
 | 401 | `"API key is required"` | `x-publora-key` header is missing entirely |
 | 401 | `"Invalid API key"` | `x-publora-key` is present but invalid |
@@ -230,10 +231,10 @@ async function debugFailedPost(postGroupId) {
 | 403 | `"MCP access is not enabled for this account"` | The `x-publora-client: mcp` header was sent but `entitlements.features.mcpAccess` is not enabled |
 | 403 | `"Workspace access is not enabled for this key"` | API key does not have workspace access enabled |
 | 403 | `"User is not managed by key"` | Managed user does not belong to the API key owner's workspace |
-| 404 | `"Post group not found"` | Invalid ID or post belongs to another user |
+| 404 | `"Post group not found"` | No post with this ID belongs to the acting user |
 | 500 | `"Failed to get post logs"` | Server error |
 
-> **Note:** If an invalid ObjectId format is passed as `postGroupId` (e.g., a non-hex string or wrong length), the endpoint returns `500 "Failed to get post logs"` instead of `404 "Post group not found"`. This is because Mongoose throws a `CastError` for invalid ObjectIds, which is caught by the generic error handler before the post group lookup can return a 404.
+> **Note:** A `postGroupId` that is not a valid MongoDB ObjectId returns `400 { "error": "Invalid post group ID" }` before any lookup.
 
 ---
 

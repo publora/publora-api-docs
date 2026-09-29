@@ -419,6 +419,7 @@ echo "Summary: $SUCCEEDED succeeded, $FAILED failed"
 
 | Status | Response | Cause |
 |--------|----------|-------|
+| 400 | `{ "error": "Invalid post group ID" }` | `postGroupId` is not a valid ObjectId |
 | 400 | `{ "error": "Invalid x-publora-user-id" }` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `{ "error": "API key is required" }` | Missing `x-publora-key` header |
 | 401 | `{ "error": "Invalid API key" }` | `x-publora-key` value is incorrect or revoked |
@@ -451,7 +452,7 @@ DELETE /delete-post/507f1f77bcf86cd799439011
 
 ### Malformed Post Group IDs
 
-If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, contains invalid characters), the server returns a **500** error instead of a **400** validation error. Ensure you pass only valid ObjectId strings received from the create-post or list-posts endpoints.
+A `postGroupId` that is not a valid MongoDB ObjectId returns `400 { "error": "Invalid post group ID" }` before any lookup. Pass the IDs returned by create-post or list-posts.
 
 ### No Status Restrictions
 

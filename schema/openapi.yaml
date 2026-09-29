@@ -573,16 +573,14 @@ components:
       properties:
         code:
           type: string
-          enum: [SCHEDULED_TIME_COERCED, MEDIA_VALIDATION_PENDING]
+          enum: [SCHEDULED_TIME_COERCED]
           description: |
             - `SCHEDULED_TIME_COERCED` — the requested `scheduledTime` was in the
               past and was clamped to server time. Carries `requested` and
               `effective`.
-            - `MEDIA_VALIDATION_PENDING` — /update-post only. Media validation had
-              not finished, but the post was scheduled anyway; the media is
-              re-checked before publishing. Carries `mediaFileId`, `mediaStatus`,
-              `pendingCode`, and `attempts`. Accompanied by
-              `mediaValidationStatus: "pending"` on the response.
+
+            Pending media validation is not a warning: /update-post refuses to
+            schedule with a 503 `MediaPendingError` instead.
           example: "SCHEDULED_TIME_COERCED"
         message:
           type: string
@@ -598,25 +596,6 @@ components:
           format: date-time
           description: "SCHEDULED_TIME_COERCED only. The scheduledTime actually stored."
           example: "2026-03-01T14:02:11.412Z"
-        mediaFileId:
-          type: string
-          nullable: true
-          description: "MEDIA_VALIDATION_PENDING only. The media file still being validated."
-          example: "507f1f77bcf86cd799439012"
-        mediaStatus:
-          type: string
-          nullable: true
-          description: "MEDIA_VALIDATION_PENDING only. Status of that media file when the response was sent."
-          example: "uploading"
-        pendingCode:
-          type: string
-          nullable: true
-          description: "MEDIA_VALIDATION_PENDING only. The last transient probe result."
-          example: "MEDIA_VALIDATION_PENDING"
-        attempts:
-          type: integer
-          description: "MEDIA_VALIDATION_PENDING only. How many validation probes ran before responding."
-          example: 3
 
     PlatformPostMetrics:
       type: object
@@ -735,6 +714,55 @@ components:
           type: integer
           description: "Seconds until this fixed-window limit may be retried"
           example: 60
+
+    MediaPendingError:
+      type: object
+      description: |
+        /update-post refused to schedule because attached media is still
+        pending. The post was not scheduled and the request changed nothing.
+        Sent with a `Retry-After` header.
+      required: [error, code, retryable]
+      properties:
+        code:
+          type: string
+          enum: [MEDIA_UPLOAD_PENDING, MEDIA_VALIDATION_PENDING]
+          description: |
+            - `MEDIA_UPLOAD_PENDING` — the upload has no object in storage yet
+              (the `PUT` has not finished or never happened).
+            - `MEDIA_VALIDATION_PENDING` — validation did not finish within the
+              wait; retry with the same media.
+        error:
+          type: string
+          example: "Media upload is still pending. The post was not scheduled; finish the upload and retry scheduling."
+        mediaFileId:
+          type: string
+          nullable: true
+          description: The first attached media file that is not ready.
+          example: "507f1f77bcf86cd799439012"
+        mediaStatus:
+          type: string
+          nullable: true
+          example: "uploading"
+        pendingCode:
+          type: string
+          description: The last transient validation result.
+          example: "MEDIA_UPLOAD_PENDING"
+        attempts:
+          type: integer
+          description: Validation passes made during the wait.
+          example: 18
+        retryable:
+          type: boolean
+          enum: [true]
+        retryAfterSec:
+          type: integer
+          description: Seconds to wait before retrying; same as the `Retry-After` header.
+          example: 5
+        suggestions:
+          type: array
+          description: One recovery hint, worded for MCP tools when `x-publora-client` is `mcp`.
+          items:
+            type: string
 
 paths:
   /platform-connections:
@@ -1160,6 +1188,14 @@ paths:
                         status: { type: string }
                         failureReason: { type: string, nullable: true }
                         url: { type: string, nullable: true }
+        "400":
+          description: postGroupId is not a valid ObjectId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Invalid post group ID"
         "404":
           description: Post not found
           content:
@@ -1332,15 +1368,6 @@ paths:
                       sent — if so, a `SCHEDULED_TIME_COERCED` warning explains
                       why. Trust this field over your requested value.
                     example: "2026-03-01T14:00:00.000Z"
-                  mediaValidationStatus:
-                    type: string
-                    enum: [pending]
-                    description: |
-                      Only present when the post was scheduled while media
-                      validation was still unfinished. The media is re-checked
-                      before publishing. Accompanied by a
-                      `MEDIA_VALIDATION_PENDING` entry in `warnings`.
-                    example: "pending"
                   warnings:
                     type: array
                     description: |
@@ -1457,6 +1484,25 @@ paths:
                       "error": "Cannot update post: post is currently in published status",
                       "code": "POST_NOT_EDITABLE",
                     }
+                invalidPostGroupId:
+                  summary: "postGroupId is not a valid ObjectId"
+                  value: { "error": "Invalid post group ID" }
+                mediaNotUsable:
+                  summary: "Scheduling found attached media that cannot be used"
+                  description: |
+                    `code` is `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`,
+                    `MEDIA_REFERENCE_MISSING`, or the fallback `MEDIA_NOT_READY`.
+                    Nothing was changed.
+                  value:
+                    {
+                      "error": "Uploaded media is missing from storage. The upload did not complete; remove it and upload the file again.",
+                      "code": "MEDIA_UPLOAD_MISSING",
+                      "mediaFileId": "507f1f77bcf86cd799439012",
+                      "mediaStatus": "failed",
+                      "reason": "Uploaded media is missing from storage. The upload did not complete; remove it and upload the file again.",
+                      "retryable": false,
+                      "suggestions": ["The upload never produced an object in storage. DELETE /api/v1/media/:mediaId, …"],
+                    }
         "401":
           description: Invalid API key
           content:
@@ -1541,6 +1587,20 @@ paths:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "Failed to update post"
+        "503":
+          description: |
+            Scheduling was refused because attached media is still pending. The
+            post was not scheduled and nothing was changed; retry after
+            `Retry-After` seconds.
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaPendingError"
 
   /delete-post/{postGroupId}:
     parameters:
@@ -1581,6 +1641,14 @@ paths:
                   success:
                     type: boolean
                     example: true
+        "400":
+          description: postGroupId is not a valid ObjectId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Invalid post group ID"
         "404":
           description: Post group not found (ID doesn't exist or belongs to another user)
           content:
@@ -3773,6 +3841,14 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/PostLog"
+        "400":
+          description: postGroupId is not a valid ObjectId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Invalid post group ID"
         "404":
           description: Post group not found
           content:
@@ -3846,7 +3922,7 @@ paths:
                   items:
                     type: string
                     enum: [post.scheduled, post.published, post.failed, post.demoted, token.expiring]
-                  description: "Events to subscribe to. token.expiring is defined but not currently dispatched; post.demoted fires when an attach/detach returns a scheduled group to draft."
+                  description: "Events to subscribe to. token.expiring is defined but not currently dispatched; post.demoted fires when a media change (changeType attach, detach, prune_reference or reorder) returns a scheduled group to draft."
                   example: ["post.published", "post.failed"]
       responses:
         "201":

@@ -396,7 +396,7 @@ The `sessionId` is returned for future use, but the SSE progress endpoint (`/pro
 
 ## Cleaning Up Abandoned Uploads
 
-If a `POST /get-upload-url` call succeeds but the subsequent `PUT` to the presigned S3 URL is cancelled or fails, the MediaFile record is persisted to the post group. An abandoned upload would otherwise leave a broken reference that blocks re-scheduling with `MEDIA_NOT_READY`.
+If a `POST /get-upload-url` call succeeds but the subsequent `PUT` to the presigned S3 URL is cancelled or fails, the MediaFile record is persisted to the post group. An abandoned upload would otherwise leave a broken reference that blocks re-scheduling with `503 MEDIA_UPLOAD_PENDING`, or `400 MEDIA_UPLOAD_MISSING` once `complete-media` was called and the file was marked failed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes).
 
 Two REST endpoints handle this by API key:
 

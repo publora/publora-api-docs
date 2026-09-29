@@ -293,7 +293,8 @@ Generate the key **once per logical update** and reuse it across retries. Genera
 | `postGroup.platforms` | string[] | **Always present.** The effective target set stored after the update (`[]` for a draft with no targets). |
 | `postGroup.scheduledTime` | string | The same value; included only when the post has a scheduled time set. |
 | `warnings` | array | Present only when something was adjusted — e.g. a `SCHEDULED_TIME_COERCED` entry. See [Past scheduled times](#past-scheduled-times). |
-| `mediaValidationStatus` | string | Present as `"pending"` only when media validation had not completed by the time the response was sent. |
+
+A post is never scheduled while its media is still being validated. If validation does not finish in time, the request returns `503` with `Retry-After` and nothing is changed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes).
 
 ## Examples
 
@@ -531,6 +532,9 @@ def update_post_safely(post_group_id, updates):
 | 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
 | 400 | `"Invalid scheduled time format"` | Malformed datetime string |
 | 400 | `"Cannot update post: post is currently in {status} status"` — code `POST_NOT_EDITABLE` | Post is in any status other than `draft` or `scheduled` |
+| 400 | codes `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`, `MEDIA_REFERENCE_MISSING`, `MEDIA_NOT_READY` | Scheduling found an attached media file that cannot be used. Nothing was changed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes). |
+| 503 | codes `MEDIA_UPLOAD_PENDING`, `MEDIA_VALIDATION_PENDING` | An attached upload is not in storage yet, or its validation did not finish in time. The post was not scheduled and nothing was changed. Retry after the `Retry-After` header (also `retryAfterSec`). |
+| 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is incorrect or revoked |
@@ -540,15 +544,15 @@ def update_post_safely(post_group_id, updates):
 | 403 | `"Workspace access is not enabled for this key"` | The API key does not have workspace/managed-user permissions |
 | 403 | `"User is not managed by key"` | The `x-publora-user-id` references a user not managed by this API key |
 | 403 | `LimitExceededError` (structured JSON) | Rescheduling would exceed the account's posting limits for the target time slot (see below) |
-| 404 | `"Post group not found"` | Invalid ID or post belongs to another user |
-| 500 | `"Failed to update post"` | Malformed post group ID or internal server error |
+| 404 | `"Post group not found"` | No post with this ID belongs to the acting user |
+| 500 | `"Failed to update post"` | Internal server error |
 | 500 | `"Internal server error"` | Unexpected server error in middleware |
 
 > **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. `content` and `platforms` are detected by **key presence**, not truthiness — sending `"content": ""` or `"platforms": []` counts as a real edit. If `status` and `scheduledTime` are both falsy and none of `content`, `platforms`, `platformSettings`, or `mediaUrls` is present, you will receive the "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" error.
 
 > **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 
-> **Note:** If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, contains invalid characters), the server returns a **500** error (`"Failed to update post"`) instead of a **400** validation error. Ensure you pass only valid ObjectId strings received from the create-post or list-posts endpoints.
+> **Note:** A `postGroupId` that is not a valid MongoDB ObjectId returns `400 { "error": "Invalid post group ID" }` before any lookup. Pass the IDs returned by create-post or list-posts.
 
 ### Limit Exceeded Error Format
 

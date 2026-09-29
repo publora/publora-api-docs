@@ -320,6 +320,7 @@ console.log(`All published: ${allPublished}`);
 
 | Status | Error | Cause |
 |--------|-------|-------|
+| 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
 | 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | The provided API key is not valid |
@@ -328,13 +329,13 @@ console.log(`All published: ${allPublished}`);
 | 403 | `"MCP access is not enabled for this account"` | The account does not have MCP access enabled (MCP-only keys) |
 | 403 | `"Workspace access is not enabled for this key"` | The API key does not have workspace/managed-user permissions |
 | 403 | `"User is not managed by key"` | The `x-publora-user-id` references a user not managed by this API key |
-| 404 | `"Post group not found"` | Invalid ID or post belongs to another user |
-| 500 | `"Failed to fetch post group"` | Malformed post group ID or internal server error |
+| 404 | `"Post group not found"` | No post with this ID belongs to the acting user |
+| 500 | `"Failed to fetch post group"` | Internal server error |
 | 500 | `"Internal server error"` | Unexpected server error in middleware |
 
 > **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 
-> **Note:** If the `postGroupId` is not a valid MongoDB ObjectId format (e.g., too short, contains invalid characters), the server returns a **500** error (`"Failed to fetch post group"`) instead of a **400** validation error. Ensure you pass only valid ObjectId strings received from the create-post or list-posts endpoints.
+> **Note:** A `postGroupId` that is not a valid MongoDB ObjectId returns `400 { "error": "Invalid post group ID" }` before any lookup. Pass the IDs returned by create-post or list-posts.
 
 
 ---

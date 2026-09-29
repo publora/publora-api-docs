@@ -311,7 +311,7 @@ tomorrow at 9am (AI converts this, but tool needs ISO 8601)
 
 ### ChatGPT: image not attached, or media stuck in `uploading`
 
-**Cause:** ChatGPT can't do the presigned upload itself. If it calls `get_upload_url`, nothing sends the HTTP `PUT` afterwards, so the media slot stays in `uploading` and scheduling is refused: `503 MEDIA_UPLOAD_PENDING` at first, then `400 MEDIA_NOT_READY` once the missing upload has been marked failed. An image generated in ChatGPT also has no public URL that could be passed as `mediaUrls`.
+**Cause:** ChatGPT can't do the presigned upload itself. If it calls `get_upload_url`, nothing sends the HTTP `PUT` afterwards, so the media slot stays in `uploading` and scheduling is refused with `503 MEDIA_UPLOAD_PENDING`. If `complete_media` was called for that slot, the missing upload is marked failed once five minutes have passed since that call, and scheduling then returns `400 MEDIA_UPLOAD_MISSING`. An image generated in ChatGPT also has no public URL that could be passed as `mediaUrls`.
 
 **Solution:**
 
