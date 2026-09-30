@@ -259,11 +259,12 @@ Add these types to get better Cursor suggestions:
 
 declare namespace Publora {
   interface PlatformConnection {
-    platformId: string;
-    platform: 'twitter' | 'linkedin' | 'instagram' | 'threads' | 'tiktok' | 'youtube' | 'facebook' | 'bluesky' | 'mastodon' | 'telegram';
+    platformId: string; // e.g. 'twitter-123456789'; the platform is the part before the first '-'
     username: string | null; // null for a private Telegram channel
-    displayName: string;
-    profileImageUrl?: string;
+    displayName: string | null;
+    profileImageUrl: string | null;
+    tokenStatus: 'valid' | 'expiring_soon' | 'expired' | 'unknown';
+    connectionStatus: 'active' | 'reconnect_required'; // read this before prompting a reconnect
   }
 
   interface CreatePostRequest {
@@ -406,15 +407,19 @@ Always ask for tests alongside implementation:
 export const mockConnections = [
   {
     platformId: 'twitter-123456789',
-    platform: 'twitter',
     username: '@testuser',
     displayName: 'Test User',
+    profileImageUrl: null,
+    tokenStatus: 'valid',
+    connectionStatus: 'active',
   },
   {
     platformId: 'linkedin-ABC123DEF',
-    platform: 'linkedin',
     username: 'Test User',
     displayName: 'Test User',
+    profileImageUrl: null,
+    tokenStatus: 'valid',
+    connectionStatus: 'active',
   },
 ];
 

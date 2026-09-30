@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 19 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon-requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 19 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -676,6 +676,7 @@ asyncio.run(list_connections())
     "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
     "profileUrl": null,
     "tokenStatus": "valid",
+    "connectionStatus": "active",
     "tokenExpiresIn": null,
     "accessTokenExpiresAt": null,
     "lastSuccessfulPost": null,
@@ -689,6 +690,7 @@ asyncio.run(list_connections())
     "profileImageUrl": "https://media.licdn.com/...",
     "profileUrl": "https://www.linkedin.com/company/your-company",
     "tokenStatus": "valid",
+    "connectionStatus": "active",
     "tokenExpiresIn": "82d 4h",
     "accessTokenExpiresAt": "2026-06-15T12:00:00.000Z",
     "lastSuccessfulPost": "2026-03-10T09:30:00.000Z",
@@ -702,6 +704,7 @@ asyncio.run(list_connections())
     "profileImageUrl": "https://...",
     "profileUrl": null,
     "tokenStatus": "valid",
+    "connectionStatus": "active",
     "tokenExpiresIn": null,
     "accessTokenExpiresAt": null,
     "lastSuccessfulPost": "2026-03-11T18:00:00.000Z",
@@ -718,19 +721,20 @@ asyncio.run(list_connections())
 |-------|------|-------------|
 | `platformId` | string | Unique ID for creating posts (e.g., `twitter-123456789`) |
 | `username` | string/null | Platform username or handle; `null` for a Telegram channel without a public username (use `displayName`) |
-| `displayName` | string | Display name on the platform |
-| `profileImageUrl` | string | Profile image URL |
+| `displayName` | string/null | Display name on the platform; `null` when the platform did not provide one |
+| `profileImageUrl` | string/null | Profile image URL; `null` when not available |
 | `profileUrl` | string/null | URL to the profile on the platform |
-| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown`. **The authoritative signal** — see the note below. |
+| `tokenStatus` | string | Credential expiry health: `valid`, `expiring_soon`, `expired`, `unknown`. Use it to warn ahead of expiry — see the note below. |
+| `connectionStatus` | string | `active` or `reconnect_required`: whether Publora can publish with this connection now. **The signal for reconnect prompts** — see the note below. |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h"); `null` when there is no expiry date to report |
 | `accessTokenExpiresAt` | string/null | Effective credential expiry, derived the same way as `tokenStatus`. `null` when no authoritative date exists — always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). |
 | `lastSuccessfulPost` | string/null | ISO 8601 timestamp of the last successful post via this connection |
 | `lastError` | object/null | Last error details: `{ message: string, occurredAt: string }` |
-| `subscriptionType` | string/null | Detected platform subscription tier when available (used for X Premium/PremiumPlus limits) |
+| `subscriptionType` | string/null | X only: `None`, `Basic`, `Premium`, or `PremiumPlus` (Premium and PremiumPlus raise the X limit from 280 to 25,000 characters), re-checked when publishing to X at most once a day; `null` on other platforms, and on X until a fetch succeeds |
 
-> **Deciding whether a connection needs reconnecting: read `tokenStatus`. Do not compare `accessTokenExpiresAt` against the current date.**
+> **Deciding whether a connection needs reconnecting: read `connectionStatus`. Do not compare `accessTokenExpiresAt` against the current date.**
 >
-> `tokenStatus` already accounts for how each platform refreshes credentials and for connections the platform has revoked. Comparing the date yourself produces wrong advice in both directions: a healthy YouTube connection reports `null` (its token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime), while a revoked connection can report `expired` with a date that is `null` or still in the future. Prompt the user to reconnect when `tokenStatus` is `expired`, and warn when it is `expiring_soon`.
+> `connectionStatus` is Publora's verdict on whether it can publish with the connection now, and `tokenStatus` already accounts for how each platform refreshes credentials. Comparing the date yourself produces wrong advice in both directions: a healthy YouTube connection reports `null` (its token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime), while a revoked connection can report `expired` with a date that is `null` or still in the future. Prompt the user to reconnect when `connectionStatus` is `reconnect_required`, and warn when `tokenStatus` is `expiring_soon`. An X or YouTube account reported suspended is `reconnect_required` even while its `tokenStatus` is `valid`. A Telegram connection always reports `tokenStatus: "unknown"` because it stores no expiry date, and it is never flagged, so check its bot rights with the REST `test-connection` endpoint.
 
 ---
 

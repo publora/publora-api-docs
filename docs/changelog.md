@@ -11,6 +11,18 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-09-30
+
+### `connectionStatus` on connections — publora.com #526
+
+- **Affected surface:** REST `GET /platform-connections`; MCP `list_connections`.
+- **Tag:** Additive. The field has been returned since publora.com #526 was merged on 2026-09-25, and is documented from 2026-09-30.
+- **Changes:**
+  - Each connection carries `connectionStatus`: `active` or `reconnect_required`, Publora's verdict on whether it can publish with the connection now. It is computed from stored data (reconnect flags, stored credentials, access-token expiry) without calling the platform. See [`connectionStatus` and `tokenStatus`](endpoints/platform-connections.md#connectionstatus-and-tokenstatus).
+  - It differs from `tokenStatus` in two systematic cases. Telegram connections store no expiry date and are never flagged, so `tokenStatus` is always `unknown` while `connectionStatus` is `active`. An X or YouTube account reported suspended is `reconnect_required` while its `tokenStatus` stays `valid`.
+  - Documentation corrections, no behavior change: `displayName` and `profileImageUrl` can be `null`, and `subscriptionType` (X only: `None`, `Basic`, `Premium`, `PremiumPlus`, re-checked when publishing to X at most once a day) is now in the OpenAPI schema.
+- **Migration action:** Prompt a reconnect on `connectionStatus: "reconnect_required"` instead of `tokenStatus: "expired"`, and keep using `tokenStatus: "expiring_soon"` for advance warnings. Clients generated from the OpenAPI spec should treat `displayName` and `profileImageUrl` as nullable.
+
 ## 2026-09-29
 
 ### Telegram: private channels over a bot connection — publora.com #570

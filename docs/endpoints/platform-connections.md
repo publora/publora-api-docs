@@ -29,12 +29,14 @@ GET https://api.publora.com/api/v1/platform-connections
       "username": "yourhandle",
       "displayName": "Your Name",
       "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
-      "profileUrl": "https://twitter.com/yourhandle",
+      "profileUrl": null,
       "accessTokenExpiresAt": null,
       "tokenStatus": "valid",
+      "connectionStatus": "active",
       "tokenExpiresIn": null,
       "lastSuccessfulPost": "2026-02-20T14:30:00.000Z",
-      "lastError": null
+      "lastError": null,
+      "subscriptionType": "None"
     },
     {
       "platformId": "linkedin-Tz9W5i6ZYG",
@@ -44,9 +46,11 @@ GET https://api.publora.com/api/v1/platform-connections
       "profileUrl": "https://linkedin.com/in/johndoe",
       "accessTokenExpiresAt": "2026-05-15T10:30:00.000Z",
       "tokenStatus": "valid",
+      "connectionStatus": "active",
       "tokenExpiresIn": "82d 4h",
       "lastSuccessfulPost": "2026-02-22T09:15:00.000Z",
-      "lastError": null
+      "lastError": null,
+      "subscriptionType": null
     },
     {
       "platformId": "instagram-17841412345678",
@@ -56,12 +60,14 @@ GET https://api.publora.com/api/v1/platform-connections
       "profileUrl": null,
       "accessTokenExpiresAt": "2026-02-25T08:00:00.000Z",
       "tokenStatus": "expiring_soon",
+      "connectionStatus": "active",
       "tokenExpiresIn": "2d 12h",
       "lastSuccessfulPost": null,
       "lastError": {
         "message": "Media upload failed: Invalid image format",
         "occurredAt": "2026-02-21T16:45:00.000Z"
-      }
+      },
+      "subscriptionType": null
     },
     {
       "platformId": "youtube-UCxxxxxxxxxxxx",
@@ -71,15 +77,31 @@ GET https://api.publora.com/api/v1/platform-connections
       "profileUrl": null,
       "accessTokenExpiresAt": null,
       "tokenStatus": "valid",
+      "connectionStatus": "active",
       "tokenExpiresIn": null,
       "lastSuccessfulPost": "2026-02-23T18:00:00.000Z",
-      "lastError": null
+      "lastError": null,
+      "subscriptionType": null
+    },
+    {
+      "platformId": "telegram--1001234567890",
+      "username": null,
+      "displayName": "Private news",
+      "profileImageUrl": "https://...",
+      "profileUrl": null,
+      "accessTokenExpiresAt": null,
+      "tokenStatus": "unknown",
+      "connectionStatus": "active",
+      "tokenExpiresIn": null,
+      "lastSuccessfulPost": "2026-02-24T08:00:00.000Z",
+      "lastError": null,
+      "subscriptionType": null
     }
   ]
 }
 ```
 
-The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because there is no authoritative expiry date to report, not because anything is wrong. Read `tokenStatus`.
+The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because there is no authoritative expiry date to report, not because anything is wrong. In the Telegram entry, a private channel, `tokenStatus` is `unknown` only because Telegram stores no expiry date; its `connectionStatus` is `active`. Read `connectionStatus` to decide whether a connection can publish.
 
 ## Connection Fields
 
@@ -90,12 +112,13 @@ The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because the
 | `displayName` | string/null | Display name on the platform. Returns `null` if not set during OAuth. |
 | `profileImageUrl` | string/null | Profile image URL. Returns `null` if not available. |
 | `profileUrl` | string/null | URL to the user's profile on the platform. Can be null if not available for the platform. |
-| `accessTokenExpiresAt` | string/null | Effective credential expiry — the same date `tokenStatus` and `tokenExpiresIn` are derived from, not the raw OAuth access-token lifetime. `null` means no authoritative expiry date exists: always for YouTube (Google does not publish a refresh-token lifetime), and for the platforms whose credentials do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). A `null` here is not a problem — read `tokenStatus`. |
-| `tokenStatus` | string | Current credential health: `valid`, `expiring_soon`, `expired`, or `unknown`. **This is the authoritative signal** — decide whether to prompt a reconnect from this field, not by comparing `accessTokenExpiresAt` against the clock yourself. See platform-specific rules below. |
+| `accessTokenExpiresAt` | string/null | Effective credential expiry — the same date `tokenStatus` and `tokenExpiresIn` are derived from, not the raw OAuth access-token lifetime. `null` means no authoritative expiry date exists: always for YouTube (Google does not publish a refresh-token lifetime), and for the platforms whose credentials do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). A `null` here is not a problem — read `connectionStatus` and `tokenStatus`. |
+| `tokenStatus` | string | Credential expiry health: `valid`, `expiring_soon`, `expired`, or `unknown`. Use it to warn ahead of expiry (`expiring_soon`) instead of comparing `accessTokenExpiresAt` against the clock yourself. To decide whether a connection can publish, read `connectionStatus`. See platform-specific rules below. |
+| `connectionStatus` | string | `active` or `reconnect_required`: whether Publora can publish with this connection now. It is `active` when the connection is not flagged for reconnection (Publora sets this flag when Facebook, Instagram, Threads, LinkedIn or TikTok rejects the stored credential, and when X or YouTube reports the account suspended; on X, Bluesky, Mastodon and Telegram a rejected credential shows only in `lastError`), its credentials are stored, and its access token has not expired or can be renewed while publishing. **Read this to decide whether to prompt a reconnect.** It is computed from stored data without calling the platform; use [`test-connection`](test-connection.md) for a live check. |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration. Possible formats: `"7d 3h"` (days and hours), `"5h"` (hours only, when less than one day remains), `"< 1h"` (less than one hour remaining), `"expired"` (token already expired), or `null` (no expiration). |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post to this platform |
 | `lastError` | object/null | Last error that occurred when posting to this platform. When present, contains: `message` (string — error description) and `occurredAt` (string — ISO 8601 timestamp of when the error occurred). |
-| `subscriptionType` | string/null | Platform tier where available (X publishing recognizes exact stored values `"Premium"` and `"PremiumPlus"`). `null` when not detected. |
+| `subscriptionType` | string/null | X only: the last tier Publora read from X, `"None"`, `"Basic"`, `"Premium"`, or `"PremiumPlus"`. It is fetched at connect time and re-checked when publishing to X, at most once every 24 hours. `"Premium"` and `"PremiumPlus"` raise the X length limit from 280 to 25,000 characters. `null` on other platforms, and on X until a fetch succeeds. |
 
 ## Token Status Values
 
@@ -103,12 +126,21 @@ The YouTube entry above is healthy: `accessTokenExpiresAt` is `null` because the
 |--------|---------|
 | `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring. **YouTube is always `valid`** unless the connection has been flagged for reconnection — its access token is refreshed on demand before each publish, and Google publishes no refresh-token lifetime, so there is no expiry date to report. TikTok is `valid` while its refresh token is at least 30 days away. For Bluesky, this endpoint's projected connection data marks a stored username as `valid`; it does not re-check the app password. |
 | `expiring_soon` | TikTok refresh token expires in under 30 days, or another OAuth platform's access token expires in under 7 days |
-| `expired` | Reconnect required. Either the effective expiry has passed, or Publora flagged the connection for reconnection after the platform rejected its credential — the second case applies on **any** platform, including the ones that never expire on a schedule, and in that case `accessTokenExpiresAt` may still be `null` or in the future. |
-| `unknown` | Stored expiry data is malformed. For Bluesky in this endpoint, it means the projected connection has no username. A missing TikTok `refreshTokenExpiresAt` is `valid`, not `unknown`. |
+| `expired` | Reconnect required. Either the effective expiry has passed, or Publora flagged the connection for reconnection after Facebook, Instagram, Threads, LinkedIn or TikTok rejected its credential — the second case also covers Facebook, whose credentials never expire on a schedule, and in that case `accessTokenExpiresAt` may still be `null` or in the future. |
+| `unknown` | Stored expiry data is missing or malformed. Telegram connections store no expiry date, so they always report `unknown`; read their `connectionStatus`. For Bluesky in this endpoint, it means the projected connection has no username. A missing TikTok `refreshTokenExpiresAt` is `valid`, not `unknown`. |
+
+### `connectionStatus` and `tokenStatus`
+
+`connectionStatus` answers one question: can Publora publish with this connection now? `tokenStatus` describes credential expiry and warns in advance with `expiring_soon`. They agree for connections in a normal state, with two systematic differences:
+
+- **Telegram** stores no expiry date, so `tokenStatus` is always `unknown`. Publora never flags Telegram connections, so `connectionStatus` stays `active`; use [`test-connection`](test-connection.md#telegram-connections) to check the bot's channel rights.
+- **Suspended accounts:** when X or YouTube reports the account suspended during a publish, `connectionStatus` becomes `reconnect_required` while `tokenStatus` stays `valid`. `lastError` carries the suspension message.
+
+Incomplete stored data can also make them differ. Prompt a reconnect on `connectionStatus: "reconnect_required"`, and warn ahead of time on `tokenStatus: "expiring_soon"`.
 
 > **Do not infer health from `accessTokenExpiresAt` yourself.** `tokenStatus` already accounts for per-platform refresh behaviour and for connections the platform has revoked. A connection can be `expired` while its date is `null` or in the future, and YouTube reports `null` while being perfectly healthy.
 
-> **Note:** Pinterest has OAuth connection routes in the dashboard, but no `test-connection` validator is implemented. Calling `test-connection` for a Pinterest connection will return `"Unknown platform: pinterest"`.
+> **Note:** Pinterest has OAuth connection routes in the dashboard, but no `test-connection` validator is implemented. Calling `test-connection` for a Pinterest connection will return `"Unknown platform: pinterest"`. Pinterest is connect-only, so an `active` Pinterest connection is still not a publish target.
 
 ## Platform ID Format
 
@@ -160,9 +192,9 @@ connections = response.json()['connections']
 all_platform_ids = [c['platformId'] for c in connections]
 print(f"Connected to {len(all_platform_ids)} accounts")
 
-# Check credential health — read tokenStatus, never compare the date yourself
+# Check health — read connectionStatus and tokenStatus, never compare the date yourself
 for conn in connections:
-    if conn.get('tokenStatus') == 'expired':
+    if conn.get('connectionStatus') == 'reconnect_required':
         print(f"⚠️  {conn['platformId']} needs reconnecting in the dashboard.")
     elif conn.get('tokenStatus') == 'expiring_soon':
         print(f"⏳ {conn['platformId']} expires in {conn.get('tokenExpiresIn')}")
@@ -216,9 +248,9 @@ async function getConnections() {
 
     const data = await response.json();
 
-    // Check credential health — read tokenStatus, never compare the date yourself
+    // Check health — read connectionStatus and tokenStatus, never compare the date yourself
     for (const conn of data.connections) {
-      if (conn.tokenStatus === 'expired') {
+      if (conn.connectionStatus === 'reconnect_required') {
         console.warn(`⚠️  ${conn.platformId} needs reconnecting in the dashboard`);
       } else if (conn.tokenStatus === 'expiring_soon') {
         console.warn(`⏳ ${conn.platformId} expires in ${conn.tokenExpiresIn}`);
@@ -251,9 +283,9 @@ def get_connections():
         response.raise_for_status()
         data = response.json()
 
-        # Check credential health — read tokenStatus, never compare the date yourself
+        # Check health — read connectionStatus and tokenStatus, never compare the date yourself
         for conn in data['connections']:
-            if conn.get('tokenStatus') == 'expired':
+            if conn.get('connectionStatus') == 'reconnect_required':
                 print(f"⚠️  {conn['platformId']} needs reconnecting in the dashboard")
             elif conn.get('tokenStatus') == 'expiring_soon':
                 print(f"⏳ {conn['platformId']} expires in {conn.get('tokenExpiresIn')}")

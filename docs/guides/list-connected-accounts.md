@@ -28,12 +28,14 @@ x-publora-key: YOUR_API_KEY
       "username": "@yourhandle",
       "displayName": "Your Name",
       "profileImageUrl": "https://pbs.twimg.com/profile_images/...",
-      "profileUrl": "https://twitter.com/yourhandle",
+      "profileUrl": null,
       "accessTokenExpiresAt": null,
       "tokenStatus": "valid",
+      "connectionStatus": "active",
       "tokenExpiresIn": null,
       "lastSuccessfulPost": "2026-02-20T14:30:00.000Z",
-      "lastError": null
+      "lastError": null,
+      "subscriptionType": "None"
     },
     {
       "platformId": "linkedin-Tz9W5i6ZYG",
@@ -43,9 +45,11 @@ x-publora-key: YOUR_API_KEY
       "profileUrl": "https://linkedin.com/in/johndoe",
       "accessTokenExpiresAt": "2026-05-15T10:30:00.000Z",
       "tokenStatus": "valid",
+      "connectionStatus": "active",
       "tokenExpiresIn": "82d 4h",
       "lastSuccessfulPost": "2026-02-22T09:15:00.000Z",
-      "lastError": null
+      "lastError": null,
+      "subscriptionType": null
     }
   ]
 }
@@ -57,14 +61,16 @@ x-publora-key: YOUR_API_KEY
 |-------|------|-------------|
 | `platformId` | string | Unique ID for creating posts (e.g., `twitter-123456789`) |
 | `username` | string/null | Platform username or handle; `null` for a Telegram channel without a public username (use `displayName`) |
-| `displayName` | string | Display name on the platform |
-| `profileImageUrl` | string | Profile image URL |
+| `displayName` | string/null | Display name on the platform; `null` when the platform did not provide one |
+| `profileImageUrl` | string/null | Profile image URL; `null` when not available |
 | `profileUrl` | string/null | URL to profile page (null if unavailable) |
 | `accessTokenExpiresAt` | string/null | Effective credential expiry — the date `tokenStatus` is derived from, not the raw access-token lifetime. `null` when no authoritative date exists: always for YouTube, and for the platforms that do not expire on a schedule. |
-| `tokenStatus` | string | Token health: `valid`, `expiring_soon`, `expired`, `unknown`. **Read this to decide about reconnecting** — do not compare `accessTokenExpiresAt` against the clock yourself. |
+| `tokenStatus` | string | Credential expiry health: `valid`, `expiring_soon`, `expired`, `unknown`. Use it to warn ahead of expiry — do not compare `accessTokenExpiresAt` against the clock yourself. |
+| `connectionStatus` | string | `active` or `reconnect_required`: whether Publora can publish with this connection now. **Read this to decide about reconnecting.** It also covers suspended accounts, whose `tokenStatus` can still be `valid`. |
 | `tokenExpiresIn` | string/null | Human-readable time until expiration (e.g., "7d 3h") |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post |
 | `lastError` | object/null | Last posting error with `message` and `occurredAt` |
+| `subscriptionType` | string/null | X only: `None`, `Basic`, `Premium`, or `PremiumPlus`, re-checked when publishing to X at most once a day; `null` on other platforms, and on X until a fetch succeeds |
 
 ## Token Status Values
 
@@ -72,8 +78,10 @@ x-publora-key: YOUR_API_KEY
 |--------|---------|-----------------|
 | `valid` | Credential is usable. Facebook, Twitter/X, and Mastodon are treated as non-expiring; YouTube is always valid unless flagged for reconnection, since its token is refreshed on demand before each publish; TikTok's refresh credential is at least 30 days away; other expiring OAuth credentials have at least 7 days left. A Bluesky row with a stored username is reported as valid by this endpoint, which does not re-check the app password. | None |
 | `expiring_soon` | TikTok refresh credential expires in under 30 days, or another expiring OAuth access token expires in under 7 days | Reconnect soon |
-| `expired` | The effective expiry has passed, **or** Publora flagged the connection for reconnection after the platform rejected its credential — the latter can happen on any platform, with `accessTokenExpiresAt` still `null` or in the future | Reconnect required |
-| `unknown` | Stored expiry data is malformed; for Bluesky in this endpoint, the projected connection has no username. Missing TikTok `refreshTokenExpiresAt` is `valid`. | Inspect the connection and reconnect if necessary |
+| `expired` | The effective expiry has passed, **or** Publora flagged the connection for reconnection after Facebook, Instagram, Threads, LinkedIn or TikTok rejected its credential — then `accessTokenExpiresAt` can still be `null` or in the future | Reconnect required |
+| `unknown` | Stored expiry data is missing or malformed; Telegram connections store no expiry date, so they always report `unknown`. For Bluesky in this endpoint, the projected connection has no username. Missing TikTok `refreshTokenExpiresAt` is `valid`. | Check `connectionStatus` |
+
+To decide whether to prompt a reconnect, read `connectionStatus` rather than this table: `reconnect_required` also flags X and YouTube accounts reported suspended, and Telegram connections are never flagged, so they stay `active` while their `tokenStatus` is `unknown`. See [`connectionStatus` and `tokenStatus`](../endpoints/platform-connections.md#connectionstatus-and-tokenstatus).
 
 ## Platform ID Formats
 
@@ -168,14 +176,15 @@ async function getAllPlatformIds() {
 }
 
 /**
- * Check for expiring or expired tokens
+ * Check for expiring tokens and connections that need reconnecting
  * @returns {Promise<{expiring: Array, expired: Array}>} Connections needing attention
  */
 async function checkTokenHealth() {
   const connections = await getConnectedAccounts();
 
   const expiring = connections.filter(c => c.tokenStatus === 'expiring_soon');
-  const expired = connections.filter(c => c.tokenStatus === 'expired');
+  // connectionStatus also catches suspended accounts, whose tokenStatus can still be 'valid'
+  const expired = connections.filter(c => c.connectionStatus === 'reconnect_required');
 
   return { expiring, expired };
 }
@@ -242,7 +251,7 @@ async function monitorTokens() {
     const { expiring, expired } = await checkTokenHealth();
 
     if (expired.length > 0) {
-      console.warn('EXPIRED TOKENS - Reconnect required:');
+      console.warn('RECONNECT REQUIRED:');
       expired.forEach(c => console.warn(`  ${c.platformId}`));
     }
 
@@ -367,7 +376,7 @@ def get_all_platform_ids() -> List[str]:
 
 def check_token_health() -> TokenHealth:
     """
-    Check for expiring or expired tokens.
+    Check for expiring tokens and connections that need reconnecting.
 
     Returns:
         TokenHealth: Connections needing attention
@@ -375,7 +384,8 @@ def check_token_health() -> TokenHealth:
     connections = get_connected_accounts()
 
     expiring = [c for c in connections if c.get('tokenStatus') == 'expiring_soon']
-    expired = [c for c in connections if c.get('tokenStatus') == 'expired']
+    # connectionStatus also catches suspended accounts, whose tokenStatus can still be 'valid'
+    expired = [c for c in connections if c.get('connectionStatus') == 'reconnect_required']
 
     return TokenHealth(expiring=expiring, expired=expired)
 
@@ -438,7 +448,7 @@ def monitor_tokens():
         health = check_token_health()
 
         if health.expired:
-            print('EXPIRED TOKENS - Reconnect required:')
+            print('RECONNECT REQUIRED:')
             for c in health.expired:
                 print(f"  {c['platformId']}")
 
@@ -491,10 +501,10 @@ curl -s https://api.publora.com/api/v1/platform-connections \
   -H "x-publora-key: YOUR_API_KEY" \
   | jq '.connections | map(select(.platformId | startswith("twitter-")))'
 
-# Check for expiring tokens
+# Check for connections that need reconnecting or expire soon
 curl -s https://api.publora.com/api/v1/platform-connections \
   -H "x-publora-key: YOUR_API_KEY" \
-  | jq '.connections | map(select(.tokenStatus == "expiring_soon" or .tokenStatus == "expired"))'
+  | jq '.connections | map(select(.connectionStatus == "reconnect_required" or .tokenStatus == "expiring_soon"))'
 ```
 
 ## Common Use Cases
@@ -545,10 +555,10 @@ async function validateBeforeScheduling(requiredPlatforms) {
     throw new Error(`Missing connections for: ${missing.join(', ')}`);
   }
 
-  // Check for expired tokens
-  const expired = connections.filter(c => c.tokenStatus === 'expired');
+  // Check for connections that cannot publish
+  const expired = connections.filter(c => c.connectionStatus === 'reconnect_required');
   if (expired.length > 0) {
-    throw new Error(`Expired tokens: ${expired.map(c => c.platformId).join(', ')}`);
+    throw new Error(`Reconnect required: ${expired.map(c => c.platformId).join(', ')}`);
   }
 
   return true;
@@ -573,7 +583,7 @@ If the response returns an empty `connections` array, the user needs to connect 
 
 ### Token Expiration
 
-OAuth tokens for LinkedIn, Instagram, Threads, and TikTok expire periodically. Check `tokenStatus` regularly and prompt users to reconnect before tokens expire.
+OAuth tokens for LinkedIn, Instagram, Threads, and TikTok expire periodically. Check connections regularly: prompt users to reconnect when `connectionStatus` is `reconnect_required`, and warn them when `tokenStatus` is `expiring_soon`, before the token expires.
 
 ### Rate Limiting
 

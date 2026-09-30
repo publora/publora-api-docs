@@ -247,10 +247,14 @@ components:
           example: "@yourhandle"
         displayName:
           type: string
+          nullable: true
+          description: "Display name on the platform. Null when the platform did not provide one."
           example: "Your Name"
         profileImageUrl:
           type: string
           format: uri
+          nullable: true
+          description: "Profile image URL. Null when not available."
           example: "https://pbs.twimg.com/profile_images/..."
         profileUrl:
           type: string
@@ -262,13 +266,18 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: "Effective credential expiry, derived the same way as tokenStatus. Null when no authoritative date exists: always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). Do not compare this against the current time to decide about reconnecting - read tokenStatus instead."
+          description: "Effective credential expiry, derived the same way as tokenStatus. Null when no authoritative date exists: always for YouTube, and for platforms that do not expire on a schedule (Facebook, X/Twitter, Mastodon, Bluesky). Do not compare this against the current time to decide about reconnecting - read connectionStatus instead."
           example: "2026-05-15T10:30:00.000Z"
         tokenStatus:
           type: string
           enum: [valid, expiring_soon, expired, unknown]
-          description: "Authoritative credential health. Read this to decide whether a reconnect is needed. 'expired' also covers connections the platform revoked, where accessTokenExpiresAt may still be null or in the future."
+          description: "Credential expiry health; use it to warn ahead of expiry (expiring_soon). 'expired' also covers connections the platform revoked, where accessTokenExpiresAt may still be null or in the future. Telegram connections store no expiry date and always report unknown. To decide whether a reconnect is needed, read connectionStatus."
           example: "valid"
+        connectionStatus:
+          type: string
+          enum: [active, reconnect_required]
+          description: "Whether Publora can publish with this connection now: not flagged for reconnection (set when Facebook, Instagram, Threads, LinkedIn or TikTok rejects the stored credential, or when X or YouTube reports the account suspended; other platforms record a rejected credential only in lastError), credentials stored, and an access token that has not expired or can be renewed while publishing. Read this to decide whether to prompt a reconnect. Computed from stored data without calling the platform; use test-connection for a live check."
+          example: "active"
         tokenExpiresIn:
           type: string
           nullable: true
@@ -281,6 +290,11 @@ components:
           description: "Timestamp of last successful post"
         lastError:
           $ref: "#/components/schemas/ConnectionLastError"
+        subscriptionType:
+          type: string
+          nullable: true
+          description: "X only: the last tier Publora read from X - None, Basic, Premium or PremiumPlus. Fetched at connect time and re-checked when publishing to X at most once every 24 hours. Premium and PremiumPlus raise the X length limit from 280 to 25,000 characters. Null on other platforms, and on X until a fetch succeeds."
+          example: "Premium"
 
     ConnectionLastError:
       type: object
