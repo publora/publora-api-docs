@@ -70,10 +70,39 @@ POST https://api.publora.com/api/v1/test-connection/:platformId
 | `username` | string/null | Connected account username. `null` for a Telegram channel without a public username (a private channel). |
 | `status` | string | `ok` or `error` |
 | `message` | string | Human-readable status message |
-| `permissions` | array | List of granted permissions/scopes |
+| `permissions` | array | List of granted permissions/scopes. With the YouTube update in #490, these are Google's recorded full scope URIs; an unknown grant returns `[]`. |
+| `permissionsKnown` | boolean | YouTube only, added in #490. Whether the granted scopes are recorded. `false` means unknown, not permission denied. |
 | `tokenExpiresIn` | string/null | Time until token expiry. Possible values: `"7d 3h"` (days and hours), `"5h"` (hours only, when less than one day remains), `"< 1h"` (less than one hour remaining), `"expired"` (token already expired), or `null` (no expiration). |
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post |
 | `lastError` | object/null | Last error details if any. When present, contains: `message` (string — error description) and `occurredAt` (string — ISO 8601 timestamp of when the error occurred). |
+
+### YouTube permissions — upcoming #490 update
+
+[Publora #490](https://github.com/publora/publora.com/issues/490) corrects the
+previous fixed `["youtube.upload", "youtube.readonly"]` list. After this update,
+YouTube responses return the actual scopes recorded from Google's OAuth response,
+using their full URIs. For a canonical broad grant, the relevant response fields are:
+
+```json
+{
+  "status": "ok",
+  "permissions": ["https://www.googleapis.com/auth/youtube"],
+  "permissionsKnown": true
+}
+```
+
+A broad `youtube` grant covers uploading videos and adding them to a playlist;
+it is not expanded into separately granted `youtube.upload` or `youtube.readonly`
+entries. See Google's [scope definitions](https://developers.google.com/youtube/v3/guides/auth/installed-apps#identify-access-scopes)
+and [playlist-write authorization](https://developers.google.com/youtube/v3/docs/playlistItems/insert#authorization).
+
+Older connections without a recorded grant, or a reconnect where Google omits
+scopes, return `permissions: []` and `permissionsKnown: false`. Do not interpret
+that empty array as proof that permission was denied. If your integration gates
+operations by scopes, handle unknown grants separately and recognize broad
+`youtube` access; checking for the old short `youtube.upload` string is insufficient.
+Use `status` for the connection health result. Other platforms' responses keep
+their current format.
 
 ## Examples
 

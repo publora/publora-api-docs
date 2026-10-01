@@ -3846,9 +3846,13 @@ paths:
                     example: "Connection is valid"
                   permissions:
                     type: array
+                    description: "YouTube update #490: Google's recorded full scope URIs, without expanding broad scopes. Empty when permissionsKnown is false."
                     items:
                       type: string
                     example: ["w_member_social", "r_basicprofile"]
+                  permissionsKnown:
+                    type: boolean
+                    description: "YouTube only, added in #490. True when the granted scopes are recorded; false means unknown, not permission denied."
                   tokenExpiresIn:
                     type: string
                     nullable: true
