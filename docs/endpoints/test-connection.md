@@ -76,10 +76,10 @@ POST https://api.publora.com/api/v1/test-connection/:platformId
 | `lastSuccessfulPost` | string/null | Timestamp of last successful post |
 | `lastError` | object/null | Last error details if any. When present, contains: `message` (string — error description) and `occurredAt` (string — ISO 8601 timestamp of when the error occurred). |
 
-### YouTube permissions — upcoming #490 update
+### YouTube permissions — #490 update
 
 [Publora #490](https://github.com/publora/publora.com/issues/490) corrects the
-previous fixed `["youtube.upload", "youtube.readonly"]` list. After this update,
+previous fixed `["youtube.upload", "youtube.readonly"]` list. Since 2026-10-01,
 YouTube responses return the actual scopes recorded from Google's OAuth response,
 using their full URIs. For a canonical broad grant, the relevant response fields are:
 

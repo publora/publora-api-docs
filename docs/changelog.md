@@ -4,19 +4,21 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
-### YouTube granted scopes — publora.com #490
-
-- **Affected surface:** REST `POST /test-connection/{platformId}`, YouTube only. Prepared with [backend PR #590](https://github.com/publora/publora.com/pull/590); pending deployment.
-- **Tag:** **Potentially breaking** permission values, with an additive `permissionsKnown` field.
-- **Change:** `permissions` returns Google's recorded full scope URIs, such as `https://www.googleapis.com/auth/youtube`, instead of the fixed short `youtube.upload` and `youtube.readonly` list. A broad grant is not expanded into narrower grants. Connections without recorded scopes return `permissions: []` with `permissionsKnown: false`.
-- **Migration action:** Handle `permissionsKnown: false` as unknown; recognize broad `youtube` access when checking capabilities. Do not require the old short scope labels or treat an unknown empty list as denied access. See [YouTube connection diagnostics](endpoints/test-connection.md#youtube-permissions--upcoming-490-update).
-
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-10-01
+
+### YouTube granted scopes — publora.com #490
+
+- **Affected surface:** REST `POST /test-connection/{platformId}`, YouTube only. Released in [backend PR #590](https://github.com/publora/publora.com/pull/590) on 2026-10-01.
+- **Tag:** **Potentially breaking** permission values, with an additive `permissionsKnown` field.
+- **Change:** `permissions` returns Google's recorded full scope URIs, such as `https://www.googleapis.com/auth/youtube`, instead of the fixed short `youtube.upload` and `youtube.readonly` list. A broad grant is not expanded into narrower grants. Connections without recorded scopes return `permissions: []` with `permissionsKnown: false`.
+- **Migration action:** Handle `permissionsKnown: false` as unknown; recognize broad `youtube` access when checking capabilities. Do not require the old short scope labels or treat an unknown empty list as denied access. See [YouTube connection diagnostics](endpoints/test-connection.md#youtube-permissions--490-update).
 
 ## 2026-09-30
 
