@@ -225,6 +225,14 @@ curl -v -X POST https://mcp.publora.com \
 
 ---
 
+### Claude asks before using some Publora tools
+
+**Cause:** In Claude, each connector tool has its own permission: **Always allow**, **Needs approval** or **Blocked**. By default, read-only tools (`list_connections`, `list_posts`, `get_post`, `account_context`, `post_stats`, `profile_stats`, `linkedin_list_mentionables`) run without asking, and tools that create, change or delete posts, media or LinkedIn activity ask first.
+
+**Solution:** Open **Customize → Connectors → Publora → Tool permissions** and set the tool you want to stop confirming to **Always allow**.
+
+---
+
 ## Tool Errors
 
 ### "Platform not found"
