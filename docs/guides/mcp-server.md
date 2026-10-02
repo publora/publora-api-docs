@@ -182,7 +182,7 @@ Claude and other clients also list 12 `company_*` tools, which are for Agency cl
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 | `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
-> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and the managed-user **workspace** endpoints (`/api/v1/workspace/*`) are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
