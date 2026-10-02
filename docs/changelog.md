@@ -20,6 +20,16 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** `permissions` returns Google's recorded full scope URIs, such as `https://www.googleapis.com/auth/youtube`, instead of the fixed short `youtube.upload` and `youtube.readonly` list. A broad grant is not expanded into narrower grants. Connections without recorded scopes return `permissions: []` with `permissionsKnown: false`.
 - **Migration action:** Handle `permissionsKnown: false` as unknown; recognize broad `youtube` access when checking capabilities. Do not require the old short scope labels or treat an unknown empty list as denied access. See [YouTube connection diagnostics](endpoints/test-connection.md#youtube-permissions--490-update).
 
+### `account_context` MCP tool — publora.com #589
+
+- **Affected surface:** New MCP tool `account_context`, which brings the personal MCP toolset from 19 to 20 tools. It reads the new REST endpoint `GET /api/v1/account-context` with the same API key.
+- **Tag:** Additive.
+- **Changes:**
+  - `account_context` is read-only. It returns the plan, available features, publishing quotas (monthly platform posts, scheduled posts, connected channels), the schedule horizon with `maxScheduledDate`, and `allowedPlatforms` for the personal account behind the key. Quotas count platform posts, `limit: null` means unlimited, and a per-connection monthly limit (`scope: "connection"`) is broken down in `quotas.monthlyPosts.connections[]`.
+  - The optional `scheduledTime` (ISO 8601 with `Z` or an offset) selects the monthly quota period of a planned batch. A past time resolves to the current period, and `effectiveQuotaTime` shows the date used. A malformed value returns `400 INVALID_SCHEDULED_TIME` from the REST endpoint; the MCP tool rejects it before calling the API.
+  - The response is an advisory snapshot (`advisory: true`): it reserves nothing, and every write is still checked against the limits.
+- **Migration action:** None. Optionally, call `account_context` before a batch of posts and after a quota or feature error. See [account_context](mcp/tools-reference.md#account_context).
+
 ## 2026-09-30
 
 ### `connectionStatus` on connections — publora.com #526

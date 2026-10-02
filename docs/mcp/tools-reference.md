@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Complete reference for the 19 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
+Complete reference for the 20 active Publora MCP tools with parameters, examples, and code snippets. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and workspace-management features are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -628,6 +628,146 @@ Reach for `delete_media` for normal, existing media rows; reach for this only wh
 |-----------|------|----------|-------------|
 | `postGroupId` | string | Yes | Post group containing the stale reference. |
 | `mediaId` | string | Yes | The stale media ID reported in the `MEDIA_REFERENCE_MISSING` error. |
+
+---
+
+## Account Tool
+
+### account_context
+
+Read your plan, available features, publishing quotas and schedule horizon. Call it before a batch of posts and again after a quota or feature error, then `list_connections` for the target IDs. The tool reads `GET /api/v1/account-context` with the same API key, so it always describes the personal account the key belongs to. It is annotated read-only (`readOnlyHint: true`) and changes nothing. Agency/Company client work uses `company_context` instead.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `scheduledTime` | string | No | ISO 8601 date-time with `Z` or an explicit offset, e.g. `2026-11-03T09:00:00Z` or `2026-11-03T10:00:00+01:00`. Selects the monthly quota period of the planned batch. Omit it for the current period. |
+
+> **`scheduledTime` only selects the quota period.** A past time resolves to the current period, and `effectiveQuotaTime` in the response shows the date that was used. It does not make a past schedule valid: `create_post` and `update_post` still apply their own rules to the time you send. A malformed value (no `Z` or offset, or an impossible date such as `2026-02-30`) fails the tool's input validation before any request is made; the REST endpoint answers it with `400` and `code: "INVALID_SCHEDULED_TIME"` (`retryable: false`, `nextAction: "CHANGE_SCHEDULE"`).
+
+**Example prompts:**
+
+```text
+"How many posts can I still publish this month?"
+"Check my Publora limits before scheduling these 12 posts"
+"How far ahead can I schedule?"
+"Which platforms does my plan include?"
+```
+
+**Python example:**
+
+```python
+async def check_account():
+    headers = {"Authorization": "Bearer sk_YOUR_API_KEY"}
+
+    async with streamablehttp_client("https://mcp.publora.com", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # Current monthly period
+            result = await session.call_tool("account_context", {})
+            print(result.content[0].text)
+
+            # Monthly period of a batch planned for November
+            result = await session.call_tool("account_context", {
+                "scheduledTime": "2026-11-03T09:00:00Z"
+            })
+            print(result.content[0].text)
+
+asyncio.run(check_account())
+```
+
+**Response example:**
+
+```json
+{
+  "success": true,
+  "context": {
+    "plane": "personal",
+    "actorUserId": "665f1c2ab3e4d5f6a7b8c9d0",
+    "snapshotAt": "2026-10-02T08:37:17.484Z",
+    "serverTime": "2026-10-02T08:37:17.484Z",
+    "effectiveQuotaTime": "2026-10-02T08:37:17.484Z",
+    "plan": { "key": "starter", "name": "Starter", "source": "starter" },
+    "features": {
+      "publishing": true,
+      "apiAccess": true,
+      "mcpAccess": true,
+      "analytics": false,
+      "mentionables": false
+    },
+    "quotas": {
+      "monthlyPosts": {
+        "metric": "posts.platform_monthly",
+        "scope": "account",
+        "usageScope": "legacy_workspace",
+        "unit": "platform_post",
+        "limit": 15,
+        "used": 4,
+        "remaining": 11,
+        "periodStart": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-11-01T00:00:00.000Z",
+        "resetAt": "2026-11-01T00:00:00.000Z",
+        "periodTimeZone": "UTC",
+        "connections": []
+      },
+      "scheduledPosts": {
+        "metric": "posts.scheduled_active",
+        "scope": "account",
+        "usageScope": "legacy_workspace",
+        "unit": "platform_post",
+        "limit": 3,
+        "used": 1,
+        "remaining": 2,
+        "resetAt": null
+      },
+      "scheduleHorizon": {
+        "metric": "posts.schedule_horizon_days",
+        "unit": "day",
+        "limit": 7,
+        "maxScheduledDate": "2026-10-09T23:59:59.999Z",
+        "resetAt": null
+      },
+      "connections": {
+        "metric": "connections.total",
+        "scope": "account",
+        "usageScope": "legacy_workspace",
+        "unit": "channel",
+        "limit": 3,
+        "used": 2,
+        "remaining": 1
+      }
+    },
+    "allowedPlatforms": ["threads", "bluesky", "mastodon", "tiktok", "instagram", "youtube", "linkedin", "facebook", "pinterest", "telegram"],
+    "advisory": true
+  }
+}
+```
+
+This Starter-plan account has 11 of its 15 platform posts left this month (the count starts over at `resetAt`, 2026-11-01), room for 2 more scheduled platform posts, a schedule horizon that ends on 2026-10-09, and no X (`twitter`) in `allowedPlatforms`.
+
+**Response fields** (inside `context`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `plane` / `actorUserId` | string | Always `personal`, and the ID of the user the key belongs to |
+| `snapshotAt` / `serverTime` | string | When the snapshot was taken |
+| `effectiveQuotaTime` | string | The date used to select the monthly quota period |
+| `plan` | object | `key`, `name` and `source` of the plan in effect |
+| `features` | object | `true` or `false` for `publishing`, `apiAccess`, `mcpAccess`, `analytics` (needed by `post_stats` and `profile_stats`) and `mentionables` (needed by `linkedin_list_mentionables`) |
+| `quotas.monthlyPosts` | object | Platform posts in the monthly period: `limit`, `used`, `remaining`, `periodStart`, `periodEnd`, `resetAt` (when the count starts over, the end of the period), `periodTimeZone`, and `connections[]` for per-connection limits |
+| `quotas.scheduledPosts` | object | Platform posts waiting to publish, against the plan's limit: `limit`, `used`, `remaining`. `resetAt` is `null`. |
+| `quotas.scheduleHorizon` | object | `limit` in days and `maxScheduledDate`, the latest time a post can be scheduled (`null` when there is no horizon). `resetAt` is `null`. |
+| `quotas.connections` | object | Connected channels: `limit`, `used`, `remaining` |
+| `metric`, `scope`, `usageScope`, `unit` | string | Identify each quota. `unit` is `platform_post`, `day` or `channel`; `scope` is `account` (one shared limit) or `connection` (a limit for each connection) |
+| `allowedPlatforms` | string[]/null | Platform types the plan allows; `null` means all platforms |
+| `advisory` | boolean | Always `true`: the snapshot reserves nothing |
+
+> **Units are platform posts.** A post to three platforms uses three from `monthlyPosts`, and three from `scheduledPosts` while it waits to publish. `limit: null` means unlimited.
+
+> **Per-connection limits.** When `quotas.monthlyPosts.scope` is `"connection"`, the limit applies to each connection separately. Read `quotas.monthlyPosts.connections[]`: each entry has `platformSelection` (the connection ID you pass to `create_post`), `used`, `limit` and `remaining`. The aggregate `remaining` is `null` in that case, which does not mean unlimited.
+
+> **A snapshot, not a reservation.** With `advisory: true`, the response reserves nothing. Every write is checked again when it is made, so a write can still hit a limit if the quota was used in the meantime.
 
 ---
 
@@ -1301,3 +1441,5 @@ except Exception as e:
 4. **Handle errors gracefully** — Check for error responses in tool results
 
 5. **Batch operations** — When posting to multiple platforms, include all platform IDs in a single `create_post` call
+
+6. **Check limits before a batch** — Call `account_context` first to see the platform posts left this month, the latest date you can schedule (`maxScheduledDate`) and the platforms your plan allows

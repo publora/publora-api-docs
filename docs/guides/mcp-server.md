@@ -51,7 +51,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, you'll have access to 19 Publora tools. Try asking:
+After restarting, you'll have access to 20 Publora tools. Try asking:
 
 > "List my connected social media accounts"
 
@@ -133,7 +133,9 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (19)
+## Available Tools (20)
+
+Claude and other clients also list 12 `company_*` tools, which are for Agency client work and only work for Agency (Company) accounts.
 
 ### Posts
 
@@ -155,10 +157,11 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `delete_media` | Remove a media slot from a post |
 | `prune_media_reference` | Remove a stale media reference that `delete_media` cannot handle (fixes `MEDIA_REFERENCE_MISSING`) |
 
-### Platform Connections
+### Account and Connections
 
 | Tool | Description |
 |------|-------------|
+| `account_context` | Your plan, available features, publishing quotas and schedule horizon — check before a batch of posts or after a quota error |
 | `list_connections` | List all connected social media accounts |
 
 ### Statistics (Mastodon and Bluesky)
@@ -179,7 +182,7 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 | `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
-> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and **workspace** management are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and the managed-user **workspace** endpoints (`/api/v1/workspace/*`) are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 
@@ -352,7 +355,7 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 19 MCP tools | Full API access |
+| **Tools** | 20 MCP tools | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.

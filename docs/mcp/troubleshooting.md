@@ -225,6 +225,14 @@ curl -v -X POST https://mcp.publora.com \
 
 ---
 
+### Claude asks before using some Publora tools
+
+**Cause:** In Claude, each connector tool has its own permission: **Always allow**, **Needs approval** or **Blocked**. By default, read-only tools (`list_connections`, `list_posts`, `get_post`, `account_context`, `post_stats`, `profile_stats`, `linkedin_list_mentionables`) run without asking, and tools that create, change or delete posts, media or LinkedIn activity ask first.
+
+**Solution:** Open **Customize → Connectors → Publora → Tool permissions** and set the tool you want to stop confirming to **Always allow**.
+
+---
+
 ## Tool Errors
 
 ### "Platform not found"
@@ -409,12 +417,10 @@ If persistent:
 
 **Solutions:**
 
-1. **Check your plan limits:**
-   - **Starter (free):** 15 posts/month (account-wide), up to 3 connected accounts. **Includes** API and MCP access (`apiAccess: true`, `mcpAccess: true`) and can post to any of the 10 platforms.
-   - **Pro:** 100 posts/month per connection
-   - **Premium:** 500 posts/month per connection
-2. **Upgrade your plan** — Higher tiers have higher limits
-3. **Wait for the monthly reset** — Monthly post counts reset at the start of each billing cycle
+1. **Check your limits with `account_context`** — it returns your plan, the platform posts left this month (`quotas.monthlyPosts`, which starts over at `resetAt`), how many platform posts can wait in the queue (`quotas.scheduledPosts`), the latest date you can schedule (`quotas.scheduleHorizon.maxScheduledDate`) and the platforms your plan allows. See [account_context](./tools-reference.md#account_context).
+2. **Know the free plan's limits:** **Starter** allows 15 platform posts a month (account-wide), 3 scheduled platform posts at a time, scheduling up to 7 days ahead and up to 3 connected accounts. It **includes** API and MCP access (`apiAccess: true`, `mcpAccess: true`). New Starter accounts can't publish to X, and Pinterest is connect-only on every plan. Current paid plans set the monthly limit per connection; see [publora.com/pricing](https://publora.com/pricing).
+3. **Upgrade your plan** — Higher tiers have higher limits
+4. **Wait for the reset** — The monthly count starts over at `resetAt`; queued posts free up scheduled slots as they publish
 
 ---
 
