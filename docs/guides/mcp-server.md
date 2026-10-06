@@ -51,7 +51,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, you'll have access to 20 Publora tools. Try asking:
+After restarting, your client lists 20 personal tools + 12 Agency tools (32 total). Personal tools are included on every plan, with individual features subject to plan limits; Agency tools require an Agency (Company) account. Try asking:
 
 > "List my connected social media accounts"
 
@@ -133,9 +133,9 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (20)
+## Available Tools (32 total)
 
-Claude and other clients also list 12 `company_*` tools, which are for Agency client work and only work for Agency (Company) accounts.
+Publora exposes 20 personal tools + 12 Agency tools (32 total). The tables below list the personal tools. The [12 `company_*` tools](../mcp/tools-reference.md#agency-tools-12) are for Agency client work and only work for Agency (Company) accounts.
 
 ### Posts
 
@@ -355,7 +355,7 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 20 MCP tools | Full API access |
+| **Tools** | 20 personal tools + 12 Agency tools (32 total; Agency account required for Agency tools) | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.
