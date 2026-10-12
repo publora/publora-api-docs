@@ -48,13 +48,13 @@ Then:
 "What is scheduled for next week?"
 ```
 
-A post created without a time stays a draft and is never published.
+A post stays a draft when `scheduledTime` is omitted and `publishNow` is omitted or `false`. Setting `publishNow: true` publishes immediately, even without a scheduled time. To keep a post unpublished, explicitly ask the bot to save it as a draft.
 
-To test the whole publishing path without reaching a real audience, ask the bot to post to `publora-playground`. The request is checked and acknowledged like a real one, then discarded.
+To check that the bot can call Publora without reaching a real audience, ask it to post to `publora-playground`. Publora acknowledges the request without saving or publishing a post. This checks connectivity only; it does not verify real social-account access, quotas, scheduling, media processing or platform-specific publishing requirements.
 
 ## Troubleshooting
 
-**A post to Instagram, TikTok or YouTube won't schedule.** These networks need an image or video before a post can be scheduled or published. Attach one and ask again.
+**A post to Instagram, TikTok or YouTube won't schedule.** Instagram and TikTok need an image or video. YouTube requires a video; an image alone won't work. Attach the required media and ask again.
 
 **Posting to X fails on the free plan.** X is available on the Pro plan.
 
