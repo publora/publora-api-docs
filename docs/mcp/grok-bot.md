@@ -5,7 +5,7 @@ Connect [Grok Bot](https://x.ai/bot) to Publora and let it draft, schedule and p
 ## Prerequisites
 
 - A Publora account with at least one social account connected in the Publora dashboard. Grok Bot posts to the accounts you connected there; it can't connect new ones.
-- Grok Bot with an eligible plan: any paid Cursor plan, Cursor Teams, a linked SuperGrok or X Premium+ subscription, or the Grok Bot free trial.
+- Grok Bot with an eligible plan: any paid individual Cursor plan or the Cursor Teams plan, a linked SuperGrok, SuperGrok Plus, SuperGrok Heavy or X Premium+ subscription, a seat on a Grok Business plan, or the Grok Bot free trial.
 
 The free Publora Starter plan works: 3 social accounts and 15 posts a month on every network except X. Posting to X needs the Pro plan.
 
@@ -23,13 +23,13 @@ Add a custom MCP server called Publora at https://mcp.publora.com/mcp
 
 **4. Verify.** Back in Grok Bot, the card changes to **Publora · 32 tools · Added**, and the bot confirms that Publora is connected.
 
-To see it later, open **Connect apps** in the sidebar and click the connected counter at the top. Publora is listed as **Connected**. A server you add is available to every bot on your account.
+To see it later, open **Connect apps** in the sidebar and select the connected count next to the title. Publora appears among your installed plugins. An installed plugin is available to every bot on your account.
 
-The sign-in token stays with Grok Bot's connector service. The bot calls Publora's tools but never sees your password or token.
+The sign-in token stays on Grok Bot's connector backend. The bot calls Publora's tools but never receives your password or token.
 
 ## Ask before publishing
 
-Grok Bot may publish or delete posts without asking first. To keep the final say, open **Settings → General → Auto-review** and add an **Ask first** rule, for example: *Ask first before publishing, scheduling or deleting posts in Publora.* You can also say it in the request: "Draft it and wait for my approval."
+Grok Bot may publish or delete posts without asking first. To keep the final say, open **Settings → General**, find **Bot**, and add an **Ask first** rule under **Custom Rules**, for example: *Ask first before publishing, scheduling or deleting posts in Publora.* You can also say it in the request: "Draft it and wait for my approval."
 
 ## Using with Grok Bot
 
@@ -58,10 +58,10 @@ To check that the bot can call Publora without reaching a real audience, ask it 
 
 **Posting to X fails on the free plan.** X is available on the Pro plan.
 
-**Tools stop working after a while.** Your Publora sign-in may have expired. Open **Connect apps**, find Publora and authenticate again, or ask the bot to reconnect it.
+**The bot says Publora is missing or tools stop working.** Open **Connect apps** and find Publora. If it shows **Needs auth** or **Disconnected**, choose **Authenticate** and sign in again. If you deleted Grok Bot's key on the **API** page of your Publora dashboard, sign in again the same way.
 
-**You'd rather use an API key.** Create a key on the **API** page of your Publora dashboard and tell the bot to store it as the header `x-publora-key` on the Publora server. Don't paste the key into a normal message or into the server address.
+**You'd rather use an API key.** Use the sign-in above instead. It keeps the token on Grok Bot's connector backend, away from the bot. Never paste a Publora API key into the chat or into the server address; if you already did, delete that key on the **API** page of your Publora dashboard and create a new one.
 
-**`localhost` or a local command doesn't work.** Grok Bot runs on a cloud computer and can only reach public addresses. Use `https://mcp.publora.com/mcp`.
+**`localhost` doesn't work.** Grok Bot works on a cloud computer, so `localhost` there is not your machine. Use `https://mcp.publora.com/mcp`.
 
 Questions: support@publora.com
