@@ -26,7 +26,7 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 
 ## Request Body
 
-At least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, `firstComments`, or `mediaUrls` must be provided. Missing all eight returns 400.
+At least one of `publishNow`, `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, `firstComments`, or `mediaUrls` must be provided. Missing all nine returns 400.
 
 Every field is a **patch**: omit it and the stored value is left unchanged.
 
@@ -36,6 +36,7 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 | `platforms` | string[] | No | Replacement target set — **the whole array replaces the stored one**, it is not merged. Use the exact connection IDs from [`GET /platform-connections`](./platform-connections.md); duplicates are rejected. `[]` is accepted only while the post remains a draft. See [Editing content and targets](#editing-content-and-targets). |
 | `status` | string | No | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No | New ISO 8601 UTC datetime |
+| `publishNow` | boolean | No | `true` publishes the draft or scheduled post immediately, at server time. It can be combined with other edits in the same request. Cannot be combined with a future `scheduledTime` or `status: "draft"` (`400 PUBLISH_NOW_CONFLICT`). See [Publish an existing post now](#publish-an-existing-post-now). |
 | `platformSettings` | object | No | Per-platform settings using the canonical [create-post allowlist](./create-post.md#unknown-platformsettings-paths), including X reply/quote and LinkedIn repost settings. Merged with existing settings server-side — fields you omit are preserved. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
 | `firstComment` | object/null | No | Legacy single-comment replacement `{ "text": "…", "platforms": ["linkedin"] }`, or `null` to remove it. Do not send together with `firstComments`. |
 | `firstComments` | object[]/null | No | Replace the **whole ordered list** of up to three `{ text, platforms?, delaySeconds? }` comments; `null` or `[]` clears it. Delays are integer seconds 0–86,400. Validated against effective targets with the same rules as [create-post](./create-post.md#first-comment); the stored list is re-validated when targets change or the post is scheduled. A time change leaves it untouched. |
@@ -393,6 +394,21 @@ await fetch(`https://api.publora.com/api/v1/update-post/${postGroupId}`, {
 });
 ```
 
+### Publish an existing post now
+
+```javascript
+await fetch(`https://api.publora.com/api/v1/update-post/${postGroupId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({ publishNow: true })
+});
+```
+
+`publishNow: true` works on a draft or a scheduled post. The server sets `scheduledTime` to its current time and starts delivery; the response does not wait for the platforms. The same validation, media and monthly-limit checks as [Create Post → Publish now](./create-post.md#publish-now) apply. A scheduled post that you publish now frees its scheduled-queue slot and keeps the monthly reservation it already had, as long as the month and targets do not change. Rescheduling a Publish Now post to a future time turns it back into a normal scheduled post, and the queue and horizon are checked again.
+
 ### Pause a scheduled post (move to draft)
 
 ```python
@@ -514,7 +530,7 @@ def update_post_safely(post_group_id, updates):
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | Missing update fields | None of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, `firstComments`, or `mediaUrls` was provided |
+| 400 | Missing update fields | None of `publishNow`, `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, `firstComments`, or `mediaUrls` was provided |
 | 400 | `"firstComment must be an object { text, platforms? }"` / `"Unknown first comment platform …"` / `"First comment is too long for <platform>: …"` — codes `FIRST_COMMENT_INVALID`, `FIRST_COMMENT_PLATFORM_UNKNOWN`, `FIRST_COMMENT_TOO_LONG` | The first comment failed shape, platform-type or per-platform length validation — also raised when a `platforms` change makes the **stored** comment too long for a newly added platform. See [Create Post → First comment](./create-post.md#first-comment). |
 | 400 | `FIRST_COMMENT_INVALID` | `firstComments` exceeds three entries, has an invalid item/delay, or is sent together with `firstComment` |
 | 400 | `"Content must be a string"` — code `INVALID_CONTENT` | `content` was sent as something other than a string. Response includes `field: "content"`. |
@@ -533,6 +549,8 @@ def update_post_safely(post_group_id, updates):
 | 422 | `"Idempotency key was already used with a different request body"` — code `IDEMPOTENCY_KEY_CONFLICT` | The same `Idempotency-Key` was reused with a different body. Use a new key. |
 | 400 | `"Status must be either 'draft' or 'scheduled'"` | Invalid status value |
 | 400 | `"Invalid scheduled time format"` | Malformed datetime string |
+| 400 | `"publishNow must be a boolean"` — code `INVALID_PUBLISH_NOW` | `publishNow` is present but not `true` or `false` |
+| 400 | `"publishNow cannot be combined with a draft status"` / `"publishNow cannot be combined with an invalid or future scheduledTime"` — code `PUBLISH_NOW_CONFLICT` | `publishNow: true` sent with `status: "draft"` or a future `scheduledTime` |
 | 400 | `"Cannot update post: post is currently in {status} status"` — code `POST_NOT_EDITABLE` | Post is in any status other than `draft` or `scheduled` |
 | 400 | codes `MEDIA_UPLOAD_MISSING`, `MEDIA_VALIDATION_FAILED`, `MEDIA_REFERENCE_MISSING`, `MEDIA_NOT_READY` | Scheduling found an attached media file that cannot be used. The post was not changed; a media file the check marked `failed` stays failed. See [Media scheduling codes](../guides/error-codes.md#media-scheduling-codes). |
 | 503 | codes `MEDIA_UPLOAD_PENDING`, `MEDIA_VALIDATION_PENDING` | An attached upload is not in storage yet, or its validation did not finish in time. The post was not scheduled or changed; validation progress on the media is kept. Retry after the `Retry-After` header (also `retryAfterSec`). |

@@ -104,7 +104,8 @@ Create and schedule a post to one or more platforms.
 |-----------|------|----------|-------------|
 | `content` | string | Yes | Post text content |
 | `platforms` | string[] | Yes | Array of platform connection IDs (from `list_connections`) |
-| `scheduledTime` | string | No | When to publish (ISO 8601): `2026-03-01T14:00:00Z`. Omit to create a **draft**. |
+| `scheduledTime` | string | No | When to publish (ISO 8601): `2026-03-01T14:00:00Z`. Omit to create a **draft** (unless `publishNow` is `true`). |
+| `publishNow` | boolean | No | `true` publishes immediately at server time; omit `scheduledTime`. Uses the monthly post allowance but no slot in the scheduled queue, so a full queue does not block it. A future `scheduledTime` is rejected. Publication is asynchronous — check `get_post`. See [Publish now](../endpoints/create-post.md#publish-now). |
 | `mediaUrls` | string[] | No | Up to 10 public **https** image/video URLs, downloaded server-side and attached before validation. Pass together with `scheduledTime` to attach **and** schedule in one call. |
 | `platformSettings` | object | No | Per-platform publishing options (see schema below). Strict — unknown platforms or keys are rejected. |
 | `firstComment` | object | No | Legacy single-comment form `{ "text": "…", "platforms": ["linkedin"] }`; do not combine with `firstComments`. |
@@ -353,6 +354,7 @@ Edit a draft or scheduled post — its text, its target accounts, its schedule, 
 | `platforms` | string[] | No | Replacement target set — **replaces the whole array**, it is not merged. Call `list_connections` first and copy each `platformId` verbatim. `[]` is allowed only while the post remains a draft. |
 | `status` | string | No | New status: `draft` or `scheduled` |
 | `scheduledTime` | string | No | New scheduled time (ISO 8601) |
+| `publishNow` | boolean | No | `true` publishes this draft or scheduled post immediately at server time. Omit `scheduledTime`, and omit `status` or use `scheduled`; a future time or `status: "draft"` is rejected. A scheduled post moved to Publish Now frees its queue slot without a second monthly reservation. |
 | `mediaUrls` | string[] | No | Public https URLs (≤10) to download and **append** to the post's media. |
 | `platformSettings` | object | No | Per-platform options to merge (same strict schema as `create_post`). |
 | `firstComment` | object/null | No | Replacement first comment (`{ text, platforms? }`, the whole object replaces the stored one) or `null` to remove it. Re-validated against the targets whenever `platforms` change; a time change leaves it untouched. |
@@ -886,7 +888,7 @@ asyncio.run(list_connections())
 
 ## Analytics Tools (Mastodon, Bluesky)
 
-Both tools need a plan that includes analytics (Pro or Premium); a Starter key gets a `403`. Values are read from the platform on request and cached for about 2 hours. Full contract: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
+Both tools need a plan that includes analytics (Pro, or a legacy Premium plan); a Starter key gets a `403`. Values are read from the platform on request and cached for about 2 hours. Full contract: [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics).
 
 ### post_stats
 

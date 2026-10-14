@@ -6,8 +6,9 @@ info:
     across X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube,
     Facebook, Bluesky, Mastodon, and Telegram.
 
-    All plans include full API access. Starting at $5.40/month (yearly) or $9/month.
-    14-day free trial, no credit card needed.
+    Free Starter plan, no credit card needed. Pro is priced per connected
+    account: from $5.99/account/month, or $3.99 billed yearly, with automatic
+    volume discounts from the 6th account. See https://publora.com/pricing.
 
     ## Workspace API
     The Workspace API allows you to manage multiple users under a single account.
@@ -738,6 +739,147 @@ components:
         - RATE_LIMITED
         - FETCH_FAILED
 
+    AccountQuota:
+      type: object
+      properties:
+        metric:
+          type: string
+          example: "posts.platform_monthly"
+        scope:
+          type: string
+          enum: [account, connection]
+          description: "`account`: one shared limit. `connection`: a separate limit for each connection."
+        usageScope:
+          type: string
+          example: "legacy_workspace"
+        unit:
+          type: string
+          enum: [platform_post, day, channel]
+        limit:
+          type: integer
+          nullable: true
+          description: "null means unlimited"
+        used:
+          type: integer
+        remaining:
+          type: integer
+          nullable: true
+          description: "null when unlimited, or when scope is connection (read connections[])"
+        resetAt:
+          type: string
+          format: date-time
+          nullable: true
+    AccountContext:
+      type: object
+      properties:
+        plane:
+          type: string
+          enum: [personal]
+        actorUserId:
+          type: string
+        snapshotAt:
+          type: string
+          format: date-time
+        serverTime:
+          type: string
+          format: date-time
+        effectiveQuotaTime:
+          type: string
+          format: date-time
+          description: The date used to select the monthly quota period
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              example: "starter"
+            name:
+              type: string
+              example: "Starter"
+            source:
+              type: string
+        features:
+          type: object
+          properties:
+            publishing:
+              type: boolean
+            apiAccess:
+              type: boolean
+            mcpAccess:
+              type: boolean
+            analytics:
+              type: boolean
+              description: Needed by the Mastodon and Bluesky statistics endpoints
+            mentionables:
+              type: boolean
+              description: Needed by the LinkedIn mentionables endpoint
+        quotas:
+          type: object
+          properties:
+            monthlyPosts:
+              allOf:
+                - $ref: "#/components/schemas/AccountQuota"
+                - type: object
+                  properties:
+                    periodStart:
+                      type: string
+                      format: date-time
+                    periodEnd:
+                      type: string
+                      format: date-time
+                    periodTimeZone:
+                      type: string
+                      example: "UTC"
+                    connections:
+                      type: array
+                      description: Per-connection usage when scope is connection; otherwise empty
+                      items:
+                        type: object
+                        properties:
+                          platformSelection:
+                            type: string
+                            example: "linkedin-ABC123"
+                          used:
+                            type: integer
+                          limit:
+                            type: integer
+                            nullable: true
+                          remaining:
+                            type: integer
+                            nullable: true
+            scheduledPosts:
+              $ref: "#/components/schemas/AccountQuota"
+            scheduleHorizon:
+              type: object
+              properties:
+                metric:
+                  type: string
+                  example: "posts.schedule_horizon_days"
+                unit:
+                  type: string
+                  example: "day"
+                limit:
+                  type: integer
+                  nullable: true
+                maxScheduledDate:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: Latest time a post can be scheduled; null when there is no horizon
+                resetAt:
+                  type: string
+                  nullable: true
+            connections:
+              $ref: "#/components/schemas/AccountQuota"
+        allowedPlatforms:
+          type: array
+          nullable: true
+          description: Platform types the plan allows; null means all platforms
+          items:
+            type: string
+        advisory:
+          type: boolean
+          description: Always true; the snapshot reserves nothing
     Error:
       type: object
       properties:
@@ -948,6 +1090,91 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /account-context:
+    parameters:
+      - $ref: "#/components/parameters/XPubloraClient"
+    get:
+      summary: Read plan, features and publishing quotas
+      description: |
+        Read-only snapshot of the personal account behind the API key (or the
+        managed user named by `x-publora-user-id`): plan, available features,
+        publishing quotas, schedule horizon and allowed platforms. Call it before
+        a batch of posts and after a quota or feature error. Quotas count platform
+        posts; `limit: null` means unlimited. The snapshot is advisory
+        (`advisory: true`): it reserves nothing, and every write is checked again.
+        The MCP tool `account_context` returns the same object.
+      operationId: getAccountContext
+      tags:
+        - Posts
+      parameters:
+        - name: x-publora-user-id
+          in: header
+          required: false
+          description: Managed user ID (workspace only)
+          schema:
+            type: string
+        - name: scheduledTime
+          in: query
+          required: false
+          description: |
+            ISO 8601 date-time with `Z` or an explicit offset. Selects the monthly
+            quota period of a planned batch; omit it for the current period. A past
+            time resolves to the current period (see `effectiveQuotaTime`).
+          schema:
+            type: string
+            format: date-time
+          example: "2026-11-03T09:00:00Z"
+      responses:
+        "200":
+          description: Account context snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  context:
+                    $ref: "#/components/schemas/AccountContext"
+        "400":
+          description: Malformed scheduledTime
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "scheduledTime must be a valid ISO date-time"
+                  code:
+                    type: string
+                    example: "INVALID_SCHEDULED_TIME"
+                  retryable:
+                    type: boolean
+                    example: false
+                  nextAction:
+                    type: string
+                    example: "CHANGE_SCHEDULE"
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: API access is not enabled for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to read account context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /create-post:
     parameters:
       - $ref: "#/components/parameters/XPubloraClient"
@@ -964,7 +1191,8 @@ paths:
         postGroupId (Instagram: 2-10 images = carousel, 1 image = single photo),
         in upload order. See the Media Uploads guide for the full matrix.
         If scheduledTime is provided, the post will be published at that time.
-        If omitted, the post is saved as a draft.
+        If omitted, the post is saved as a draft. Set publishNow=true to publish
+        immediately at server time.
       operationId: createPost
       tags:
         - Posts
@@ -1034,6 +1262,20 @@ paths:
                     configuration overrides that date. Before strict mode it is
                     clamped with a warning. Send a future time to avoid both.
                   example: "2027-03-01T14:00:00.000Z"
+                publishNow:
+                  type: boolean
+                  default: false
+                  description: |
+                    `true` publishes immediately. The server uses its current time as
+                    scheduledTime, stores the post as `scheduled` and starts delivery at
+                    once; the response does not wait for the platforms. The usual
+                    connection, plan, content, media and first-comment validation applies.
+                    Publish Now uses the monthly post allowance (`POST_LIMIT_REACHED`) but
+                    takes no slot in the scheduled-post queue and ignores the schedule
+                    horizon. Combining it with a future scheduledTime or `status: "draft"`
+                    returns 400 `PUBLISH_NOW_CONFLICT`; a non-boolean value returns 400
+                    `INVALID_PUBLISH_NOW`. Omitted or `false` keeps draft/schedule behavior.
+                  example: true
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
                 firstComment:
@@ -1312,8 +1554,10 @@ paths:
         Only post groups whose status is draft or scheduled can be updated. `pending`
         and `processing` belong to separate processing/per-platform state, not
         to the post-group status enum.
-        At least one of status, scheduledTime, content, platforms, platformSettings, or
-        mediaUrls must be provided. Every field is a patch — omit it to leave the stored
+        At least one of publishNow, status, scheduledTime, content, platforms,
+        platformSettings, firstComment, firstComments, or mediaUrls must be provided.
+        `publishNow: true` publishes a draft or scheduled post immediately at server
+        time. Every field is a patch — omit it to leave the stored
         value unchanged.
         `content` replaces the base text and rewrites each platform post to its effective
         content, preserving explicit per-account overrides. `platforms` replaces the whole
@@ -1373,7 +1617,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided"
+              description: "At least one of publishNow, status, scheduledTime, content, platforms, platformSettings, firstComment, firstComments, or mediaUrls must be provided"
               properties:
                 content:
                   type: string
@@ -1423,6 +1667,17 @@ paths:
                     The same check applies to the post's existing scheduledTime when
                     you move a post to `status: "scheduled"` without sending a new
                     time — a long-stale draft can therefore be rejected.
+                publishNow:
+                  type: boolean
+                  description: |
+                    `true` publishes this draft or scheduled post immediately at server
+                    time, with the same checks as create-post. A scheduled post moved to
+                    Publish Now frees its scheduled-queue slot and keeps its monthly
+                    reservation when the month and targets are unchanged. Combining it
+                    with a future scheduledTime or `status: "draft"` returns 400
+                    `PUBLISH_NOW_CONFLICT`; a non-boolean value returns 400
+                    `INVALID_PUBLISH_NOW`.
+                  example: true
                 platformSettings:
                   $ref: "#/components/schemas/PlatformSettingsInput"
                 firstComment:

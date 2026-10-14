@@ -142,9 +142,9 @@ Publora exposes 20 personal tools + 12 Agency tools (32 total). The tables below
 | Tool | Description |
 |------|-------------|
 | `list_posts` | List posts with filters (status, platform, dates, pagination; `responseFormat: concise` for token-lean previews) |
-| `create_post` | Create a draft or schedule a post; accepts `mediaUrls` (fast media path) and `platformSettings` |
+| `create_post` | Create a draft, schedule a post, or publish now with `publishNow: true`; accepts `mediaUrls` (fast media path), `platformSettings` and first comments |
 | `get_post` | Get post group details |
-| `update_post` | Edit a draft/scheduled post: replace `content` or the `platforms` target set, change status/schedule, append `mediaUrls`, or merge `platformSettings` |
+| `update_post` | Edit a draft/scheduled post: replace `content` or the `platforms` target set, change status/schedule, publish now with `publishNow: true`, append `mediaUrls`, or merge `platformSettings` |
 | `delete_post` | Delete a post group and all platform posts |
 
 ### Media
@@ -182,7 +182,7 @@ Publora exposes 20 personal tools + 12 Agency tools (32 total). The tables below
 | `linkedin_create_reshare` | Reshare a LinkedIn post, optionally with commentary and visibility settings |
 | `linkedin_list_mentionables` | List mentionable LinkedIn people with ready-to-paste mention tokens (paid plans) |
 
-> The two statistics tools need a plan with analytics (Pro or Premium). LinkedIn **analytics/followers/profile-summary** and the managed-user **workspace** endpoints (`/api/v1/workspace/*`) are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
+> The two statistics tools need a plan with analytics (Pro, or a legacy Premium plan). LinkedIn **analytics/followers/profile-summary** and the managed-user **workspace** endpoints (`/api/v1/workspace/*`) are **not** MCP tools — use the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml). LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are implemented but disabled pending LinkedIn's `r_member_social` approval.
 
 ---
 

@@ -66,6 +66,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `POST` | `/attach-media/:postGroupId` | Attach a file by reference (e.g. a ChatGPT file); leaves the post in draft | [View](https://docs.publora.com/endpoints/attach-media) |
 | `POST` | `/upload-instagram-cover` | Upload a custom Instagram Reel cover | [View](https://docs.publora.com/endpoints/upload-instagram-cover) |
 | `GET` | `/platform-limits` | Get live per-platform limits | [View](https://docs.publora.com/endpoints/platform-limits) |
+| `GET` | `/account-context` | Plan, features, publishing quotas and schedule horizon | [View](https://docs.publora.com/endpoints/account-context) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
 | `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
@@ -128,7 +129,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Authentication](https://docs.publora.com/authentication) — API keys and workspace auth
 
 ### Endpoint Reference
-- [Create Post](https://docs.publora.com/endpoints/create-post) — schedule posts across platforms
+- [Create Post](https://docs.publora.com/endpoints/create-post) — schedule posts across platforms, or publish now with `publishNow: true`
 - [List Posts](https://docs.publora.com/endpoints/list-posts) — fetch all posts with pagination and filters
 - [Get Post](https://docs.publora.com/endpoints/get-post) — check post status and error details
 - [Post Logs](https://docs.publora.com/endpoints/post-logs) — publish attempt history for debugging
@@ -142,6 +143,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Upload Instagram Cover](https://docs.publora.com/endpoints/upload-instagram-cover) — custom cover image for Reels
 - [Upload YouTube Thumbnail](https://docs.publora.com/endpoints/upload-youtube-thumbnail) — custom video thumbnail (two-step: upload → update-post)
 - [Platform Limits](https://docs.publora.com/endpoints/platform-limits) — live per-platform character/media limits as JSON
+- [Account Context](https://docs.publora.com/endpoints/account-context) — plan, features, publishing quotas and schedule horizon before a batch
 - [Mastodon and Bluesky Statistics](https://docs.publora.com/endpoints/platform-statistics) — on-demand post engagement and follower counts
 - [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics) — post and account analytics
 - [LinkedIn Reactions](https://docs.publora.com/endpoints/linkedin-reactions) — add/remove reactions
