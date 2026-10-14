@@ -27,6 +27,7 @@ POST https://api.publora.com/api/v1/create-post
 | `content` | string | Conditional | Normally required and non-empty. It may be omitted or empty when a targeted LinkedIn connection has repost intent through `platformSettings.linkedin.repostEnabled: true` or a non-empty `repostParentUrn`; the repost settings must still form a valid parent/enable combination. Non-string truthy values (numbers, objects) can pass the initial content gate but cause unexpected behavior. |
 | `platforms` | string[] | Yes | Array of `<lowercase-prefix>-<id>` connection IDs. The ID cannot contain whitespace, `/`, `?`, or `#`; colons are allowed (e.g., `twitter-123456789`, `bluesky-did:plc:abc123`). Each ID must appear at most once — a repeated ID is rejected with `400 "Platforms must not contain duplicates"`. |
 | `scheduledTime` | string | No | ISO 8601 UTC datetime. If omitted, the post is created as a `draft`. A time in the past is **never silently accepted** — it is either clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response, or rejected with `400 SCHEDULED_TIME_IN_PAST`. See [Past scheduled times](#past-scheduled-times). |
+| `publishNow` | boolean | No | `true` publishes immediately. The server uses its own current time as `scheduledTime`, creates the post as `scheduled` and starts delivery at once. Omitted or `false` keeps the default: a draft without `scheduledTime`, a scheduled post with it. Cannot be combined with a future `scheduledTime` or `status: "draft"` (`400 PUBLISH_NOW_CONFLICT`). See [Publish now](#publish-now). |
 | `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. The accepted keys are `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin`. **Any unknown top-level platform or unknown nested key is rejected with `400 PLATFORM_SETTING_UNKNOWN` and nothing is persisted** — see [Unknown platformSettings paths](#unknown-platformsettings-paths) for the exact accepted tree. Each platform key must map to a plain object. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
 | `firstComment` | object | No | Legacy single-comment form `{ "text": "…", "platforms": ["linkedin"] }`; equivalent to the first item of `firstComments`. Do not send both fields. See [First comments](#first-comment). |
 | `firstComments` | object[]/null | No | Up to three ordered `{ text, platforms?, delaySeconds? }` comments. `null` or `[]` means none. `platforms` are platform **types**, not connection IDs; `delaySeconds` is an integer from 0 to 86,400. See [First comments](#first-comment). |
@@ -71,6 +72,27 @@ When a past `scheduledTime` is clamped, the response carries a warning and `sche
   ]
 }
 ```
+
+## Publish now
+
+Set `publishNow: true` to publish a post immediately instead of at a scheduled time:
+
+```json
+{
+  "content": "We just shipped dark mode 🌙",
+  "platforms": ["twitter-123456789", "linkedin-ABC123"],
+  "publishNow": true
+}
+```
+
+- **Server time.** Publora assigns its own current time, so the client clock does not matter. The response is the usual `{ "success": true, "postGroupId": "…", "scheduledTime": "<server time>" }` and the post group is `scheduled`.
+- **Asynchronous.** The response does not wait for the platforms. Read the outcome with [Get Post](get-post.md) or a [webhook](webhooks.md).
+- **Same checks as scheduling.** Connections, plan platforms, content, media (Instagram, TikTok and YouTube still need media, otherwise `400 MEDIA_REQUIRED`) and first comments are validated exactly as for a scheduled post.
+- **Limits.** Publish Now uses the monthly post allowance, so `403 POST_LIMIT_REACHED` still applies. It does **not** take a slot in the scheduled-post queue and ignores the schedule horizon: a Starter account with a full queue (3 of 3) can still publish now while it has monthly posts left.
+- **Conflicts.** `publishNow: true` with a future `scheduledTime` or with `status: "draft"` returns `400 PUBLISH_NOW_CONFLICT`. A `scheduledTime` that is not in the future is ignored in favour of server time. A non-boolean `publishNow` returns `400 INVALID_PUBLISH_NOW`.
+- **Retries.** A retried Publish Now request can publish twice. Send an [`Idempotency-Key`](#idempotency) and reuse it with the identical body.
+
+> **Older clients.** A `scheduledTime` within a few seconds of server time is still treated as an immediate publication, so existing integrations keep working. New integrations should send `publishNow: true`.
 
 ## Past scheduled times
 
@@ -495,6 +517,8 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 400 | `"Invalid platform ID format: <id>"` | Prefix is not lowercase letters, or the ID is empty or contains whitespace, `/`, `?`, or `#` |
 | 400 | `"Platforms must not contain duplicates"` | The same connection ID appears more than once in `platforms` |
 | 400 | `"Invalid scheduled time format"` | `scheduledTime` is not a valid ISO 8601 datetime |
+| 400 | `"publishNow must be a boolean"` | `code: "INVALID_PUBLISH_NOW"`. `publishNow` is present but not `true` or `false` |
+| 400 | `"publishNow cannot be combined with a draft status"` / `"publishNow cannot be combined with an invalid or future scheduledTime"` | `code: "PUBLISH_NOW_CONFLICT"`. See [Publish now](#publish-now) |
 | 400 | `"Scheduled time is in the past. Server time is <ISO> UTC."` | `code: "SCHEDULED_TIME_IN_PAST"`, `serverTime: "<ISO>"`. `scheduledTime` is 5+ minutes in the past while strict mode is active; the default transition is scheduled for **2026-08-25** but configuration can override it. |
 | 400 | `"Unknown platformSettings path: <path>"` | `code: "PLATFORM_SETTING_UNKNOWN"`, `field: "<exact.path>"`. Unknown platform or nested key; nothing is persisted. See [Unknown platformSettings paths](#unknown-platformsettings-paths) |
 | 400 | `"platformSettings.linkedin.*"` validation errors | Invalid LinkedIn repost settings (bad URN shape, bad visibility, `repostEnabled`/`repostParentUrn` mismatch) — see [LinkedIn Repost Settings](#linkedin-repost-settings) |

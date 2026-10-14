@@ -9,7 +9,7 @@ POST https://api.publora.com/api/v1/post-statistics
 POST https://api.publora.com/api/v1/profile-statistics
 ```
 
-Both require a plan that includes analytics (Pro or Premium). A Starter key receives `403 ANALYTICS_PLAN_REQUIRED`.
+Both require a plan that includes analytics (Pro, or a legacy Premium plan). A Starter key receives `403 ANALYTICS_PLAN_REQUIRED`.
 
 > LinkedIn analytics live on separate endpoints with a different contract — see [LinkedIn Statistics](https://docs.publora.com/endpoints/linkedin-statistics).
 

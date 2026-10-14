@@ -4,21 +4,22 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
-### Ordered first comments and Agency first comment — publora.com #537, #538
-
-- **Affected surface:** personal REST `create-post`, `update-post`, `get-post`; MCP `create_post`, `update_post`, `get_post`; Agency Company post save and detail routes and MCP tools.
-- **Tag:** Additive.
-- **Change:** Personal posts accept `firstComments[]` with up to three ordered `{text, platforms?, delaySeconds?}` items. Delay is 0–86,400 seconds and delivery runs on scheduler ticks. A later comment waits for the previous one to post; failure stops the sequence. `firstComments: null` or `[]` clears it on update. Supplying both `firstComment` and `firstComments` returns `400 FIRST_COMMENT_INVALID`.
-- **Read contract:** `get-post` / `get_post` return group `firstComments[]` and per-target `firstCommentResults[]`. Existing `firstComment` / `firstCommentResult` fields remain aliases for item 0; old documents read as a one-element array.
-- **Agency:** Company draft save accepts one `firstComment`; Company post detail returns its per-target result. Multiple comments and delays remain personal-only. See the [Agency first comment guide](guides/agency-first-comments.md).
-- **Migration action:** none for clients using the single-comment fields.
-
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-10-02
+
+### Publish Now — publora.com #608, #610
+
+- **Affected surface:** personal REST `create-post` and `update-post`; MCP `create_post` and `update_post`; `GET /account-context` and MCP `account_context` queue counts.
+- **Tag:** Additive.
+- **Change:** `publishNow: true` publishes immediately at server time. It uses the monthly post allowance (`POST_LIMIT_REACHED` still applies) but takes no slot in the scheduled-post queue and ignores the schedule horizon. Combining it with a future `scheduledTime` or `status: "draft"` returns `400 PUBLISH_NOW_CONFLICT`; a non-boolean value returns `400 INVALID_PUBLISH_NOW`. Moving a scheduled post to Publish Now frees its queue slot and keeps its monthly reservation. A `scheduledTime` within a few seconds of server time is still treated as immediate for existing clients.
+- **Docs:** `GET /account-context`, released with publora.com #589 on 2026-10-01, now has its own [REST reference page](endpoints/account-context.md) and OpenAPI entry.
+- **Migration action:** None. New integrations should send `publishNow: true` instead of a current `scheduledTime`. See [Publish now](endpoints/create-post.md#publish-now).
 
 ## 2026-10-01
 
@@ -52,6 +53,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Migration action:** Prompt a reconnect on `connectionStatus: "reconnect_required"` instead of `tokenStatus: "expired"`, and keep using `tokenStatus: "expiring_soon"` for advance warnings. Clients generated from the OpenAPI spec should treat `displayName` and `profileImageUrl` as nullable.
 
 ## 2026-09-29
+
+### Ordered first comments and Agency first comment — publora.com #537, #538, #552
+
+- **Affected surface:** personal REST `create-post`, `update-post`, `get-post`; MCP `create_post`, `update_post`, `get_post`; Agency Company post save and detail routes and MCP tools.
+- **Tag:** Additive.
+- **Change:** Personal posts accept `firstComments[]` with up to three ordered `{text, platforms?, delaySeconds?}` items. Delay is 0–86,400 seconds and delivery runs on scheduler ticks. A later comment waits for the previous one to post; failure stops the sequence. `firstComments: null` or `[]` clears it on update. Supplying both `firstComment` and `firstComments` returns `400 FIRST_COMMENT_INVALID`.
+- **Read contract:** `get-post` / `get_post` return group `firstComments[]` and per-target `firstCommentResults[]`. Existing `firstComment` / `firstCommentResult` fields remain aliases for item 0; old documents read as a one-element array.
+- **Agency:** Company draft save accepts one `firstComment`; Company post detail returns its per-target result. Multiple comments and delays remain personal-only. See the [Agency first comment guide](guides/agency-first-comments.md).
+- **Migration action:** none for clients using the single-comment fields.
 
 ### Telegram: private channels over a bot connection — publora.com #570
 

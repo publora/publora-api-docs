@@ -61,7 +61,7 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/list-posts` | GET | List posts with filters |
-| `/create-post` | POST | Schedule/publish a post |
+| `/create-post` | POST | Create a draft, schedule a post, or publish now (`publishNow: true`) |
 | `/get-post/:postGroupId` | GET | Get post details |
 | `/update-post/:postGroupId` | PUT | Edit content, targets, timing, or status of a draft/scheduled post |
 | `/delete-post/:postGroupId` | DELETE | Delete a post |
@@ -70,6 +70,7 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 | `/upload-instagram-cover` | POST | Upload a custom Instagram Reel cover (multipart) |
 | `/upload-youtube-thumbnail` | POST | Upload a custom YouTube thumbnail (multipart) |
 | `/platform-limits` | GET | Get live per-platform limits (no params) |
+| `/account-context` | GET | Plan, features, publishing quotas and schedule horizon (optional `scheduledTime` query) |
 | `/post-logs/:postGroupId` | GET | Get publishing logs for a post |
 
 ### Connections
@@ -140,6 +141,30 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   })
 });
 ```
+
+### Publish Now
+
+Send `publishNow: true` instead of `scheduledTime` to publish immediately at server time. It uses the monthly post allowance but no scheduled-queue slot; a future `scheduledTime` or `status: "draft"` alongside it returns `400 PUBLISH_NOW_CONFLICT`. `PUT /update-post/:postGroupId` with `{ "publishNow": true }` publishes an existing draft or scheduled post.
+
+```javascript
+await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-publora-key': 'sk_YOUR_API_KEY',
+    'Idempotency-Key': 'launch-2026-03-01'
+  },
+  body: JSON.stringify({
+    content: 'Hello world!',
+    platforms: ['linkedin-ABC123'],
+    publishNow: true
+  })
+});
+```
+
+### Check Limits Before a Batch
+
+`GET /account-context` returns the plan, features, monthly and queue quotas (`limit: null` = unlimited), `maxScheduledDate` and `allowedPlatforms`. It is an advisory snapshot; writes are still checked.
 
 ### Get Connected Platforms
 

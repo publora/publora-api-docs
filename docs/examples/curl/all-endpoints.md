@@ -88,7 +88,7 @@ Then schedule with `update-post` as above. See [Attach Media](../../endpoints/at
 
 ## 4. Update a post
 
-Update accepts at least one of `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, or `mediaUrls`. Omitted fields keep their stored value. `mediaUrls` appends media rather than replacing existing items; `platforms` does the opposite — it replaces the whole target set.
+Update accepts at least one of `publishNow`, `status`, `scheduledTime`, `content`, `platforms`, `platformSettings`, `firstComment`, `firstComments`, or `mediaUrls`. Omitted fields keep their stored value. `mediaUrls` appends media rather than replacing existing items; `platforms` does the opposite — it replaces the whole target set.
 
 ```bash
 POST_GROUP_ID="64f1a2b3c4d5e6f7890abcde"
@@ -112,7 +112,17 @@ curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
   -d '{"content":"Corrected launch announcement.","platforms":["linkedin-ABC123","threads-DEF456"]}'
 ```
 
-See [Update Post](../../endpoints/update-post.md) for validation and state behavior.
+Publish a draft or scheduled post immediately, at server time:
+
+```bash
+curl -sS -X PUT "$PUBLORA_BASE_URL/update-post/$POST_GROUP_ID" \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: publish-now-$POST_GROUP_ID" \
+  -d '{"publishNow":true}'
+```
+
+See [Update Post](../../endpoints/update-post.md) for validation and state behavior, and [Publish now](../../endpoints/create-post.md#publish-now) for the limits it uses.
 
 ## 5. Verify a webhook
 
@@ -142,4 +152,4 @@ Delivery is a single attempt per event, not a retry queue. Respond quickly with 
 
 ## Related capabilities
 
-The five workflows above are the shared example contract, not the entire API. Use the endpoint pages and [OpenAPI](https://docs.publora.com/openapi.yaml) for connections, listing and deleting posts, platform limits, post logs, LinkedIn engagement and analytics, [Mastodon and Bluesky statistics](../../endpoints/platform-statistics.md), workspace operations, and webhook administration.
+The five workflows above are the shared example contract, not the entire API. Use the endpoint pages and [OpenAPI](https://docs.publora.com/openapi.yaml) for connections, [account context](../../endpoints/account-context.md) (`GET /account-context`: plan, quotas and schedule horizon), listing and deleting posts, platform limits, post logs, LinkedIn engagement and analytics, [Mastodon and Bluesky statistics](../../endpoints/platform-statistics.md), workspace operations, and webhook administration.
