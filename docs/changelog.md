@@ -4,6 +4,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### Ordered first comments and Agency first comment — publora.com #537, #538
+
+- **Affected surface:** personal REST `create-post`, `update-post`, `get-post`; MCP `create_post`, `update_post`, `get_post`; Agency Company post save and detail routes and MCP tools.
+- **Tag:** Additive.
+- **Change:** Personal posts accept `firstComments[]` with up to three ordered `{text, platforms?, delaySeconds?}` items. Delay is 0–86,400 seconds and delivery runs on scheduler ticks. A later comment waits for the previous one to post; failure stops the sequence. `firstComments: null` or `[]` clears it on update. Supplying both `firstComment` and `firstComments` returns `400 FIRST_COMMENT_INVALID`.
+- **Read contract:** `get-post` / `get_post` return group `firstComments[]` and per-target `firstCommentResults[]`. Existing `firstComment` / `firstCommentResult` fields remain aliases for item 0; old documents read as a one-element array.
+- **Agency:** Company draft save accepts one `firstComment`; Company post detail returns its per-target result. Multiple comments and delays remain personal-only. See the [Agency first comment guide](guides/agency-first-comments.md).
+- **Migration action:** none for clients using the single-comment fields.
+
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.

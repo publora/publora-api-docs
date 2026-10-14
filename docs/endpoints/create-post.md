@@ -28,7 +28,8 @@ POST https://api.publora.com/api/v1/create-post
 | `platforms` | string[] | Yes | Array of `<lowercase-prefix>-<id>` connection IDs. The ID cannot contain whitespace, `/`, `?`, or `#`; colons are allowed (e.g., `twitter-123456789`, `bluesky-did:plc:abc123`). Each ID must appear at most once — a repeated ID is rejected with `400 "Platforms must not contain duplicates"`. |
 | `scheduledTime` | string | No | ISO 8601 UTC datetime. If omitted, the post is created as a `draft`. A time in the past is **never silently accepted** — it is either clamped to server time with a `SCHEDULED_TIME_COERCED` warning in the response, or rejected with `400 SCHEDULED_TIME_IN_PAST`. See [Past scheduled times](#past-scheduled-times). |
 | `platformSettings` | object | No | Per-platform settings that are merged with server-side defaults. User-provided values override defaults on a per-platform basis. The accepted keys are `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin`. **Any unknown top-level platform or unknown nested key is rejected with `400 PLATFORM_SETTING_UNKNOWN` and nothing is persisted** — see [Unknown platformSettings paths](#unknown-platformsettings-paths) for the exact accepted tree. Each platform key must map to a plain object. Validation errors (`"Invalid platformSettings JSON"`, `"platformSettings must be an object"`) are returned if the field is present and malformed. |
-| `firstComment` | object | No | `{ "text": "…", "platforms": ["linkedin"] }` — a text comment posted under the account's own post right after it publishes (the usual place for a link or hashtags). `platforms` are platform **types**, not connection IDs; omit it for every supported target. Wave 1: LinkedIn (profiles and company Pages), X, Threads, Bluesky, Mastodon. Length is validated per platform. See [First comment](#first-comment). |
+| `firstComment` | object | No | Legacy single-comment form `{ "text": "…", "platforms": ["linkedin"] }`; equivalent to the first item of `firstComments`. Do not send both fields. See [First comments](#first-comment). |
+| `firstComments` | object[]/null | No | Up to three ordered `{ text, platforms?, delaySeconds? }` comments. `null` or `[]` means none. `platforms` are platform **types**, not connection IDs; `delaySeconds` is an integer from 0 to 86,400. See [First comments](#first-comment). |
 | `mediaUrls` | string[] | No | Up to **10** public **https** image/video URLs. Publora downloads them server-side and attaches them to the post **before** validation, so you can attach media *and* schedule in one call (pass together with `scheduledTime`). This is the one-shot alternative to the draft → `get-upload-url` → schedule flow. Ingestion is rate-limited to 60 URLs/hour. See [Posts with Media](#posts-with-media). |
 
 ## Response
@@ -339,17 +340,17 @@ Field-level validation errors (400):
 
 ## First comment
 
-Post a text comment under your own post right after it publishes — the usual place for a link or hashtags, so the post itself stays clean. Pass a top-level `firstComment` object:
+Post up to three ordered text comments under your own post. Pass `firstComments`:
 
 ```json
 {
   "content": "Three lessons from our launch week.",
   "platforms": ["linkedin-Tz9W5i6ZYG", "twitter-123456789"],
   "scheduledTime": "2027-03-01T14:00:00.000Z",
-  "firstComment": {
-    "text": "Full write-up with the numbers: https://example.com/launch-week",
-    "platforms": ["linkedin"]
-  }
+  "firstComments": [
+    { "text": "Full write-up with the numbers: https://example.com/launch-week", "platforms": ["linkedin"] },
+    { "text": "Which lesson resonates?", "platforms": ["linkedin"], "delaySeconds": 60 }
+  ]
 }
 ```
 
@@ -357,13 +358,15 @@ Post a text comment under your own post right after it publishes — the usual p
 |-------|------|----------|-------------|
 | `text` | string | Yes | The comment. Stored verbatim, measured and posted trimmed; whitespace-only text clears the comment. Hard cap 25,000 characters regardless of targets. |
 | `platforms` | string[] | No | Platform **types** that get the comment: `linkedin`, `twitter`, `threads`, `bluesky`, `mastodon`. Omit it (or send `[]`) for every supported target. Connection IDs such as `linkedin-abc` are rejected with `400 FIRST_COMMENT_PLATFORM_UNKNOWN`; a type the post is not published to only produces a `FIRST_COMMENT_PLATFORM_NOT_TARGETED` warning. |
+| `delaySeconds` | integer | No | Delay after publication for item 0, or after the previous comment posts for later items. 0–86,400 seconds; omitted means 0. Actual delivery is within one scheduler tick of the due time. |
 
 How it behaves:
 
 - **Wave 1 platforms:** LinkedIn (member profiles comment as the person, company Pages as the organization), X, Threads (the connection must grant `threads_manage_replies`), Bluesky, Mastodon. Targets on other platforms are skipped and reported in a `FIRST_COMMENT_UNSUPPORTED_PLATFORMS` warning in the response's `warnings[]`.
 - **Length** is validated per applicable platform with that platform's own counting: X 280 weighted characters (25,000 only when *every* targeted X connection is Premium), LinkedIn 1,250, Threads 500 code points, Bluesky 300 graphemes **and** 3,000 UTF-8 bytes, Mastodon 500 with each link counted as 23. Over the limit → `400 FIRST_COMMENT_TOO_LONG` with `platform`, `limit`, `count` and `unit`.
-- **Best effort, once.** The comment is attempted right after the post publishes, at most once per target, and is never retried. A failed comment never changes the published post. Read the outcome per target in [`get-post` → `posts[].firstCommentResult`](./get-post.md#first-comment-result-postsfirstcommentresult).
-- **Editable** with [`update-post`](./update-post.md) while the post is a draft or scheduled; changing the time leaves it untouched; `null` removes it.
+- **Order and failures.** A comment becomes due on a scheduler tick; the next comment waits until the previous one is confirmed `posted`. If one fails, later comments stop. Each comment is attempted at most once per target. A failed comment never changes the published post. Read each outcome in [`get-post` → `posts[].firstCommentResults[]`](./get-post.md#first-comment-result-postsfirstcommentresult).
+- **Compatibility.** The old `firstComment: { text, platforms? }` still creates one comment. Send either `firstComment` or `firstComments`; sending both returns `400 FIRST_COMMENT_INVALID` on `firstComments`.
+- **Editable** with [`update-post`](./update-post.md) while the post is a draft or scheduled; changing only the time leaves comments untouched. `firstComments: null` or `[]` clears them.
 
 ## Examples
 
@@ -498,6 +501,7 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 400 | `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"` | `repostVisibility: "CONNECTIONS"` while the scheduled group targets a LinkedIn company-page connection |
 | 400 | `"Invalid platformSettings JSON"` | `platformSettings` was provided as a string that could not be parsed as valid JSON |
 | 400 | `"firstComment must be an object { text, platforms? }"` | `code: "FIRST_COMMENT_INVALID"`, `field`. `firstComment` was a string, an array, or carried an unknown field — see [First comment](#first-comment) |
+| 400 | `FIRST_COMMENT_INVALID` | `firstComments` has more than three entries, an invalid `delaySeconds`, an invalid item shape, or was sent together with `firstComment`; `field` points to the problem |
 | 400 | `"Unknown first comment platform \"<value>\": use platform types such as linkedin or twitter, not connection keys"` | `code: "FIRST_COMMENT_PLATFORM_UNKNOWN"`, `field: "firstComment.platforms"`, `allowed: [...]`. A connection ID or unknown type in `firstComment.platforms` |
 | 400 | `"First comment is too long for <platform>: <count> <unit>, limit <limit>"` | `code: "FIRST_COMMENT_TOO_LONG"`, `field: "firstComment.text"`, plus `platform`, `limit`, `count`, `unit`. The absolute cap reads `"firstComment.text is too long: <count> characters, limit 25000"` |
 | 400 | `"Idempotency-Key request body is too deeply nested"` | `code: "IDEMPOTENCY_BODY_TOO_COMPLEX"`. Body nested more than 200 levels deep while using `Idempotency-Key` |
