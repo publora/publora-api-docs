@@ -15,7 +15,7 @@ Publora provides a unified REST API for posting tweets to X (formerly Twitter), 
 | Thread creation | Automatic splitting | Manual tweet chaining |
 | Multi-platform | Post to 10 platforms | Twitter only |
 | Setup time | 5 minutes | Hours to days |
-| Pricing | API access is included on the free Starter plan | Free tier + paid tiers |
+| Pricing | API access is included on the free Starter plan; publishing to X needs Pro for new accounts | Free tier + paid tiers |
 
 ### Keywords: Twitter API, X API, post tweet API, Twitter posting API, tweet programmatically, Twitter bot API, Twitter automation API, send tweet API, Twitter REST API, Twitter developer API
 
@@ -32,6 +32,7 @@ Where `{userId}` is your X/Twitter numeric user ID assigned during account conne
 - An X/Twitter account connected via OAuth through the Publora dashboard
 - API key from Publora
 - Publora API access on any standard plan, including the free Starter plan
+- A plan that allows X: Pro. New Starter accounts cannot publish to X (`403 PLATFORM_NOT_AVAILABLE`); Starter accounts that already used X before the change keep it. `allowedPlatforms` in [`GET /account-context`](../endpoints/account-context.md) shows whether your plan includes `twitter`.
 
 ## Supported Content
 

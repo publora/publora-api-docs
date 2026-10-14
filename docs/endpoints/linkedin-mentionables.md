@@ -108,7 +108,7 @@ The same directory is available to MCP clients as the `linkedin_list_mentionable
 | 403 | `"API access is not enabled for this account"` | Account does not have API access enabled |
 | 403 | `"The mentionable-people directory is available on paid plans — upgrade to access it"` | Free plan — the response also includes `"code": "UPGRADE_REQUIRED"` |
 
-> **Note:** API keys already require a paid plan, so API callers normally hit the `403` API-access error before the `UPGRADE_REQUIRED` one; the latter mainly appears in edge cases (e.g. a plan downgrade with a still-active key).
+> **Note:** The free Starter plan includes API and MCP access, so a Starter key is authenticated and then receives `403 UPGRADE_REQUIRED` here. The `403` API-access error appears only for an account whose API access was disabled.
 
 ## Related
 
