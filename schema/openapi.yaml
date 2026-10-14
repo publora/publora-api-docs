@@ -4194,6 +4194,10 @@ paths:
       description: |
         Retrieve detailed logs for a post group showing the publishing process,
         including scheduling, processing, success, and failure events.
+        Returns only events from the last 90 days by event createdAt, oldest first,
+        limited to 100 entries. An owned group without recent events returns HTTP
+        200 with success: true and logs: []. Diagnostic log expiry does not delete
+        the post group or published post history.
       operationId: getPostLogs
       tags:
         - Logs
@@ -4217,6 +4221,8 @@ paths:
                     example: true
                   logs:
                     type: array
+                    description: Events from the last 90 days by createdAt; may be empty.
+                    minItems: 0
                     items:
                       $ref: "#/components/schemas/PostLog"
         "400":
