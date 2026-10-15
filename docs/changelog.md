@@ -4,25 +4,27 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
-### Post-log retention — publora.com #663
-
-- **Affected surface:** `GET /api/v1/post-logs/:postGroupId`.
-- **Tag:** **Potentially breaking** retention change, pending the
-  [backend release](https://github.com/publora/publora.com/issues/663).
-- **Change:** Responses include events from the last 90 days by event `createdAt`,
-  oldest first, limited to 100 entries. Old diagnostic events expire
-  asynchronously; post groups and published post history remain available.
-- **Migration action:** Handle HTTP 200 with `success: true` and `logs: []` for
-  an owned group without recent events. Export needed diagnostic events before
-  the release if your integration requires a longer history. Ownership and 404
-  behavior are unchanged. See [Post logs](endpoints/post-logs.md).
-
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-10-15
+
+### Post-log retention — publora.com #663
+
+- **Affected surface:** `GET /api/v1/post-logs/:postGroupId`.
+- **Tag:** **Potentially breaking** retention change.
+- **Change:** Responses include events from the last 90 days by event `createdAt`,
+  oldest first, limited to 100 entries. Old diagnostic events expire
+  asynchronously; post groups and published post history remain available.
+- **Migration action:** Handle HTTP 200 with `success: true` and `logs: []` for
+  an owned group without recent events. Events older than 90 days are no longer
+  returned; store diagnostic events on your side if your integration requires a
+  longer history. Ownership and 404 behavior are unchanged. See
+  [Post logs](endpoints/post-logs.md).
 
 ## 2026-10-02
 
