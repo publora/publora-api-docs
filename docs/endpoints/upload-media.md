@@ -46,7 +46,7 @@ POST https://api.publora.com/api/v1/get-upload-url
 | `fileUrl` | The public URL where the file will be accessible after upload. |
 | `mediaId` | The unique ID of the created media record. Use this to reference or delete the media. |
 
-> **Internal fields:** Media records also store additional internal fields (`urlPure`, `mimeType`, `addedAt`, `filePath`, `uploadUrl`, `fileName` (S3 key), `metadata`) that are not returned by the API. Note that `mimeType` is a top-level field on the media record when created via the API `get-upload-url` endpoint, but the `process-video` endpoint stores `mimeType` inside the `metadata` subdocument instead. The `metadata` object contains: `size`, `width`, `height`, `aspectRatio`, `format` (defaults to `"unknown"` — never populated by any endpoint), `frameRate`, `codecName`, `bitRate`, and `duration`.
+> **Internal fields:** Media records also store additional internal fields (`urlPure`, `mimeType`, `addedAt`, `filePath`, `uploadUrlExpiresAt`, `fileName` (S3 key), `metadata`) that are not returned by the API. The presigned `uploadUrl` itself is returned only in this response and is not stored on new media records. Note that `mimeType` is a top-level field on the media record when created via the API `get-upload-url` endpoint, but the `process-video` endpoint stores `mimeType` inside the `metadata` subdocument instead. The `metadata` object contains: `size`, `width`, `height`, `aspectRatio`, `format` (defaults to `"unknown"` — never populated by any endpoint), `frameRate`, `codecName`, `bitRate`, and `duration`.
 
 ### Dashboard vs API Differences
 
