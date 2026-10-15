@@ -2,6 +2,10 @@
 
 Get detailed publish attempt history for a post group. Useful for debugging failed posts and understanding the publish timeline.
 
+Events are retained for **90 days by event `createdAt`**. Responses include only
+events from that rolling window. The post group and published post history are
+kept independently of these diagnostic events.
+
 ## Endpoint
 
 ```
@@ -25,6 +29,13 @@ GET https://api.publora.com/api/v1/post-logs/:postGroupId
 | `postGroupId` | string | The post group ID |
 
 > **Note:** Results are limited to the first 100 log entries per post group (sorted ascending by creation time, oldest first).
+
+A valid post group owned by the authenticated user returns HTTP 200 with
+`{ "success": true, "logs": [] }` when no events remain in the 90-day window.
+An empty log list does not mean the post group is missing or publishing failed.
+Missing or inaccessible groups still return HTTP 404. Physical deletion of old
+events is asynchronous; the API excludes expired events even while they await
+deletion.
 
 ## Response
 
