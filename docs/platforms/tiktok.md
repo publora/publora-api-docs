@@ -1,5 +1,7 @@
 # TikTok API - Upload Video via REST API
 
+> **Agency client posts:** use the separate [Company platform settings](../guides/agency-platform-settings.md) contract. The personal API examples below keep their existing shapes and upload workflows.
+
 Upload videos to TikTok programmatically using the Publora REST API. A simpler alternative to the official TikTok Developer API, TikTok Business SDK, or TikAPI.
 
 ## TikTok API Overview

@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Publora exposes **20 personal tools + 12 Agency tools (32 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#agency-tools-12), which require an Agency (Company) account. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
+Publora exposes **20 personal tools + 13 Agency tools (33 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#agency-tools-13), which require an Agency (Company) account. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -1193,9 +1193,9 @@ async def list_mentionables():
 
 ---
 
-## Agency Tools (12)
+## Agency Tools (13)
 
-MCP clients list these 12 tools alongside the 20 personal tools, for 32 total. The `company_*` tools work only for Agency (Company) accounts and respect the caller's role permissions. Personal tools never access Company content. Start with `company_context` to discover accessible accounts, workspaces and capabilities; use the returned Company IDs rather than personal connection IDs. The [public server card](https://mcp.publora.com/.well-known/mcp/server-card.json) contains each tool's current input schema.
+MCP clients list these 13 tools alongside the 20 personal tools, for 33 total. The `company_*` tools work only for Agency (Company) accounts and respect the caller's role permissions. Personal tools never access Company content. Start with `company_context` to discover accessible accounts, workspaces and capabilities; use the returned Company IDs rather than personal connection IDs. The [public server card](https://mcp.publora.com/.well-known/mcp/server-card.json) contains each tool's current input schema.
 
 | Tool | Description |
 |------|-------------|
@@ -1211,6 +1211,21 @@ MCP clients list these 12 tools alongside the 20 personal tools, for 32 total. T
 | `company_post_action` | Schedule, reschedule, unschedule, delete eligible posts or recover failed channels into a draft |
 | `company_media` | Reserve and complete media uploads or detach an attachment from an Agency draft |
 | `company_audit_log` | Read Company administrative audit events within the caller's permissions |
+| `company_webhooks` | Manage Workspace post-published/failed subscriptions and rotate signing secrets |
+
+### Company publishing settings and thumbnails
+
+`company_save_post` adds Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn
+reposts, TikTok disclosure and YouTube tags/playlist/trusted custom thumbnails.
+Use `company_context` action `platforms` to verify availability. See the [Company platform settings guide](../guides/agency-platform-settings.md)
+for exact draft shapes, validation and approval behavior.
+
+For a YouTube thumbnail, reserve `company_media` with
+`command.purpose: "youtube_thumbnail"`, upload JPEG/PNG bytes to the returned
+storage URL, and complete that reservation. Save the returned media ID in
+`command.draft.platformSettings.youtube.thumbnail.mediaId` through
+`company_save_post`. It is auxiliary media, not an ordinary post image; external
+thumbnail URLs and personal media IDs are refused. Company webhooks are managed separately through `company_webhooks`.
 
 ### company_audit_log
 
@@ -1488,3 +1503,13 @@ except Exception as e:
 5. **Batch operations** — When posting to multiple platforms, include all platform IDs in a single `create_post` call
 
 6. **Check limits before a batch** — Call `account_context` first to see the platform posts left this month, the latest date you can schedule (`maxScheduledDate`) and the platforms your plan allows
+
+### company_webhooks
+
+Use `command.action`: `list`, `create`, `update`, `delete` or `regenerate_secret`.
+All actions require `workspaceId`; mutations require a stable `idempotencyKey`.
+Create fields (`name`, `url`, `events`, optional `isActive`) are directly on
+`command`; update fields are in `command.changes`. Existing-subscription
+operations also require `webhookId`. Only current Workspace settings managers
+may use this tool. See [Agency webhooks](../guides/agency-webhooks.md) for the
+strict fields, one-time secrets, signature verification and delivery semantics.

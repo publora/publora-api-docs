@@ -257,3 +257,12 @@ These lowercase codes are top-level response fields from `POST /workspace/users`
 - Workspace attachment responses: `backend/src/app/controllers/workspaceApiController.js`.
 - LinkedIn interaction/analytics errors: `backend/src/app/controllers/linkedinController.js`.
 - Mastodon/Bluesky analytics responses: `backend/src/app/controllers/platformAnalyticsController.js` and `backend/src/app/services/platformAnalytics/`.
+
+## Company webhook errors
+
+Company `/webhooks` uses `AGENCY_CORE_ACCESS_DENIED` (403),
+`COMPANY_WEBHOOK_INPUT_INVALID` (400), `COMPANY_WEBHOOK_NOT_FOUND` (404),
+`COMPANY_WEBHOOK_LIMIT`, `COMPANY_WEBHOOK_CONFLICT`,
+`COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT`, `COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT`
+(409), and `COMPANY_WEBHOOK_UNAVAILABLE` (503). See
+[Agency webhooks](agency-webhooks.md) for recovery and stable-retry rules.

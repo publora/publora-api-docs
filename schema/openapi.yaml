@@ -24,6 +24,8 @@ security:
   - ApiKeyAuth: []
 
 tags:
+  - name: Company Publishing
+    description: Agency draft platform settings and trusted Company media
   - name: Posts
     description: Create, update, delete, and list posts
   - name: Connections
@@ -49,7 +51,95 @@ components:
       name: x-publora-key
       description: "API key from Settings > API Keys. Format: sk_timestamp.hexstring"
 
+  responses:
+    CompanyInvalidInput:
+      description: Invalid Company content input (AGENCY_CORE_CONTENT_INPUT_INVALID).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyAuthenticationFailed:
+      description: API key authentication failed; existing API authentication error envelope.
+    CompanyBillingRequired:
+      description: Company billing access is required (COMPANY_BILLING_REQUIRED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyAccessDenied:
+      description: Workspace or role unavailable (AGENCY_CORE_ACCESS_DENIED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyResourceNotFound:
+      description: Post or media does not exist in the selected Workspace.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyConflict:
+      description: Content/media state or idempotency conflict; refetch before a changed request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyMediaMismatch:
+      description: Invalid upload contract or verified media metadata (AGENCY_CORE_MEDIA_TYPE_MISMATCH), or file size
+        above the limit (AGENCY_CORE_MEDIA_SIZE_EXCEEDED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyUnavailable:
+      description: Company service or dependency unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+
   parameters:
+    CompanyWebhookId:
+      name: webhookId
+      in: path
+      required: true
+      description: Exact subscription ID from this Workspace webhook list.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyWorkspaceId:
+      name: X-Publora-Workspace-Id
+      in: header
+      required: true
+      description: Exact accessible Company Workspace ID returned by Company context.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable key. After an uncertain response retry the identical body and key; use a new key for a new
+        intended operation.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        pattern: ^[!-+--~]{1,255}$
+    CompanyPostGroupId:
+      name: postGroupId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyMediaFileId:
+      name: mediaFileId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
     XPubloraClient:
       name: x-publora-client
       in: header
@@ -59,6 +149,486 @@ components:
         type: string
 
   schemas:
+    CompanyWebhookInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed, nonempty subscription name.
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: ^https?://
+          description: Trimmed public HTTP(S) URL. Private/local destinations are refused and DNS is checked
+            again at delivery. Redirects are not followed.
+        events:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - post.published
+              - post.failed
+        isActive:
+          type: boolean
+          description: Defaults to true on create; unchanged when omitted on update. Enabling resets the
+            failure count.
+    CompanyWebhook:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - url
+        - events
+        - isActive
+        - failureCount
+        - lastTriggeredAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          pattern: ^[a-f0-9]{24}$
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - post.published
+              - post.failed
+        isActive:
+          type: boolean
+        failureCount:
+          type: integer
+          minimum: 0
+        lastTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CompanyWebhookListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - items
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            items:
+              type: array
+              maxItems: 10
+              items:
+                $ref: "#/components/schemas/CompanyWebhook"
+    CompanyWebhookResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhook
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhook:
+              $ref: "#/components/schemas/CompanyWebhook"
+    CompanyWebhookSecretResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhook
+            - secret
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhook:
+              $ref: "#/components/schemas/CompanyWebhook"
+            secret:
+              type: string
+              pattern: ^[a-f0-9]{64}$
+              description: Only returned by create/rotation and identical retries of that operation. Store
+                securely; normal list/update responses never expose it.
+    CompanyWebhookDeleteResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhookId
+            - deleted
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhookId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            deleted:
+              type: boolean
+              enum:
+                - true
+    CompanyPlatformSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        threads:
+          type: object
+          additionalProperties: false
+          properties:
+            replyControl:
+              type: string
+              enum:
+                - ""
+                - everyone
+                - accounts_you_follow
+                - mentioned_only
+        tiktok:
+          type: object
+          additionalProperties: false
+          properties:
+            viewerSetting:
+              type: string
+              enum:
+                - PUBLIC_TO_EVERYONE
+                - MUTUAL_FOLLOW_FRIENDS
+                - FOLLOWER_OF_CREATOR
+                - SELF_ONLY
+            allowComments:
+              type: boolean
+            allowDuet:
+              type: boolean
+            allowStitch:
+              type: boolean
+            commercialContent:
+              type: boolean
+            brandOrganic:
+              type: boolean
+            brandedContent:
+              type: boolean
+          description: viewerSetting is required to schedule; a draft may omit it. Commercial content requires a
+            disclosure category at scheduling. A true category infers
+            commercialContent when omitted; explicit false plus a true category is invalid. Branded content cannot
+            use SELF_ONLY.
+        instagram:
+          type: object
+          additionalProperties: false
+          properties:
+            videoType:
+              type: string
+              enum:
+                - REELS
+                - STORIES
+            coverUrl:
+              type: string
+              maxLength: 2048
+              description: Trimmed public HTTP(S) JPEG URL for a Reel cover; empty string clears it. Extensionless
+                URLs are accepted; known non-JPEG image suffixes are rejected. Instagram fetches it at publish time.
+                Supply your own URL; the Company API has no cover-upload endpoint. Ignored for Stories and feed images.
+            shareToFeed:
+              type: boolean
+              default: true
+              description: Share a Reel to the feed; false publishes only as a Reel. Ignored for Stories and feed images.
+          description: Stories require exactly one image or video; captions are omitted. coverUrl and shareToFeed
+            apply only to Reel videos.
+        youtube:
+          type: object
+          additionalProperties: false
+          properties:
+            privacy:
+              type: string
+              enum:
+                - private
+                - public
+                - unlisted
+            title:
+              type: string
+              maxLength: 100
+            madeForKids:
+              type: boolean
+            tags:
+              type: array
+              maxItems: 500
+              items:
+                type: string
+                minLength: 1
+                maxLength: 500
+              description: Trimmed tags; combined length including comma separators and quotes around tags containing spaces
+                must not exceed 500 characters.
+            playlist:
+              type: object
+              additionalProperties: false
+              required:
+                - id
+                - platformId
+              properties:
+                id:
+                  type: string
+                  maxLength: 200
+                platformId:
+                  type: string
+                  maxLength: 300
+              description: Use the exact sole selected youtube-<channelId> key in platformId. Both strings empty clear the
+                playlist. Choose a new playlist when switching channels.
+            thumbnail:
+              type: object
+              additionalProperties: false
+              required:
+                - mediaId
+              properties:
+                mediaId:
+                  type: string
+                  maxLength: 24
+                  pattern: ^(?:[a-f0-9]{24})?$
+              description: Ready youtube_thumbnail media on this exact Company post and Workspace; an empty mediaId clears
+                it. Set it with PATCH after completing the upload; a create request cannot reference one. External URLs
+                and personal media IDs are refused.
+        linkedin:
+          type: object
+          additionalProperties: false
+          properties:
+            repostEnabled:
+              type: boolean
+            repostParentUrn:
+              type: string
+              maxLength: 300
+            repostVisibility:
+              type: string
+              enum:
+                - ""
+                - PUBLIC
+                - CONNECTIONS
+          description: Canonical share or ugcPost URN; empty commentary allowed and media forbidden. A parent infers
+            repostEnabled; explicit false with a parent, or true without one, is invalid. Pages require PUBLIC visibility.
+        telegram:
+          type: object
+          additionalProperties: false
+          properties:
+            disableNotification:
+              type: boolean
+            disableWebPagePreview:
+              type: boolean
+            protectContent:
+              type: boolean
+      description: Agency platform settings; discover the available formats and settings through GET
+        /company/platforms. This complete map replaces saved settings; only selected platforms may carry entries.
+    CompanyDraftInput:
+      type: object
+      additionalProperties: false
+      properties:
+        content:
+          type: string
+          maxLength: 100000
+        notes:
+          type: string
+          maxLength: 10000
+        topic:
+          type: string
+          maxLength: 500
+        platforms:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+          description: Exact Company channel keys; [] permits a channel-less draft.
+        platformContents:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+              - content
+              - isBase
+            properties:
+              content:
+                type: string
+                maxLength: 100000
+              isBase:
+                type: boolean
+        isPlatformSpecific:
+          type: boolean
+          description: If supplied, sameContent is also required and must have the opposite value.
+        sameContent:
+          type: boolean
+        platformSettings:
+          $ref: "#/components/schemas/CompanyPlatformSettings"
+        threadingSettings:
+          type: object
+          additionalProperties: false
+          properties: {}
+        videoTimestamp:
+          type: number
+          minimum: 0
+          maximum: 86400
+        firstComment:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              maxLength: 25000
+            platforms:
+              type: array
+              items:
+                type: string
+                enum:
+                  - twitter
+                  - threads
+                  - bluesky
+                  - tiktok
+                  - instagram
+                  - mastodon
+                  - youtube
+                  - linkedin
+                  - telegram
+                  - facebook
+          nullable: true
+          description: One first comment under supported own posts. null clears; firstComments arrays and delays remain
+            personal-only.
+    CompanyMediaReservationInput:
+      type: object
+      additionalProperties: false
+      required:
+        - fileName
+        - contentType
+        - sizeBytes
+      properties:
+        fileName:
+          type: string
+          minLength: 1
+        contentType:
+          type: string
+          minLength: 1
+        sizeBytes:
+          type: integer
+          minimum: 1
+        type:
+          type: string
+          enum:
+            - image
+            - video
+            - document
+        purpose:
+          type: string
+          enum:
+            - youtube_thumbnail
+          description: Omit for ordinary media. Auxiliary thumbnails require JPEG/PNG, type image, at most 2097152 bytes
+            and at least 640x360 actual pixels.
+    CompanyCommandResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: true
+          description: Company command data with accountId/workspaceId and fields appropriate to the command.
+    CompanyDomainError:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - code
+        - message
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        code:
+          type: string
+        message:
+          type: string
     YouTubePlaylistReference:
       type: object
       nullable: true
@@ -989,6 +1559,532 @@ components:
           example: "Unable to check Threads permissions. Please try scheduling again shortly."
 
 paths:
+  /company/webhooks:
+    get:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: listCompanyWebhooks
+      summary: List this Workspace’s webhook subscriptions
+      description: Agency Workspace settings managers only. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      responses:
+        "200":
+          description: Secret-free subscriptions for the exact selected Workspace.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookListResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+    post:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: createCompanyWebhook
+      summary: Create a Workspace post-event subscription
+      description: Agency Workspace settings managers only. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyWebhookInput"
+              required:
+                - name
+                - url
+                - events
+      responses:
+        "201":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookSecretResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: COMPANY_WEBHOOK_LIMIT (maximum 10 including disabled), COMPANY_WEBHOOK_CONFLICT,
+            COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/webhooks/{webhookId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyWebhookId"
+    patch:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: updateCompanyWebhook
+      summary: Edit, enable or disable a Workspace subscription
+      description: Agency Workspace settings managers only. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyWebhookInput"
+              minProperties: 1
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_CONFLICT, COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or
+            COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+    delete:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: deleteCompanyWebhook
+      summary: Delete a Workspace subscription
+      description: Agency Workspace settings managers only. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookDeleteResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_CONFLICT, COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or
+            COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/webhooks/{webhookId}/regenerate-secret:
+    parameters:
+      - $ref: "#/components/parameters/CompanyWebhookId"
+    post:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: regenerateCompanyWebhookSecret
+      summary: Rotate the Workspace subscription signing secret
+      description: Agency Workspace settings managers only. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookSecretResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_CONFLICT, COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or
+            COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/platforms:
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPublishingFormats
+      summary: Discover available Company publishing formats
+      responses:
+        "200":
+          description: success/data with publishablePlatforms, connectOnlyPlatforms and exact basicVariants settings
+            metadata.
+        "401":
+          description: API key authentication failed; existing API authentication error envelope.
+  /company/post-groups:
+    post:
+      tags:
+        - Company Publishing
+      operationId: createCompanyDraft
+      summary: Create an Agency draft with platform settings
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyDraftInput"
+      responses:
+        "201":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    patch:
+      tags:
+        - Company Publishing
+      operationId: updateCompanyDraft
+      summary: Update an Agency draft
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyDraftInput"
+              minProperties: 1
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPostMedia
+      summary: Read ordinary media and selected auxiliary YouTube thumbnail
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/reservations:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: reserveCompanyPostMedia
+      summary: Reserve ordinary media or an auxiliary YouTube thumbnail
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyMediaReservationInput"
+      responses:
+        "201":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "429":
+          description: Workspace upload budget or pending-upload limit reached
+            (AGENCY_CORE_MEDIA_WORKSPACE_QUOTA_EXCEEDED). Respect Retry-After.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/{mediaFileId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+      - $ref: "#/components/parameters/CompanyMediaFileId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: completeCompanyPostMedia
+      summary: Verify a Company media upload
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/{mediaFileId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+      - $ref: "#/components/parameters/CompanyMediaFileId"
+    delete:
+      tags:
+        - Company Publishing
+      operationId: removeCompanyPostMedia
+      summary: Detach media and accept delayed storage cleanup
+      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
+        permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "202":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
   /platform-connections:
     parameters:
       - $ref: "#/components/parameters/XPubloraClient"

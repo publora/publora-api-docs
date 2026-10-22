@@ -56,6 +56,21 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 
 ## Quick Reference
 
+### Agency client posts
+
+Use Company context and exact Workspace IDs for Agency work. The
+[Agency platform settings guide](docs/guides/agency-platform-settings.md) covers
+Stories, reply controls, reposts, disclosure and YouTube metadata/thumbnails.
+Check the current formats and settings through `GET /company/platforms`.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/company/platforms` | GET | Current Company publishing formats and settings |
+| `/company/post-groups` | POST | Create an Agency draft with registered platform settings |
+| `/company/post-groups/:postGroupId` | PATCH | Update a Company draft (settings replace the map) |
+| `/company/post-groups/:postGroupId/media/reservations` | POST | Reserve a post attachment or auxiliary `youtube_thumbnail` |
+| `/company/post-groups/:postGroupId/media/:mediaFileId/complete` | POST | Complete the same Company upload reservation |
+
 ### Posts
 
 | Endpoint | Method | Description |
@@ -335,3 +350,10 @@ See the `docs/` directory for:
 - `docs/platforms/` - Platform-specific information
 
 For agent-facing skills built on this API, see [publora/skills](https://github.com/publora/skills).
+
+## Agency Workspace webhooks
+
+Agency managers use Company `/webhooks` or `company_webhooks`, with an explicit
+Workspace and stable mutation idempotency keys. See
+[Agency webhooks](docs/guides/agency-webhooks.md); personal webhook endpoints
+do not access Company subscriptions.

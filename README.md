@@ -69,6 +69,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/account-context` | Plan, features, publishing quotas and schedule horizon | [View](https://docs.publora.com/endpoints/account-context) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `GET/POST` | `/company/webhooks` | Manage Agency Workspace webhooks | [View](https://docs.publora.com/guides/agency-webhooks) |
 | `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
@@ -154,6 +155,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)
 
 ### Usage Guides
+- [Agency Platform Settings](https://docs.publora.com/guides/agency-platform-settings) — Company Stories, reply controls, reposts, disclosures and YouTube metadata/thumbnails
 - [Scheduling Posts](https://docs.publora.com/guides/scheduling) — timing, drafts, batch scheduling
 - [Bulk Scheduling](https://docs.publora.com/guides/bulk-scheduling) — CSV import, weekly content batches
 - [Threading Guide](https://docs.publora.com/guides/threading) — post multi-part threads via API

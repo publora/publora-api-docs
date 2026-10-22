@@ -1,5 +1,7 @@
 # Instagram API - Post to Instagram via REST API
 
+> **Agency client posts:** use the separate [Company platform settings](../guides/agency-platform-settings.md) contract for Stories, Reels cover URLs and feed sharing. Agency covers use a public JPEG URL; the personal cover-upload endpoint does not accept Company posts. The personal API examples below keep their existing shapes and upload workflows.
+
 Post to Instagram programmatically using the Publora REST API. A simpler alternative to the Instagram Graph API, Instagram Basic Display API, or Instagrapi.
 
 ## Instagram API Overview
