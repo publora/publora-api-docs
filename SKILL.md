@@ -350,3 +350,10 @@ See the `docs/` directory for:
 - `docs/platforms/` - Platform-specific information
 
 For agent-facing skills built on this API, see [publora/skills](https://github.com/publora/skills).
+
+## Agency Workspace webhooks
+
+Agency managers use Company `/webhooks` or `company_webhooks`, with an explicit
+Workspace and stable mutation idempotency keys. See
+[Agency webhooks](docs/guides/agency-webhooks.md); personal webhook endpoints
+do not access Company subscriptions.

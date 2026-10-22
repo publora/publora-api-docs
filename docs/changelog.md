@@ -4,6 +4,13 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### Agency Workspace webhooks — documentation prepared 2026-10-22
+
+- **Affected surface:** Company `/webhooks` REST API and new `company_webhooks` MCP tool (13 Company / 33 total tools).
+- **Tag:** Additive, pending deployment.
+- **Change:** Workspace managers configure post-published/failed subscriptions with HMAC signatures and create/rotate secret responses; personal and Company subscriptions are isolated.
+- **Migration action:** Existing personal integrations need no change. Use the selected Workspace header and stable mutation idempotency keys for Company subscriptions. See [Agency webhooks](guides/agency-webhooks.md).
+
 ### Agency platform formats and settings — documentation prepared 2026-10-22
 
 - **Affected surface:** Company draft REST API and `company_save_post` / `company_media` MCP tools.

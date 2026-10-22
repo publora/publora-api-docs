@@ -21,7 +21,7 @@ Add a custom MCP server called Publora at https://mcp.publora.com/mcp
 
 **3. Sign in to Publora.** Your browser opens Publora. Sign in and click **Approve**.
 
-**4. Verify.** Back in Grok Bot, the card changes to **Publora · 32 tools · Added**, and the bot confirms that Publora is connected.
+**4. Verify.** Back in Grok Bot, the card changes to **Publora · Added**, and the bot confirms that Publora is connected.
 
 To see it later, open **Connect apps** in the sidebar and select the connected count next to the title. Publora appears among your installed plugins. An installed plugin is available to every bot on your account.
 

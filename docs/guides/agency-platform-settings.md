@@ -170,8 +170,8 @@ before requesting a new review. Approval does not schedule a post automatically.
 
 After a lost response, retain the same workspace, resource IDs, body and
 idempotency key. Never send Company requests through personal tools as a fallback.
-Company webhooks, Twitter replies/quotes, Threads chains and YouTube `categoryId`
-are outside this extension.
+Workspace post-event webhooks are described in [Agency webhooks](agency-webhooks.md).
+Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
-[Agency MCP tools](../mcp/tools-reference.md#agency-tools-12).
+[Agency MCP tools](../mcp/tools-reference.md#agency-tools-13).

@@ -69,6 +69,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET` | `/account-context` | Plan, features, publishing quotas and schedule horizon | [View](https://docs.publora.com/endpoints/account-context) |
 | `POST` | `/upload-youtube-thumbnail` | Upload a custom YouTube thumbnail | [View](https://docs.publora.com/endpoints/upload-youtube-thumbnail) |
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
+| `GET/POST` | `/company/webhooks` | Manage Agency Workspace webhooks | [View](https://docs.publora.com/guides/agency-webhooks) |
 | `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |

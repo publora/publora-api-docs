@@ -98,6 +98,14 @@ components:
             $ref: "#/components/schemas/CompanyDomainError"
 
   parameters:
+    CompanyWebhookId:
+      name: webhookId
+      in: path
+      required: true
+      description: Exact subscription ID from this Workspace webhook list.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
     CompanyWorkspaceId:
       name: X-Publora-Workspace-Id
       in: header
@@ -140,6 +148,206 @@ components:
         type: string
 
   schemas:
+    CompanyWebhookInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed, nonempty subscription name.
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: ^https?://
+          description: Trimmed public HTTP(S) URL. Private/local destinations are refused and DNS is checked
+            again at delivery. Redirects are not followed.
+        events:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - post.published
+              - post.failed
+        isActive:
+          type: boolean
+          description: Defaults to true on create; unchanged when omitted on update. Enabling resets the
+            failure count.
+    CompanyWebhook:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - url
+        - events
+        - isActive
+        - failureCount
+        - lastTriggeredAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          pattern: ^[a-f0-9]{24}$
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - post.published
+              - post.failed
+        isActive:
+          type: boolean
+        failureCount:
+          type: integer
+          minimum: 0
+        lastTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CompanyWebhookListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - items
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            items:
+              type: array
+              maxItems: 10
+              items:
+                $ref: "#/components/schemas/CompanyWebhook"
+    CompanyWebhookResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhook
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhook:
+              $ref: "#/components/schemas/CompanyWebhook"
+    CompanyWebhookSecretResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhook
+            - secret
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhook:
+              $ref: "#/components/schemas/CompanyWebhook"
+            secret:
+              type: string
+              pattern: ^[a-f0-9]{64}$
+              description: Only returned by create/rotation and identical retries of that operation. Store
+                securely; normal list/update responses never expose it.
+    CompanyWebhookDeleteResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - accountId
+            - workspaceId
+            - webhookId
+            - deleted
+          properties:
+            accountId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            workspaceId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            webhookId:
+              type: string
+              pattern: ^[a-f0-9]{24}$
+            deleted:
+              type: boolean
+              enum:
+                - true
     CompanyPlatformSettings:
       type: object
       additionalProperties: false
@@ -1348,6 +1556,277 @@ components:
           example: "Unable to check Threads permissions. Please try scheduling again shortly."
 
 paths:
+  /company/webhooks:
+    get:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: listCompanyWebhooks
+      summary: List this Workspace’s webhook subscriptions
+      description: Agency Workspace settings managers only. This additive feature is documented ahead of
+        deployment. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      responses:
+        "200":
+          description: Secret-free subscriptions for the exact selected Workspace.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookListResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+    post:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: createCompanyWebhook
+      summary: Create a Workspace post-event subscription
+      description: Agency Workspace settings managers only. This additive feature is documented ahead of
+        deployment. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyWebhookInput"
+              required:
+                - name
+                - url
+                - events
+      responses:
+        "201":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookSecretResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: COMPANY_WEBHOOK_LIMIT (maximum 10 including disabled), COMPANY_WEBHOOK_CONFLICT,
+            COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/webhooks/{webhookId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyWebhookId"
+    patch:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: updateCompanyWebhook
+      summary: Edit, enable or disable a Workspace subscription
+      description: Agency Workspace settings managers only. This additive feature is documented ahead of
+        deployment. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyWebhookInput"
+              minProperties: 1
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_LIMIT (maximum 10 including disabled), COMPANY_WEBHOOK_CONFLICT,
+            COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+    delete:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: deleteCompanyWebhook
+      summary: Delete a Workspace subscription
+      description: Agency Workspace settings managers only. This additive feature is documented ahead of
+        deployment. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookDeleteResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_LIMIT (maximum 10 including disabled), COMPANY_WEBHOOK_CONFLICT,
+            COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/webhooks/{webhookId}/regenerate-secret:
+    parameters:
+      - $ref: "#/components/parameters/CompanyWebhookId"
+    post:
+      tags:
+        - Company Publishing
+        - Webhooks
+      operationId: regenerateCompanyWebhookSecret
+      summary: Rotate the Workspace subscription signing secret
+      description: Agency Workspace settings managers only. This additive feature is documented ahead of
+        deployment. Personal webhook endpoints do not access Company subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Successful Workspace-scoped response. Mutation and idempotent response snapshot commit
+            together; identical retries return the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWebhookSecretResponse"
+        "400":
+          description: "COMPANY_WEBHOOK_INPUT_INVALID: invalid fields, URL, events, webhook ID or idempotency
+            key."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          description: "COMPANY_WEBHOOK_NOT_FOUND: no such subscription in the selected Workspace."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "409":
+          description: COMPANY_WEBHOOK_LIMIT (maximum 10 including disabled), COMPANY_WEBHOOK_CONFLICT,
+            COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT or COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT. In-flight
+            responses include Retry-After; keep the original body and key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: "COMPANY_WEBHOOK_UNAVAILABLE: dependency or transaction unavailable. Retry the
+            identical operation/key later."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
   /company/platforms:
     get:
       tags:
