@@ -190,8 +190,18 @@ components:
               enum:
                 - REELS
                 - STORIES
-          description: Stories require exactly one image or video; captions are omitted. Reels coverUrl/shareToFeed
-            remain unsupported on Company posts.
+            coverUrl:
+              type: string
+              maxLength: 2048
+              description: Trimmed public HTTP(S) JPEG URL for a Reel cover; empty string clears it. Extensionless
+                URLs are accepted; known non-JPEG image suffixes are rejected. Instagram fetches it at publish time.
+                Supply your own URL; the Company API has no cover-upload endpoint. Ignored for Stories and feed images.
+            shareToFeed:
+              type: boolean
+              default: true
+              description: Share a Reel to the feed; false publishes only as a Reel. Ignored for Stories and feed images.
+          description: Stories require exactly one image or video; captions are omitted. coverUrl and shareToFeed
+            apply only to Reel videos.
         youtube:
           type: object
           additionalProperties: false

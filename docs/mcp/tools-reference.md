@@ -1214,7 +1214,7 @@ MCP clients list these 12 tools alongside the 20 personal tools, for 32 total. T
 
 ### Company publishing settings and thumbnails
 
-`company_save_post` adds Instagram Stories, Threads reply controls, LinkedIn
+`company_save_post` adds Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn
 reposts, TikTok disclosure and YouTube tags/playlist/trusted custom thumbnails.
 Use `company_context` action `platforms` to verify availability; the extension is
 being prepared for deployment. See the [Company platform settings guide](../guides/agency-platform-settings.md)

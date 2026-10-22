@@ -27,7 +27,7 @@ incomplete; scheduling validates the full saved post and ready uploaded media.
 
 | Platform | Company settings | Rules |
 | --- | --- | --- |
-| Instagram | `videoType`: `REELS` or `STORIES` | A Story requires exactly one image or one video. Captions are omitted for Stories. Image albums remain feed posts. |
+| Instagram | `videoType`: `REELS` or `STORIES`, `coverUrl`, `shareToFeed` | A Story requires exactly one image or one video; captions are omitted. Reels accept a public JPEG cover URL and feed sharing. Image albums remain feed posts. |
 | Threads | `replyControl`: `everyone`, `accounts_you_follow`, `mentioned_only` or empty | Empty uses the provider default. Reply controls do not enable post chains. |
 | LinkedIn | `repostEnabled`, `repostParentUrn`, `repostVisibility` | Use a canonical `urn:li:share:…` or `urn:li:ugcPost:…`. Commentary is optional and media is forbidden. Visibility is `PUBLIC`, `CONNECTIONS` or empty; Pages require `PUBLIC`. |
 | TikTok | `commercialContent`, `brandOrganic`, `brandedContent` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Existing creator privacy and interaction options still apply. |
@@ -59,6 +59,28 @@ curl -X POST 'https://api.publora.com/api/v1/company/post-groups' \
   -H 'Content-Type: application/json' \
   -d '{"platforms":["instagram-YOUR_ACCOUNT_ID"],"platformSettings":{"instagram":{"videoType":"STORIES"}}}'
 ```
+
+For a Reel, set the cover and feed sharing in the same draft settings map:
+
+```json
+{
+  "platformSettings":{
+    "instagram":{
+      "videoType":"REELS",
+      "coverUrl":"https://cdn.example.com/covers/reel.jpg",
+      "shareToFeed":false
+    }
+  }
+}
+```
+
+`coverUrl` is trimmed, limited to 2,048 characters and must be a publicly reachable
+HTTP(S) JPEG URL. An empty string clears the custom cover. Extensionless CDN URLs
+are accepted; URLs with a known non-JPEG image suffix are rejected. Instagram
+fetches the cover when publishing, so keep it accessible until then. The Company
+API does not expose the personal cover-upload endpoint; supply your own public
+JPEG URL. Omitted `shareToFeed` means `true`; set `false` to publish only as a Reel.
+Both options apply only to Reel videos and are ignored for Stories and feed images.
 
 A LinkedIn repost can have empty content and no attachments:
 
@@ -135,7 +157,7 @@ new draft clears the source thumbnail reference; upload/select it on the new dra
 ## Validation, approvals and retries
 
 Publishing-affecting settings and the selected thumbnail are included in client
-review. Editing the Story placement, reply audience, repost, disclosure, tags,
+review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, disclosure, tags,
 playlist or thumbnail invalidates existing approval. Finish uploads and edits
 before requesting a new review. Approval does not schedule a post automatically.
 
@@ -148,8 +170,8 @@ before requesting a new review. Approval does not schedule a post automatically.
 
 After a lost response, retain the same workspace, resource IDs, body and
 idempotency key. Never send Company requests through personal tools as a fallback.
-Instagram Reels covers/`shareToFeed`, Company webhooks, Twitter replies/quotes,
-Threads chains and YouTube `categoryId` are outside this extension.
+Company webhooks, Twitter replies/quotes, Threads chains and YouTube `categoryId`
+are outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
 [Agency MCP tools](../mcp/tools-reference.md#agency-tools-12).
