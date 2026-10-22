@@ -16,7 +16,8 @@ Personal post tools and personal upload endpoints do not access Agency posts.
 
 Create a draft with `POST /api/v1/company/post-groups`; update it with
 `PATCH /api/v1/company/post-groups/:postGroupId`. Send JSON and a stable
-`Idempotency-Key`. The MCP equivalent is `company_save_post` with
+`Idempotency-Key`: choose a unique key for each new intended change and keep it
+only for retries of the identical request. The MCP equivalent is `company_save_post` with
 `command.action` set to `create` or `update` and the fields inside `command.draft`.
 
 `platformSettings` replaces the complete settings map. Preserve settings for the
@@ -45,13 +46,16 @@ Playlist addition and thumbnail setting run after video processing and are best
 effort: a failure of either does not republish a successfully uploaded video.
 
 Example: an Instagram Story draft, followed by the ordinary Company media upload
-flow for a single image or video:
+flow for a single image or video. Set `STORY_CREATE_KEY` once for this new draft;
+when retrying, keep its value and rerun only the curl command:
 
 ```bash
+STORY_CREATE_KEY="$(uuidgen)"
+
 curl -X POST 'https://api.publora.com/api/v1/company/post-groups' \
   -H 'x-publora-key: sk_YOUR_API_KEY' \
   -H 'X-Publora-Workspace-Id: YOUR_WORKSPACE_ID' \
-  -H 'Idempotency-Key: story-draft-001' \
+  -H "Idempotency-Key: $STORY_CREATE_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"platforms":["instagram-YOUR_ACCOUNT_ID"],"platformSettings":{"instagram":{"videoType":"STORIES"}}}'
 ```

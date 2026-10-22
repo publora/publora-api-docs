@@ -159,13 +159,18 @@ The five workflows above are the shared example contract, not the entire API. Us
 Company endpoints use an exact Workspace header and a stable mutation key.
 Verify the available formats with Company `/platforms` before using newly added
 settings. See the [Agency platform settings guide](../../guides/agency-platform-settings.md)
-for the complete upload and approval workflow.
+for the complete upload and approval workflow. Choose a new key for every new
+intended edit (including another post or different settings); reuse it only for
+retries of the identical request. Set `EDIT_KEY` once for this edit; when retrying,
+keep its value and rerun only the curl command:
 
 ```bash
+EDIT_KEY="$(uuidgen)"
+
 curl -X PATCH "https://api.publora.com/api/v1/company/post-groups/$POST_GROUP_ID" \
   -H "x-publora-key: $PUBLORA_API_KEY" \
   -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
-  -H "Idempotency-Key: threads-audience-001" \
+  -H "Idempotency-Key: $EDIT_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"platformSettings":{"threads":{"replyControl":"mentioned_only"}}}'
 ```
