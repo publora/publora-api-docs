@@ -154,6 +154,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)
 
 ### Usage Guides
+- [Agency Platform Settings](https://docs.publora.com/guides/agency-platform-settings) — Company Stories, reply controls, reposts, disclosures and YouTube metadata/thumbnails
 - [Scheduling Posts](https://docs.publora.com/guides/scheduling) — timing, drafts, batch scheduling
 - [Bulk Scheduling](https://docs.publora.com/guides/bulk-scheduling) — CSV import, weekly content batches
 - [Threading Guide](https://docs.publora.com/guides/threading) — post multi-part threads via API

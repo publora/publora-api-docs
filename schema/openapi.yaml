@@ -24,6 +24,8 @@ security:
   - ApiKeyAuth: []
 
 tags:
+  - name: Company Publishing
+    description: Agency draft platform settings and trusted Company media
   - name: Posts
     description: Create, update, delete, and list posts
   - name: Connections
@@ -49,7 +51,86 @@ components:
       name: x-publora-key
       description: "API key from Settings > API Keys. Format: sk_timestamp.hexstring"
 
+  responses:
+    CompanyInvalidInput:
+      description: Invalid Company content input (AGENCY_CORE_CONTENT_INPUT_INVALID).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyAuthenticationFailed:
+      description: API key authentication failed; existing API authentication error envelope.
+    CompanyBillingRequired:
+      description: Company billing access is required (COMPANY_BILLING_REQUIRED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyAccessDenied:
+      description: Workspace or role unavailable (AGENCY_CORE_ACCESS_DENIED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyResourceNotFound:
+      description: Post or media does not exist in the selected Workspace.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyConflict:
+      description: Content/media state or idempotency conflict; refetch before a changed request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyMediaMismatch:
+      description: Invalid upload contract or verified media metadata (AGENCY_CORE_MEDIA_TYPE_MISMATCH).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyUnavailable:
+      description: Company service or dependency unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+
   parameters:
+    CompanyWorkspaceId:
+      name: X-Publora-Workspace-Id
+      in: header
+      required: true
+      description: Exact accessible Company Workspace ID returned by Company context.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable key. After an uncertain response retry the identical body and key; use a new key for a new
+        intended operation.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        pattern: ^[!-+--~]{1,255}$
+    CompanyPostGroupId:
+      name: postGroupId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyMediaFileId:
+      name: mediaFileId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
     XPubloraClient:
       name: x-publora-client
       in: header
@@ -59,6 +140,274 @@ components:
         type: string
 
   schemas:
+    CompanyPlatformSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        threads:
+          type: object
+          additionalProperties: false
+          properties:
+            replyControl:
+              type: string
+              enum:
+                - ""
+                - everyone
+                - accounts_you_follow
+                - mentioned_only
+        tiktok:
+          type: object
+          additionalProperties: false
+          properties:
+            viewerSetting:
+              type: string
+              enum:
+                - PUBLIC_TO_EVERYONE
+                - MUTUAL_FOLLOW_FRIENDS
+                - FOLLOWER_OF_CREATOR
+                - SELF_ONLY
+            allowComments:
+              type: boolean
+            allowDuet:
+              type: boolean
+            allowStitch:
+              type: boolean
+            commercialContent:
+              type: boolean
+            brandOrganic:
+              type: boolean
+            brandedContent:
+              type: boolean
+          description: Commercial content requires a disclosure category at scheduling. A true category infers
+            commercialContent when omitted; explicit false plus a true category is invalid. Branded content cannot
+            use SELF_ONLY.
+        instagram:
+          type: object
+          additionalProperties: false
+          properties:
+            videoType:
+              type: string
+              enum:
+                - REELS
+                - STORIES
+          description: Stories require exactly one image or video; captions are omitted. Reels coverUrl/shareToFeed
+            remain unsupported on Company posts.
+        youtube:
+          type: object
+          additionalProperties: false
+          properties:
+            privacy:
+              type: string
+              enum:
+                - private
+                - public
+                - unlisted
+            title:
+              type: string
+              maxLength: 100
+            madeForKids:
+              type: boolean
+            tags:
+              type: array
+              maxItems: 500
+              items:
+                type: string
+                minLength: 1
+                maxLength: 500
+              description: Trimmed tags; combined length including comma separators and quotes around tags containing spaces
+                must not exceed 500 characters.
+            playlist:
+              type: object
+              additionalProperties: false
+              required:
+                - id
+                - platformId
+              properties:
+                id:
+                  type: string
+                  maxLength: 200
+                platformId:
+                  type: string
+                  maxLength: 300
+              description: Use the exact sole selected youtube-<channelId> key in platformId. Both strings empty clear the
+                playlist. Choose a new playlist when switching channels.
+            thumbnail:
+              type: object
+              additionalProperties: false
+              required:
+                - mediaId
+              properties:
+                mediaId:
+                  type: string
+                  maxLength: 24
+                  pattern: ^(?:[a-f0-9]{24})?$
+              description: Ready youtube_thumbnail media on this exact Company post and Workspace; an empty mediaId clears
+                it. External URLs and personal media IDs are refused.
+        linkedin:
+          type: object
+          additionalProperties: false
+          properties:
+            repostEnabled:
+              type: boolean
+            repostParentUrn:
+              type: string
+              maxLength: 300
+            repostVisibility:
+              type: string
+              enum:
+                - ""
+                - PUBLIC
+                - CONNECTIONS
+          description: Canonical share or ugcPost URN; empty commentary allowed and media forbidden. A parent infers
+            repostEnabled; explicit false with a parent is invalid. Pages require PUBLIC visibility.
+        telegram:
+          type: object
+          additionalProperties: false
+          properties:
+            disableNotification:
+              type: boolean
+            disableWebPagePreview:
+              type: boolean
+            protectContent:
+              type: boolean
+      description: Upcoming Agency settings extension; discover deployed availability through GET
+        /company/platforms. This complete map replaces saved settings; only selected platforms may carry entries.
+    CompanyDraftInput:
+      type: object
+      additionalProperties: false
+      properties:
+        content:
+          type: string
+          maxLength: 100000
+        notes:
+          type: string
+          maxLength: 10000
+        topic:
+          type: string
+          maxLength: 500
+        platforms:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+          description: Exact Company channel keys; [] permits a channel-less draft.
+        platformContents:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+              - content
+              - isBase
+            properties:
+              content:
+                type: string
+                maxLength: 100000
+              isBase:
+                type: boolean
+        isPlatformSpecific:
+          type: boolean
+          description: If supplied, sameContent is also required and must have the opposite value.
+        sameContent:
+          type: boolean
+        platformSettings:
+          $ref: "#/components/schemas/CompanyPlatformSettings"
+        threadingSettings:
+          type: object
+          additionalProperties: false
+          properties: {}
+        videoTimestamp:
+          type: number
+          minimum: 0
+          maximum: 86400
+        firstComment:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              maxLength: 25000
+            platforms:
+              type: array
+              items:
+                type: string
+                enum:
+                  - twitter
+                  - threads
+                  - bluesky
+                  - tiktok
+                  - instagram
+                  - mastodon
+                  - youtube
+                  - linkedin
+                  - telegram
+                  - facebook
+          nullable: true
+          description: One first comment under supported own posts. null clears; firstComments arrays and delays remain
+            personal-only.
+    CompanyMediaReservationInput:
+      type: object
+      additionalProperties: false
+      required:
+        - fileName
+        - contentType
+        - sizeBytes
+      properties:
+        fileName:
+          type: string
+          minLength: 1
+        contentType:
+          type: string
+          minLength: 1
+        sizeBytes:
+          type: integer
+          minimum: 1
+        type:
+          type: string
+          enum:
+            - image
+            - video
+            - document
+        purpose:
+          type: string
+          enum:
+            - youtube_thumbnail
+          description: Omit for ordinary media. Auxiliary thumbnails require JPEG/PNG, type image, at most 2097152 bytes
+            and at least 640x360 actual pixels.
+    CompanyCommandResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: true
+          description: Company command data with accountId/workspaceId and fields appropriate to the command.
+    CompanyDomainError:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - code
+        - message
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        code:
+          type: string
+        message:
+          type: string
     YouTubePlaylistReference:
       type: object
       nullable: true
@@ -989,6 +1338,261 @@ components:
           example: "Unable to check Threads permissions. Please try scheduling again shortly."
 
 paths:
+  /company/platforms:
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPublishingFormats
+      summary: Discover available Company publishing formats
+      responses:
+        "200":
+          description: success/data with publishablePlatforms, connectOnlyPlatforms and exact basicVariants settings
+            metadata.
+        "401":
+          description: API key authentication failed; existing API authentication error envelope.
+  /company/post-groups:
+    post:
+      tags:
+        - Company Publishing
+      operationId: createCompanyDraft
+      summary: Create an Agency draft with platform settings
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyDraftInput"
+      responses:
+        "201":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    patch:
+      tags:
+        - Company Publishing
+      operationId: updateCompanyDraft
+      summary: Update an Agency draft
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CompanyDraftInput"
+              minProperties: 1
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPostMedia
+      summary: Read ordinary media and selected auxiliary YouTube thumbnail
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/reservations:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: reserveCompanyPostMedia
+      summary: Reserve ordinary media or an auxiliary YouTube thumbnail
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyMediaReservationInput"
+      responses:
+        "201":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/{mediaFileId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+      - $ref: "#/components/parameters/CompanyMediaFileId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: completeCompanyPostMedia
+      summary: Verify a Company media upload
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "200":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/media/{mediaFileId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+      - $ref: "#/components/parameters/CompanyMediaFileId"
+    delete:
+      tags:
+        - Company Publishing
+      operationId: removeCompanyPostMedia
+      summary: Detach media and accept delayed storage cleanup
+      description: Agency/Company path. Discover available formats using Company /platforms; this platform-settings
+        extension is pending deployment. Uses the caller’s current Company Workspace permissions.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "202":
+          description: Successful Company response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyCommandResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          $ref: "#/components/responses/CompanyConflict"
+        "422":
+          $ref: "#/components/responses/CompanyMediaMismatch"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
   /platform-connections:
     parameters:
       - $ref: "#/components/parameters/XPubloraClient"

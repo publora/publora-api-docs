@@ -4,6 +4,14 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### Agency platform formats and settings — documentation prepared 2026-10-22
+
+- **Affected surface:** Company draft REST API and `company_save_post` / `company_media` MCP tools.
+- **Tag:** Additive, pending deployment. Discover available capabilities with Company `/platforms` before use.
+- **Change:** Instagram Stories, Threads reply controls, LinkedIn reposts, TikTok commercial disclosure, YouTube tags/channel-bound playlists and trusted auxiliary thumbnail uploads. Publishing settings and thumbnail changes invalidate client approval.
+- **Migration action:** Existing clients need no change. New clients preserve the complete settings map on updates and use the Company reserve → PUT → complete flow for thumbnails; personal upload endpoints are not interchangeable. See [Agency platform settings](guides/agency-platform-settings.md).
+
+
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.

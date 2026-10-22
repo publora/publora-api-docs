@@ -1,5 +1,7 @@
 # Threads API - Post to Threads via REST API
 
+> **Agency client posts:** use the separate [Company platform settings](../guides/agency-platform-settings.md) contract. The personal API examples below keep their existing shapes and upload workflows.
+
 Post to Threads (by Meta) programmatically using the Publora REST API. A simpler alternative to the official Threads API or Meta Graph API for Threads.
 
 > **Permission requirement:** Threads chains need the `threads_manage_replies` permission on the connection. Publora checks the grant when you schedule (from a per-connection cache up to five minutes old) and re-checks it against Meta immediately before publishing; a connection whose token predates that permission is rejected with `THREADS_PERMISSION_REQUIRED` **before any part is published**. Reconnect that account in Publora **Channels** and approve all requested permissions. Single posts and carousels are unaffected.

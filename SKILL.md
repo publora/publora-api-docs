@@ -56,6 +56,21 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 
 ## Quick Reference
 
+### Agency client posts
+
+Use Company context and exact Workspace IDs for Agency work. The
+[Agency platform settings guide](docs/guides/agency-platform-settings.md) covers
+Stories, reply controls, reposts, disclosure and YouTube metadata/thumbnails.
+Verify deployment availability through `GET /company/platforms`.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/company/platforms` | GET | Current Company publishing formats and settings |
+| `/company/post-groups` | POST | Create an Agency draft with registered platform settings |
+| `/company/post-groups/:postGroupId` | PATCH | Update a Company draft (settings replace the map) |
+| `/company/post-groups/:postGroupId/media/reservations` | POST | Reserve a post attachment or auxiliary `youtube_thumbnail` |
+| `/company/post-groups/:postGroupId/media/:mediaFileId/complete` | POST | Complete the same Company upload reservation |
+
 ### Posts
 
 | Endpoint | Method | Description |
