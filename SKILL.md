@@ -61,7 +61,7 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 Use Company context and exact Workspace IDs for Agency work. The
 [Agency platform settings guide](docs/guides/agency-platform-settings.md) covers
 Stories, reply controls, reposts, disclosure and YouTube metadata/thumbnails.
-Verify deployment availability through `GET /company/platforms`.
+Check the current formats and settings through `GET /company/platforms`.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

@@ -4,27 +4,28 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
-### Agency Workspace webhooks — documentation prepared 2026-10-22
-
-- **Affected surface:** Company `/webhooks` REST API and new `company_webhooks` MCP tool (13 Company / 33 total tools).
-- **Tag:** Additive, pending deployment.
-- **Change:** Workspace managers configure post-published/failed subscriptions with HMAC signatures and create/rotate secret responses; personal and Company subscriptions are isolated.
-- **Migration action:** Existing personal integrations need no change. Use the selected Workspace header and stable mutation idempotency keys for Company subscriptions. See [Agency webhooks](guides/agency-webhooks.md).
-
-### Agency platform formats and settings — documentation prepared 2026-10-22
-
-- **Affected surface:** Company draft REST API and `company_save_post` / `company_media` MCP tools.
-- **Tag:** Additive, pending deployment. Discover available capabilities with Company `/platforms` before use.
-- **Change:** Instagram Stories and Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok commercial disclosure, YouTube tags/channel-bound playlists and trusted auxiliary thumbnail uploads. Publishing settings and thumbnail changes invalidate client approval.
-- **Migration action:** Existing clients need no change. New clients preserve the complete settings map on updates and use the Company reserve → PUT → complete flow for thumbnails; personal upload endpoints are not interchangeable. Reels covers use a public HTTP(S) JPEG URL (empty clears); `shareToFeed` defaults to true. See [Agency platform settings](guides/agency-platform-settings.md).
-
-
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-10-22
+
+### Agency Workspace webhooks — publora.com #775
+
+- **Affected surface:** Company `/webhooks` REST API and new `company_webhooks` MCP tool (13 Company / 33 total tools).
+- **Tag:** Additive.
+- **Change:** Workspace managers configure post-published/failed subscriptions with HMAC signatures and create/rotate secret responses; personal and Company subscriptions are isolated.
+- **Migration action:** Existing personal integrations need no change. Use the selected Workspace header and stable mutation idempotency keys for Company subscriptions. See [Agency webhooks](guides/agency-webhooks.md).
+
+### Agency platform formats and settings — publora.com #775
+
+- **Affected surface:** Company draft REST API and `company_save_post` / `company_media` MCP tools.
+- **Tag:** Additive. Discover available capabilities with Company `/platforms` before use.
+- **Change:** Instagram Stories and Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok commercial disclosure, YouTube tags/channel-bound playlists and trusted auxiliary thumbnail uploads. Publishing settings and thumbnail changes invalidate client approval.
+- **Migration action:** Existing clients need no change. New clients preserve the complete settings map on updates and use the Company reserve → PUT → complete flow for thumbnails; personal upload endpoints are not interchangeable. Reels covers use a public HTTP(S) JPEG URL (empty clears); `shareToFeed` defaults to true. See [Agency platform settings](guides/agency-platform-settings.md).
 
 ## 2026-10-15
 

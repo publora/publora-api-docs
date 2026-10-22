@@ -3,8 +3,8 @@
 Agency client posts use the Company API at `https://api.publora.com/api/v1/company`
 and the `company_*` MCP tools. Discover available formats with
 `GET /api/v1/company/platforms` or `company_context` action `platforms` before using
-these settings. This extension is documented ahead of deployment; the returned
-registry is authoritative for your environment.
+these settings. The returned registry is authoritative
+for your environment.
 
 Use `company_context` to choose an accessible Company and Workspace, then
 `company_channels` to copy each exact `channelKey`. API requests use
@@ -30,7 +30,7 @@ incomplete; scheduling validates the full saved post and ready uploaded media.
 | Instagram | `videoType`: `REELS` or `STORIES`, `coverUrl`, `shareToFeed` | A Story requires exactly one image or one video; captions are omitted. Reels accept a public JPEG cover URL and feed sharing. Image albums remain feed posts. |
 | Threads | `replyControl`: `everyone`, `accounts_you_follow`, `mentioned_only` or empty | Empty uses the provider default. Reply controls do not enable post chains. |
 | LinkedIn | `repostEnabled`, `repostParentUrn`, `repostVisibility` | Use a canonical `urn:li:share:…` or `urn:li:ugcPost:…`. Commentary is optional and media is forbidden. Visibility is `PUBLIC`, `CONNECTIONS` or empty; Pages require `PUBLIC`. |
-| TikTok | `commercialContent`, `brandOrganic`, `brandedContent` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Existing creator privacy and interaction options still apply. |
+| TikTok | `commercialContent`, `brandOrganic`, `brandedContent` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Existing creator privacy and interaction options still apply; scheduling requires `viewerSetting`. |
 | YouTube | `tags`, `playlist`, `thumbnail` | Tags are a string array. Playlist and thumbnail references use the exact objects below. |
 
 YouTube tags are trimmed and limited to 500 characters in total, including commas
@@ -99,7 +99,8 @@ A LinkedIn repost can have empty content and no attachments:
 ```
 
 Supplying a LinkedIn parent without `repostEnabled` infers repost mode. Explicitly
-setting `repostEnabled:false` with a nonempty parent is invalid. For TikTok,
+setting `repostEnabled:false` with a nonempty parent, or `repostEnabled:true`
+without one, is invalid. For TikTok,
 a true disclosure category infers `commercialContent:true` when that flag is
 omitted; an explicit false flag with a true category is invalid.
 
@@ -165,6 +166,8 @@ before requesting a new review. Approval does not schedule a post automatically.
 | --- | --- | --- |
 | `400 AGENCY_CORE_CONTENT_INPUT_INVALID` | Unknown field, invalid settings shape, wrong playlist channel or untrusted thumbnail reference | Correct the draft and use a new key for the changed request. |
 | `422 AGENCY_CORE_MEDIA_TYPE_MISMATCH` | Invalid reservation or uploaded thumbnail metadata | Use a JPEG/PNG within the thumbnail requirements; follow the returned media state before retrying. |
+| `422 AGENCY_CORE_MEDIA_SIZE_EXCEEDED` | The file is larger than allowed (2 MiB for a thumbnail) | Reserve a smaller file. |
+| `429 AGENCY_CORE_MEDIA_WORKSPACE_QUOTA_EXCEEDED` | Workspace upload budget or pending-upload limit reached | Respect `Retry-After`; complete or delete pending uploads. |
 | `403 AGENCY_CORE_ACCESS_DENIED` | Workspace or role access is unavailable | Refresh Company context and select an accessible Workspace. |
 | `409` Company content/media conflict | Draft or upload state changed, or the retry body differs | Refetch the current state; retry an uncertain operation with the identical body and key. |
 

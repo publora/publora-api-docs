@@ -1,6 +1,5 @@
 # Agency Workspace webhooks
 
-This additive Company API/MCP feature is documented ahead of deployment.
 Use the Company surface, not the personal `/webhooks` endpoints.
 
 A subscription belongs to one Agency Workspace. Its managers can create,
