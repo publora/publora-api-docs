@@ -53,11 +53,11 @@ DTO has `id`, `name`, `url`, `events`, `isActive`, `failureCount`,
 Delete returns `{success:true,data:{accountId,workspaceId,webhookId,deleted:true}}`.
 
 In the app, open Workspace settings and use Webhooks. MCP exposes
-`company_webhooks` with `command.action` set to `list`, `create`, `update`,
-`delete` or `regenerate_secret`. Pass `workspaceId`, a stable `idempotencyKey`
-for mutations and `webhookId` for operations on an existing subscription.
-Create fields (`name`, `url`, `events`, optional `isActive`) are directly on
-`command`; update fields are nested in `command.changes`. A creation or rotation
+`company_list_webhooks`, `company_create_webhook`, `company_update_webhook`,
+`company_delete_webhook` and `company_regenerate_webhook_secret`. Pass top-level
+`workspaceId`, a stable `idempotencyKey` for mutations and `webhookId` for an
+existing subscription. Create fields (`name`, `url`, `events`, optional
+`isActive`) are top-level; update fields are nested in `changes`. A creation or rotation
 secret is displayed only for the completed operation; it is not a list field.
 
 ## Events and signature verification
@@ -118,4 +118,4 @@ secret rotation.
 | 503 `COMPANY_WEBHOOK_UNAVAILABLE` | Dependency or transaction unavailable | Retry the identical request/key later. |
 
 See [Agency platform settings](agency-platform-settings.md) and
-[Company MCP tools](../mcp/tools-reference.md#agency-tools-13).
+[Company MCP tools](../mcp/tools-reference.md#company-tools-48).

@@ -6,7 +6,7 @@ command:
 
 - `POST /api/v1/company/post-groups`
 - `PATCH /api/v1/company/post-groups/:postGroupId`
-- MCP `company_save_post` with `draft.firstComment`
+- MCP `company_create_post` or `company_update_post` with `draft.firstComment`
 
 Use the existing Company authentication and exact
 `X-Publora-Workspace-Id`. The draft field is
@@ -17,8 +17,7 @@ per-platform length rules as the [personal first comment](../endpoints/create-po
 apply. `firstComment: null` clears it on update. A comment cannot be added after
 publishing.
 
-Read `GET /api/v1/company/post-groups/:postGroupId` or MCP `company_posts`
-action `detail` for the stored `firstComment` and each target's
+Read `GET /api/v1/company/post-groups/:postGroupId` or MCP `company_get_post` for the stored `firstComment` and each target's
 `firstCommentResult` (`pending`, `posted`, `failed`, or `skipped`). A result can
 include `commentId`, `skipReason`, and `error.outcomeUnknown`. When the outcome
 is unknown, inspect the live target before any manual comment. Tenant posts

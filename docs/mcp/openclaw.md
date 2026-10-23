@@ -365,6 +365,6 @@ async def safe_schedule_post(agent, content, platforms, scheduled_time):
 
 ## Next Steps
 
-- [Tools Reference](./tools-reference.md) — 20 personal tools + 13 Agency tools (33 total)
+- [Tools Reference](./tools-reference.md) — 20 personal tools + 48 Company tools (68 total)
 - [Client Setup](./client-setup.md) — Other MCP clients
 - [Examples](./examples.md) — More conversation examples
