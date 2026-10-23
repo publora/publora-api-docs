@@ -118,4 +118,4 @@ secret rotation.
 | 503 `COMPANY_WEBHOOK_UNAVAILABLE` | Dependency or transaction unavailable | Retry the identical request/key later. |
 
 See [Agency platform settings](agency-platform-settings.md) and
-[Company MCP tools](../mcp/tools-reference.md#agency-tools-13).
+[Company MCP tools](../mcp/tools-reference.md#company-tools-48).

@@ -179,4 +179,4 @@ Workspace post-event webhooks are described in [Agency webhooks](agency-webhooks
 Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
-[Agency MCP tools](../mcp/tools-reference.md#agency-tools-13).
+[Agency MCP tools](../mcp/tools-reference.md#company-tools-48).
