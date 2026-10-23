@@ -2,12 +2,12 @@
 
 Agency client posts use the Company API at `https://api.publora.com/api/v1/company`
 and the `company_*` MCP tools. Discover available formats with
-`GET /api/v1/company/platforms` or `company_context` action `platforms` before using
+`GET /api/v1/company/platforms` or `company_get_platforms` before using
 these settings. The returned registry is authoritative
 for your environment.
 
-Use `company_context` to choose an accessible Company and Workspace, then
-`company_channels` to copy each exact `channelKey`. API requests use
+Use `company_list_contexts` and `company_get_workspace_context` to choose an accessible Company and Workspace, then
+`company_list_channels` to copy each exact `channelKey`. API requests use
 `x-publora-key` and the selected `X-Publora-Workspace-Id`; MCP commands take
 `workspaceId`. Permissions follow the caller's current Workspace role.
 Personal post tools and personal upload endpoints do not access Agency posts.
@@ -17,8 +17,9 @@ Personal post tools and personal upload endpoints do not access Agency posts.
 Create a draft with `POST /api/v1/company/post-groups`; update it with
 `PATCH /api/v1/company/post-groups/:postGroupId`. Send JSON and a stable
 `Idempotency-Key`: choose a unique key for each new intended change and keep it
-only for retries of the identical request. The MCP equivalent is `company_save_post` with
-`command.action` set to `create` or `update` and the fields inside `command.draft`.
+only for retries of the identical request. The MCP equivalents are `company_create_post` and
+`company_update_post`, with fields inside `draft` and top-level `workspaceId`,
+`idempotencyKey` and, for updates, `postGroupId`.
 
 `platformSettings` replaces the complete settings map. Preserve settings for the
 other selected platforms when changing one. Only selected platforms may carry
@@ -143,9 +144,10 @@ omitted; an explicit false flag with a true category is invalid.
    }
    ```
 
-MCP uses `company_media` action `reserve` with `purpose:"youtube_thumbnail"`, then
-HTTP PUT, `company_media` action `complete`, and `company_save_post` action
-`update`. All arguments belong inside `command`.
+MCP uses `company_reserve_media` with `purpose:"youtube_thumbnail"`, then
+HTTP PUT, `company_complete_media`, and `company_update_post`.
+Arguments are top-level; the saved thumbnail reference belongs inside
+`draft.platformSettings.youtube.thumbnail.mediaId`.
 
 The thumbnail is auxiliary: it is excluded from ordinary video/image attachments.
 `GET /api/v1/company/post-groups/:postGroupId/media` includes the selected

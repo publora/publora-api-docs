@@ -4,6 +4,14 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### Independent Company MCP operations — publora.com #780
+
+- **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).
+- **Tag:** Breaking MCP names and argument envelopes; personal contracts, Company REST endpoints and OAuth are unchanged.
+- **Change:** Each operation has a specific schema, description and effect annotations. Arguments move out of `command`; choose the operation by its tool name instead of `action`.
+- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-48); do not send the old wrappers. This documentation must publish with or after that server deployment.
+
+
 ### 2026-08-25 — scheduledTime strict-mode ramp
 
 - **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.

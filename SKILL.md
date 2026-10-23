@@ -353,7 +353,10 @@ For agent-facing skills built on this API, see [publora/skills](https://github.c
 
 ## Agency Workspace webhooks
 
-Agency managers use Company `/webhooks` or `company_webhooks`, with an explicit
-Workspace and stable mutation idempotency keys. See
+Agency managers use Company `/webhooks` or the separate MCP tools
+`company_list_webhooks`, `company_create_webhook`, `company_update_webhook`,
+`company_delete_webhook` and `company_regenerate_webhook_secret`.
+Pass an explicit top-level `workspaceId` and stable mutation `idempotencyKey`;
+there is no `command` wrapper or `action` selector. See
 [Agency webhooks](docs/guides/agency-webhooks.md); personal webhook endpoints
 do not access Company subscriptions.
