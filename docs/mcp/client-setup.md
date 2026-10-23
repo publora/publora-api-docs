@@ -24,7 +24,7 @@ Publora is in the Claude connectors directory. Open the listing and select **Con
 
 1. Claude opens a Publora window. Sign in to Publora if you aren't already; the consent page reads *"An application is requesting access to your Publora account"* and shows which account you are authorizing as.
 2. Click **Approve**. Publora mints a dedicated API key for this connector (named `MCP (Claude #<id>)`) and hands it to Claude as the access token — **you never paste a key**. Manage or revoke it any time on the **API** page in your dashboard.
-3. Publora's 20 personal tools appear in the connector, plus 13 `company_*` tools for Agency client work. Re-authorize the same way if you revoke the key.
+3. Publora's 20 personal tools appear in the connector, plus 48 `company_*` tools for Agency client work and permitted Company account administration (68 total). Re-authorize the same way if you revoke the key.
 
 No API key, no config file, no URL to paste. The connector belongs to your Claude account, so the same connection works in Claude on the web, in Claude Desktop and in the Claude mobile apps.
 
@@ -53,7 +53,7 @@ Start a new conversation and ask:
 "What MCP tools do you have available?"
 ```
 
-Claude should list the 20 personal Publora tools, including `account_context`, `post_stats`, `profile_stats`, `linkedin_create_reshare` and `linkedin_list_mentionables` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval). It also lists 13 `company_*` tools, which are for Agency client work.
+Claude should list the 20 personal Publora tools, including `account_context`, `post_stats`, `profile_stats`, `linkedin_create_reshare` and `linkedin_list_mentionables` (3 additional LinkedIn feed-retrieval tools — `linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions` — are pending LinkedIn approval). It also lists 48 `company_*` tools (68 total), whose access follows your Company account type and role.
 
 ---
 
