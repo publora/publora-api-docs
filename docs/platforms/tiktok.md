@@ -119,6 +119,10 @@ Use this field on personal REST `create-post`/`update-post` and MCP
 `company_create_post`/`company_update_post` inside `draft.platformSettings`;
 see [Company settings](../guides/agency-platform-settings.md#tiktok-automatic-photo-music).
 Draft saving, loading, editing, duplication and scheduling preserve the value.
+Attaching known video/document media automatically clears a previously enabled
+photo-music setting. For personal `update-post`/`update_post` media appends, this
+cleanup applies when `autoAddMusic` is omitted; explicit `true` still fails
+validation with non-photo media.
 
 Enable this option only for **photo Direct Post**: `true` with known non-photo
 media fails validation. Send `false` to disable music when switching a draft to

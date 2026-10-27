@@ -57,6 +57,9 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 > it with known non-photo media fails validation; send `false` to disable it
 > when switching to video. Video requests never send the provider parameter.
 > Incomplete drafts without media are allowed. See [TikTok music](../platforms/tiktok.md#automatic-music-for-photo-posts).
+> When an appended video/document makes a stored `true` inapplicable, omitting
+> `autoAddMusic` clears that preference automatically; explicit `true` still fails
+> validation with non-photo media.
 
 ### Unknown platformSettings paths
 

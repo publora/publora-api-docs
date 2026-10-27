@@ -120,6 +120,8 @@ omission preserves existing behavior and does not silently enable music.
 Company updates replace the full settings map, so retain any other desired
 settings. Draft saving, loading, editing, duplication and scheduling preserve
 the value.
+Attaching known video/document media automatically clears a previously enabled
+photo-music setting.
 
 Only JSON booleans are accepted; strings, numbers and `null` fail validation.
 Enabling the setting for known non-photo media fails validation. Send `false`
