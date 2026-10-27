@@ -381,6 +381,9 @@ components:
               type: boolean
             allowStitch:
               type: boolean
+            autoAddMusic:
+              type: boolean
+              description: "Optional photo Direct Post setting. True lets TikTok automatically choose music; Publora cannot select or preview a specific track. For photos, false is sent explicitly; omission preserves existing behavior and does not enable music. Reject non-booleans and true on known non-photo media; false disables music and permits switching to video. Videos never send the provider parameter. Incomplete drafts without media are allowed. Changing it invalidates Company client approval."
             commercialContent:
               type: boolean
             brandOrganic:
@@ -714,6 +717,9 @@ components:
             allowStitch:
               type: boolean
               default: false
+            autoAddMusic:
+              type: boolean
+              description: "Optional photo Direct Post setting. True lets TikTok automatically choose music; Publora cannot select or preview a specific track. For photos, false is sent explicitly; omission preserves existing behavior and does not enable music. Reject non-booleans and true on known non-photo media; false disables music and permits switching to video. Videos never send the provider parameter. Incomplete drafts without media are allowed."
             commercialContent:
               type: boolean
               default: false

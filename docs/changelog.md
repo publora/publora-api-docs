@@ -4,6 +4,24 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### TikTok automatic photo music — publora.com #790
+
+- **Affected surface:** personal and Company REST draft create/update, personal
+  `create_post`/`update_post`, Company `company_create_post`/`company_update_post`,
+  and the personal/Agency editors.
+- **Tag:** Additive, opt-in. Publish this documentation with or after the
+  [feature rollout](https://github.com/publora/publora.com/issues/790).
+- **Change:** Optional boolean `platformSettings.tiktok.autoAddMusic` asks TikTok
+  to automatically choose music for photo Direct Post. Publora cannot select or
+  preview a specific track. Explicit `false` and omission are preserved; videos
+  never send this parameter. Enabling it for known non-photo media and invalid
+  types fail validation; `false` allows switching to video, and incomplete drafts
+  remain allowed.
+- **Migration action:** Existing callers need no change. Agency clients preserve
+  the complete settings map on update and request a new client approval after
+  changing this publishing setting when review is required. See
+  [TikTok music](platforms/tiktok.md#automatic-music-for-photo-posts).
+
 ### Independent Company MCP operations — publora.com #780
 
 - **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).

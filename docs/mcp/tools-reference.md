@@ -135,6 +135,7 @@ Create and schedule a post to one or more platforms.
 >     "tiktok": {
 >       "viewerSetting": "PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY",
 >       "allowComments": true, "allowDuet": true, "allowStitch": true,
+>       "autoAddMusic": true,
 >       "commercialContent": false, "brandOrganic": false, "brandedContent": false
 >     },
 >     "youtube": {
@@ -160,6 +161,15 @@ Create and schedule a post to one or more platforms.
 > For X, `replyTo` and `quoteTweet` are intended for inbound engagement and your own posts. Self-serve X API tiers accept the target only when its author mentioned the connected account in that same post, quoted one of its posts, or the connected account wrote the target itself. The fields may be combined, and quote posts may include media. Publora cannot prevalidate the relationship: an unrelated target is accepted by the tool but fails permanently at publish time with `X_REPLY_NOT_AUTHORIZED`.
 > For LinkedIn repost settings, `CONNECTIONS` is personal-profile-only. A company-page repost must use `PUBLIC` or scheduling returns `400`.
 > YouTube custom thumbnails are **not** settable here (they need the separate multipart thumbnail endpoint, which MCP does not expose).
+
+`tiktok.autoAddMusic` is an optional strict boolean for photo Direct Post only.
+Set `true` to let TikTok automatically choose music; Publora cannot select or
+preview a specific track. Explicit `false` is preserved; omission preserves
+existing behavior and never silently enables music. Enabling it for known
+non-photo media fails validation; `false` disables it when switching to video.
+Video payloads never send the parameter. Incomplete drafts without media are allowed. Both
+`create_post` and `update_post` accept it; an update that omits it retains its
+stored value. See [TikTok music](../platforms/tiktok.md#automatic-music-for-photo-posts).
 
 **Example prompts:**
 
@@ -1254,7 +1264,13 @@ For a first post, save a draft with `company_create_post`, get approval of the c
 
 ### Company publishing settings and thumbnails
 
-`company_create_post` and `company_update_post` accept settings inside `draft.platformSettings`, including Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok disclosure and YouTube tags/playlist/trusted custom thumbnails. Call `company_get_platforms` to verify availability. See the [Company platform settings guide](../guides/agency-platform-settings.md) for exact draft shapes, validation and approval behavior.
+`company_create_post` and `company_update_post` accept settings inside `draft.platformSettings`, including Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok disclosure/automatic photo music and YouTube tags/playlist/trusted custom thumbnails. Call `company_get_platforms` to verify availability. See the [Company platform settings guide](../guides/agency-platform-settings.md) for exact draft shapes, validation and approval behavior.
+
+For TikTok photo Direct Post, `draft.platformSettings.tiktok.autoAddMusic` accepts
+an optional boolean with the same automatic selection and no track preview as
+personal tools. Changing it invalidates an existing client approval; save the
+changed draft and request a new approval before scheduling when review is
+required. Company updates replace the complete settings map.
 
 For a YouTube thumbnail, call `company_reserve_media` with `purpose: "youtube_thumbnail"`, upload JPEG/PNG bytes to the returned storage URL, then call `company_complete_media`. Save the returned media ID in `draft.platformSettings.youtube.thumbnail.mediaId` through `company_update_post`. It is auxiliary media, not an ordinary post image; external thumbnail URLs and personal media IDs are refused.
 

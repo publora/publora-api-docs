@@ -274,7 +274,7 @@ declare namespace Publora {
     status?: 'draft' | 'scheduled';
     platformSettings?: {
       instagram?: { videoType?: 'REELS' | 'STORIES'; coverUrl?: string };
-      tiktok?: { allowComments?: boolean; allowDuet?: boolean; allowStitch?: boolean };
+      tiktok?: { allowComments?: boolean; allowDuet?: boolean; allowStitch?: boolean; autoAddMusic?: boolean }; // Photo Direct Post only; TikTok chooses music, no track selection/preview. Omit to preserve behavior.
       telegram?: { disableNotification?: boolean; disableWebPagePreview?: boolean; protectContent?: boolean };
     };
   }
