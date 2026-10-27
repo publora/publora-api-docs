@@ -152,13 +152,21 @@ Nested reference objects are checked to their leaves — `youtube.playlist` and
 
 | Platform | Accepted keys |
 |----------|---------------|
-| `tiktok` | `viewerSetting`, `allowComments`, `allowDuet`, `allowStitch`, `commercialContent`, `brandOrganic`, `brandedContent` |
+| `tiktok` | `viewerSetting`, `allowComments`, `allowDuet`, `allowStitch`, `autoAddMusic`, `commercialContent`, `brandOrganic`, `brandedContent` |
 | `instagram` | `videoType`, `shareToFeed`, `coverUrl` (alias `cover_url`) |
 | `youtube` | `privacy`, `title`, `tags`, `madeForKids`, `categoryId`, `playlist.{id,platformId}`, `thumbnail.{mediaId,id,url,path}` |
 | `threads` | `replyControl` |
 | `twitter` | `replyTo`, `quoteTweet` |
 | `telegram` | `disableNotification`, `disableWebPagePreview`, `protectContent` |
 | `linkedin` | `repostEnabled`, `repostParentUrn`, `repostVisibility` |
+
+`tiktok.autoAddMusic` is an optional JSON boolean for **photo Direct Post**.
+Set `true` to let TikTok automatically choose music; Publora cannot select or
+preview a specific track. Explicit `false` is preserved; omission does not
+silently enable music. Enabling it for known non-photo media is rejected;
+`false` disables music and permits switching to video. A draft without media
+may save it for later photo uploads. See
+[TikTok automatic photo music](../platforms/tiktok.md#automatic-music-for-photo-posts).
 
 LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent. `CONNECTIONS` visibility is supported only for personal connections; scheduling a company-page repost with it returns `400` with `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"`. See [LinkedIn Repost Settings](#linkedin-repost-settings) for the full contract (commentary, media rules, error strings).
 
@@ -167,7 +175,7 @@ Still accepted, unchanged:
 - **REST aliases** — `instagram.cover_url`, `youtube.thumbnail.id` (for `mediaId`),
   `youtube.thumbnail.path` (for `url`).
 - **String booleans** — `"false"` / `"0"` / `"off"` coerce to `false` on `telegram` and
-  `tiktok` boolean keys.
+  existing `tiktok` boolean keys. `tiktok.autoAddMusic` accepts JSON booleans only.
 - **Comma-separated `youtube.tags`** — a string is split into an array.
 - **Legacy flat fields** — `youtube.playlistId` and `youtube.thumbnailUrl` are not
   `PLATFORM_SETTING_UNKNOWN`; they keep returning their existing migration-hint `400`

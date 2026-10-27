@@ -88,6 +88,52 @@ TikTok has extensive publishing settings that you can control through the `platf
 | `allowDuet` | boolean | `false` | Allow viewers to create Duets |
 | `allowStitch` | boolean | `false` | Allow viewers to Stitch your video |
 
+### Automatic Music for Photo Posts
+
+For a photo carousel, opt in with the optional boolean
+`platformSettings.tiktok.autoAddMusic`:
+
+```json
+{
+  "platformSettings": {
+    "tiktok": {
+      "viewerSetting": "PUBLIC_TO_EVERYONE",
+      "autoAddMusic": true
+    }
+  }
+}
+```
+
+TikTok will automatically choose the music. You cannot select or preview a
+specific track in Publora. Choosing or uploading a song, searching a music
+catalogue and editing video soundtracks are not supported by this setting.
+
+| Value | Behavior |
+| --- | --- |
+| `true` | Ask TikTok to add recommended music to a photo Direct Post. |
+| `false` | Disable music; send false for photos. Allowed when switching to video, which never sends the parameter. |
+| Omitted | Preserve existing behavior; Publora does not silently enable music. |
+
+Use this field on personal REST `create-post`/`update-post` and MCP
+`create_post`/`update_post`. Agency drafts accept it through Company REST and
+`company_create_post`/`company_update_post` inside `draft.platformSettings`;
+see [Company settings](../guides/agency-platform-settings.md#tiktok-automatic-photo-music).
+Draft saving, loading, editing, duplication and scheduling preserve the value.
+
+Enable this option only for **photo Direct Post**: `true` with known non-photo
+media fails validation. Send `false` to disable music when switching a draft to
+video. Incomplete drafts without media remain allowed. The field accepts JSON booleans only; strings such as `"true"`,
+numbers and `null` are rejected. Publora maps an explicitly supplied value to
+TikTok's `post_info.auto_add_music` on `/v2/post/publish/content/init/`, and never
+sends it in video publishing requests. It uses the existing `video.publish`
+permission, with no additional OAuth scope.
+
+Changing this publishing setting invalidates an existing Agency client
+approval. Request approval of the changed draft before scheduling/publishing
+when client review is required.
+
+Reference: [TikTok photo Direct Post API](https://developers.tiktok.com/docs/en/content-posting-api-reference-photo-post).
+
 ### Commercial Content Settings
 
 | Setting | Type | Default | Description |

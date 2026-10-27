@@ -50,6 +50,14 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 
 > **X reply/quote (partial update):** set or clear `twitter.replyTo` and `twitter.quoteTweet` independently; omitted fields are preserved, and an empty string clears one. Each value is a full `x.com`/`twitter.com` status URL or a 1–19 digit post ID. `quoteTweet` may be combined with `replyTo` and media. On self-serve X API tiers, publication succeeds only when the target author mentioned the connected account in that same post, quoted one of its posts, or the connected account authored the target itself. Publora cannot prevalidate this relationship: an unrelated target can be accepted by this endpoint and later fail permanently at publish time with `X_REPLY_NOT_AUTHORIZED`. See [Create Post → X Reply and Quote Settings](./create-post.md#x-reply-and-quote-settings).
 
+> **TikTok automatic photo music:** `platformSettings.tiktok.autoAddMusic` accepts
+> a JSON boolean. Set `true` to let TikTok automatically choose music for photo
+> Direct Post; Publora cannot select or preview a specific track. Explicit `false`
+> is preserved. Omitting the field on update keeps the stored value. Enabling
+> it with known non-photo media fails validation; send `false` to disable it
+> when switching to video. Video requests never send the provider parameter.
+> Incomplete drafts without media are allowed. See [TikTok music](../platforms/tiktok.md#automatic-music-for-photo-posts).
+
 ### Unknown platformSettings paths
 
 Every path you send is checked against the accepted tree **before anything is written**. An unrecognized top-level platform, or an unrecognized nested key under a known one, is rejected — the whole request is a no-op:

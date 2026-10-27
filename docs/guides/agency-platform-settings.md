@@ -31,7 +31,7 @@ incomplete; scheduling validates the full saved post and ready uploaded media.
 | Instagram | `videoType`: `REELS` or `STORIES`, `coverUrl`, `shareToFeed` | A Story requires exactly one image or one video; captions are omitted. Reels accept a public JPEG cover URL and feed sharing. Image albums remain feed posts. |
 | Threads | `replyControl`: `everyone`, `accounts_you_follow`, `mentioned_only` or empty | Empty uses the provider default. Reply controls do not enable post chains. |
 | LinkedIn | `repostEnabled`, `repostParentUrn`, `repostVisibility` | Use a canonical `urn:li:share:…` or `urn:li:ugcPost:…`. Commentary is optional and media is forbidden. Visibility is `PUBLIC`, `CONNECTIONS` or empty; Pages require `PUBLIC`. |
-| TikTok | `commercialContent`, `brandOrganic`, `brandedContent` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Existing creator privacy and interaction options still apply; scheduling requires `viewerSetting`. |
+| TikTok | `commercialContent`, `brandOrganic`, `brandedContent`, `autoAddMusic` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Automatic music can be enabled for photo Direct Post only. Existing creator privacy and interaction options still apply; scheduling requires `viewerSetting`. |
 | YouTube | `tags`, `playlist`, `thumbnail` | Tags are a string array. Playlist and thumbnail references use the exact objects below. |
 
 YouTube tags are trimmed and limited to 500 characters in total, including commas
@@ -105,6 +105,32 @@ without one, is invalid. For TikTok,
 a true disclosure category infers `commercialContent:true` when that flag is
 omitted; an explicit false flag with a true category is invalid.
 
+## TikTok automatic photo music
+
+Opt in on a photo draft through REST with:
+
+```json
+{"platformSettings":{"tiktok":{"viewerSetting":"PUBLIC_TO_EVERYONE","autoAddMusic":true}}}
+```
+
+For `company_create_post`/`company_update_post`, place this settings object inside
+`draft`. TikTok will automatically choose the music. You cannot select or preview
+a specific track in Publora. Explicit `false` is preserved and sent for photos;
+omission preserves existing behavior and does not silently enable music.
+Company updates replace the full settings map, so retain any other desired
+settings. Draft saving, loading, editing, duplication and scheduling preserve
+the value.
+
+Only JSON booleans are accepted; strings, numbers and `null` fail validation.
+Enabling the setting for known non-photo media fails validation. Send `false`
+to disable music when switching a draft to video. Incomplete drafts without
+media are allowed. The publisher sends an explicit value as `post_info.auto_add_music`
+only for photo Direct Post and never in video requests. No additional OAuth
+scope is needed. See [TikTok automatic photo music](../platforms/tiktok.md#automatic-music-for-photo-posts).
+
+Changing this setting invalidates an existing client approval. Request approval
+of the changed draft before scheduling/publishing when review is required.
+
 ## Upload an Agency YouTube thumbnail
 
 1. Save a draft with its selected YouTube channel and video.
@@ -160,7 +186,7 @@ new draft clears the source thumbnail reference; upload/select it on the new dra
 ## Validation, approvals and retries
 
 Publishing-affecting settings and the selected thumbnail are included in client
-review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, disclosure, tags,
+review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, disclosure, TikTok automatic photo music, tags,
 playlist or thumbnail invalidates existing approval. Finish uploads and edits
 before requesting a new review. Approval does not schedule a post automatically.
 
