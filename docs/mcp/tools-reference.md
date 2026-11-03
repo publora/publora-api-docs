@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Publora exposes **20 personal tools + 48 Company tools (68 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#company-tools-48), whose availability follows the current Company account type and role. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
+Publora exposes **20 personal tools + 49 Company tools (69 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#company-tools-49), whose availability follows the current Company account type and role. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -1203,9 +1203,9 @@ async def list_mentionables():
 
 ---
 
-## Company Tools (48)
+## Company Tools (49)
 
-The catalogue contains 48 separate Company operations alongside 20 personal tools, for 68 total. Each operation has its own description, input schema and effect annotations. Access follows the caller's Company account type, role and current capabilities; client Workspace publishing requires Agency access. Personal tools never access Company content. Start with `company_list_contexts`, then `company_get_workspace_context` for the selected Workspace. Copy returned Account, Workspace and channel IDs exactly.
+The catalogue contains 49 separate Company operations alongside 20 personal tools, for 69 total. Each operation has its own description, input schema and effect annotations. Access follows the caller's Company account type, role and current capabilities; client Workspace publishing requires Agency access. Personal tools never access Company content. Start with `company_list_contexts`, then `company_get_workspace_context` for the selected Workspace. Copy returned Account, Workspace and channel IDs exactly.
 
 Arguments are top-level: there is no `command` wrapper or `action` selector. For example, call `company_list_channels` with `{"workspaceId":"<returned Workspace ID>"}`. For a zero-argument operation, send `arguments: {}`. The [public server card](https://mcp.publora.com/.well-known/mcp/server-card.json) contains the deployed input schemas; authenticated `tools/list` is authoritative for your connection.
 
@@ -1230,6 +1230,7 @@ Arguments are top-level: there is no `command` wrapper or `action` selector. For
 | `company_list_channels` | List one Workspace's connected channels as data.items, possibly empty |
 | `company_get_connection_link` | Read the Workspace's existing private client connection link |
 | `company_get_tiktok_creator_info` | Read current TikTok creator options for a Workspace connection before selecting privacy and interaction settings |
+| `company_list_linkedin_page_posts` | List published posts authored by a connected LinkedIn Company Page in ONE Workspace (read-only) |
 | `company_generate_connection_link` | Generate or reuse a private Workspace link for connecting client channels |
 | `company_rotate_connection_link` | Replace a Workspace's private channel connection link, invalidating the previous URL |
 | `company_revoke_connection_link` | Revoke the Workspace's client channel connection link |
@@ -1253,9 +1254,9 @@ Arguments are top-level: there is no `command` wrapper or `action` selector. For
 | `company_reserve_media` | Reserve an upload for an existing Agency draft |
 | `company_complete_media` | Complete a reserved Agency upload after the HTTP PUT |
 | `company_delete_media` | Detach a selected attachment from an Agency draft |
-| `company_list_webhooks` | List one Workspace's signed publishing webhook subscriptions |
-| `company_create_webhook` | Create a Workspace subscription for post.published/post.failed |
-| `company_update_webhook` | Change a Workspace webhook's name, approved receiver URL, publishing events or active state |
+| `company_list_webhooks` | List one Workspace's signed publication and approval webhook subscriptions |
+| `company_create_webhook` | Create a Workspace subscription for post.published/post.failed/approval.decided |
+| `company_update_webhook` | Change a Workspace webhook's name, approved receiver URL, publication/approval events or active state |
 | `company_delete_webhook` | Delete a Workspace webhook subscription and stop future notifications through it |
 | `company_regenerate_webhook_secret` | Replace the Workspace webhook's signing secret, invalidating the previous secret |
 | `company_list_audit_log` | Read existing Company administrative audit events within your permissions |
@@ -1273,6 +1274,24 @@ changed draft and request a new approval before scheduling when review is
 required. Company updates replace the complete settings map.
 
 For a YouTube thumbnail, call `company_reserve_media` with `purpose: "youtube_thumbnail"`, upload JPEG/PNG bytes to the returned storage URL, then call `company_complete_media`. Save the returned media ID in `draft.platformSettings.youtube.thumbnail.mediaId` through `company_update_post`. It is auxiliary media, not an ordinary post image; external thumbnail URLs and personal media IDs are refused.
+
+### Client reviews and decisions
+
+Clients answer a review round with `approved`, `declined` (optional comment) or `changes_requested` (comment required); `approvalStatus` filters on `company_list_posts` and `company_get_calendar` accept `declined`. `company_request_post_approval` takes an optional future UTC `scheduledTime`: approval then schedules that exact version through the normal scheduler. Omit it to keep the approved post as a draft for a manual schedule. If the time passes before approval, the decision is saved and the post stays a draft. Declines and change requests never schedule. Changing the time of a pending review requires a new round; after approval use `company_reschedule_post` or `company_unschedule_post`. Subscribe a Workspace webhook to `approval.decided` to receive decisions; see [Agency webhooks](../guides/agency-webhooks.md#approval-decisions).
+
+### company_list_linkedin_page_posts
+
+Read-only. Lists published posts authored by a connected LinkedIn Company Page, as reshare sources for employee drafts. It creates no draft, review or publication.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `workspaceId` | string | Yes | Exact Workspace ID |
+| `connectionId` | string | Yes | The Company Page connection's `id` from `company_list_channels` (not its channel key or a personal connection) |
+| `start` | integer | No | Offset, default 0. Pass the previous `paging.nextStart` |
+| `count` | integer | No | Page size from 1 to 100, default 10 |
+| `sortBy` | string | No | `LAST_MODIFIED` (default) or `CREATED` |
+
+Follow `paging.nextStart` with the same connection, `count` and `sortBy` until it is `null`; a short or empty page can still have a next page. Use an item's `postedId` verbatim as `draft.platformSettings.linkedin.repostParentUrn`, and copy its `sourceSnapshot` unchanged to `draft.repostSourceSnapshot` so the client review shows the original text. `company_get_post` returns the saved snapshot when called with `includeRepostSource: true`. See [Agency LinkedIn Page reshares](../guides/agency-linkedin-reshares.md).
 
 ### company_list_audit_log
 

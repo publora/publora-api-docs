@@ -101,7 +101,10 @@ A LinkedIn repost can have empty content and no attachments:
 
 Supplying a LinkedIn parent without `repostEnabled` infers repost mode. Explicitly
 setting `repostEnabled:false` with a nonempty parent, or `repostEnabled:true`
-without one, is invalid. For TikTok,
+without one, is invalid. To reshare a post of a connected Company Page, find its
+`postedId` with `POST /api/v1/company/linkedin-page-posts` and optionally save the
+returned `sourceSnapshot` as top-level `repostSourceSnapshot` for the client
+review; see [Agency LinkedIn Page reshares](agency-linkedin-reshares.md). For TikTok,
 a true disclosure category infers `commercialContent:true` when that flag is
 omitted; an explicit false flag with a true category is invalid.
 
@@ -189,8 +192,10 @@ new draft clears the source thumbnail reference; upload/select it on the new dra
 
 Publishing-affecting settings and the selected thumbnail are included in client
 review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, disclosure, TikTok automatic photo music, tags,
-playlist or thumbnail invalidates existing approval. Finish uploads and edits
-before requesting a new review. Approval does not schedule a post automatically.
+playlist, thumbnail or LinkedIn source snapshot invalidates existing approval.
+Finish uploads and edits before requesting a new review. Approval schedules a post
+only when the review was requested with a future `scheduledTime`; otherwise the
+approved post stays a draft until you schedule it.
 
 | Response | Meaning | Action |
 | --- | --- | --- |
@@ -207,4 +212,4 @@ Workspace post-event webhooks are described in [Agency webhooks](agency-webhooks
 Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
-[Agency MCP tools](../mcp/tools-reference.md#company-tools-48).
+[Agency MCP tools](../mcp/tools-reference.md#company-tools-49).
