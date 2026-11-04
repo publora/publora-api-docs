@@ -4,6 +4,29 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## Upcoming
 
+### Agency LinkedIn Page reshares and client decisions — publora.com #831
+
+- **Affected surface:** Company REST `POST /linkedin-page-posts`, Company drafts
+  (`repostSourceSnapshot`, `includeRepostSource`), client reviews
+  (`POST /post-groups/:postGroupId/approval`), Company webhooks, and the new
+  `company_list_linkedin_page_posts` MCP tool (49 Company / 69 total tools).
+- **Tag:** Additive and opt-in. Publish this documentation with or after the
+  [feature rollout](https://github.com/publora/publora.com/issues/831).
+- **Change:** List published posts of a connected Company Page as reshare sources
+  and save the original's text as a review preview. Clients can decline a review
+  with an optional comment; `approvalStatus` accepts `declined`. A review requested
+  with a future `scheduledTime` schedules the approved version automatically.
+  Workspace webhooks can subscribe to `approval.decided`, with stable event IDs and
+  bounded retries.
+- **Migration action:** Existing clients need no change. To read declined or timed
+  reviews, send `Accept: application/vnd.publora.company-approval.v2+json,
+  application/json` on approval reads; to manage `approval.decided`, send
+  `Accept: application/vnd.publora.company-webhooks.v2+json` on Company webhook
+  requests. Older clients receive `409 *_CLIENT_UPDATE_REQUIRED` for those
+  records instead of a silently changed shape. Refresh the MCP tool catalogue. See
+  [Agency LinkedIn Page reshares](guides/agency-linkedin-reshares.md) and
+  [Agency webhooks](guides/agency-webhooks.md#approval-decisions).
+
 ### TikTok automatic photo music — publora.com #790
 
 - **Affected surface:** personal and Company REST draft create/update, personal
@@ -27,7 +50,7 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).
 - **Tag:** Breaking MCP names and argument envelopes; personal contracts, Company REST endpoints and OAuth are unchanged.
 - **Change:** Each operation has a specific schema, description and effect annotations. Arguments move out of `command`; choose the operation by its tool name instead of `action`.
-- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-48); do not send the old wrappers. This documentation must publish with or after that server deployment.
+- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-49); do not send the old wrappers. This documentation must publish with or after that server deployment.
 
 
 ### 2026-08-25 — scheduledTime strict-mode ramp

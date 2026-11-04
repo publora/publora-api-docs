@@ -26,9 +26,18 @@ Do not generate a new key for a retry. Permission is checked again on replay.
 Names are trimmed, nonempty and at most 100 characters. URLs are trimmed and at
 most 2048 characters, using public HTTP(S). Private/local destinations are refused
 and DNS is checked again at delivery. Redirects are not followed. HTTPS is
-recommended. Subscribe to one or both of `post.published` and `post.failed`;
-other events and duplicate event names are rejected. `isActive` defaults to true.
+recommended. Subscribe to one to three of `post.published`, `post.failed` and
+`approval.decided`; other events and duplicate event names are rejected. Existing
+subscriptions are not expanded automatically. `isActive` defaults to true.
 The limit is ten subscriptions per Workspace, including disabled subscriptions.
+
+Clients that manage `approval.decided` send
+`Accept: application/vnd.publora.company-webhooks.v2+json` on every Company
+webhook read and mutation. Without it, the publication-only JSON shape is kept,
+but a request that would create, return or replay a subscription with
+`approval.decided` fails with `409 COMPANY_WEBHOOK_CLIENT_UPDATE_REQUIRED`. Once
+such a subscription exists in the Workspace, this includes the list. Nothing is
+dropped or relabelled. The app and the MCP tools send the v2 header.
 
 Set this key once for this new subscription; reuse it only for identical retries:
 
@@ -40,6 +49,19 @@ curl -X POST 'https://api.publora.com/api/v1/company/webhooks' \
   -H "Idempotency-Key: $HOOK_CREATE_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Client publishing","url":"https://receiver.example.com/publora","events":["post.published","post.failed"]}'
+```
+
+To also receive client review decisions, add the event and the v2 header:
+
+```bash
+HOOK_CREATE_KEY="$(uuidgen)"
+curl -X POST 'https://api.publora.com/api/v1/company/webhooks' \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
+  -H "Idempotency-Key: $HOOK_CREATE_KEY" \
+  -H 'Accept: application/vnd.publora.company-webhooks.v2+json' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Advocacy results","url":"https://receiver.example.com/publora","events":["approval.decided","post.published","post.failed"]}'
 ```
 
 List returns `{success:true,data:{accountId,workspaceId,items:[...]}}`.
@@ -62,7 +84,7 @@ secret is displayed only for the completed operation; it is not a list field.
 
 ## Events and signature verification
 
-Events describe an individual platform post, not completion of the entire
+Publication events describe an individual platform post, not completion of the entire
 multi-platform group. The destination is selected by the exact Company and
 Workspace pair. Company events are never delivered to personal subscriptions,
 and personal/token/billing events are never delivered to Company subscriptions.
@@ -97,7 +119,7 @@ is the hex HMAC-SHA256 of the **exact raw request body bytes**, using the webhoo
 secret. Verify it before trusting or processing the body, with a constant-time
 comparison. Do not parse and re-stringify JSON before checking the signature.
 
-Delivery reuses the existing best-effort transport: one HTTP attempt per dispatch,
+Publication events reuse the existing best-effort transport: one HTTP attempt per dispatch,
 a ten-second timeout, 2xx success only and no automatic HTTP retry queue. Duplicate
 dispatches are possible; process receivers idempotently using `event + postId`
 (and your stored processing state), not `postGroupId` alone. There is no durable
@@ -105,6 +127,61 @@ outbox or exactly-once guarantee. After five consecutive failures, a subscriptio
 is disabled. Re-enable it after correcting its URL/receiver; enabling resets the
 failure count. A delivery already started may finish after disable, deletion or
 secret rotation.
+
+## Approval decisions
+
+`approval.decided` reports a client's decision on one review round: `approved`,
+`declined` or `changes_requested`. Requesting, expiring, cancelling or
+invalidating a review emits no decision event, and an exact retry of a saved
+decision emits no new event. Each review round has its own `reviewId`.
+
+```json
+{
+  "version":"1",
+  "id":"approval.4b062bc2-b366-467d-a839-8f01f7426e82",
+  "event":"approval.decided",
+  "timestamp":"2026-11-02T12:00:00.000Z",
+  "data":{
+    "accountId":"64b000000000000000000101",
+    "workspaceId":"64b000000000000000000201",
+    "postGroupId":"64b000000000000000000301",
+    "reviewId":"4b062bc2-b366-467d-a839-8f01f7426e82",
+    "decision":"approved",
+    "decidedAt":"2026-11-02T12:00:00.000Z",
+    "targets":[{"connectionId":"64b000000000000000000401","channelKey":"linkedin-employee","platform":"linkedin","platformId":"employee"}],
+    "publication":{"scheduledTime":"2026-11-02T12:10:00.000Z","status":"scheduled"}
+  }
+}
+```
+
+`publication` appears only for a review requested with a `scheduledTime` and
+describes the state when the decision was saved, not the current queue. An
+approval is not a publication receipt: `post.published` / `post.failed` report the
+outcome separately and may arrive in any order relative to the decision. The
+payload contains no review link, response token, email, feedback or post content;
+read the approval for feedback.
+
+Decision delivery is durable but bounded. The decision and one delivery per
+matching active subscription are saved together. The envelope, including `id` and
+`timestamp`, never changes across retries. Each delivery gets up to five attempts
+with delays of 1 minute, 5 minutes, 30 minutes and 2 hours, a ten-second timeout
+and 2xx success; network errors and timeouts retry with the same `id`. Pending
+deliveries expire after seven days. Five consecutive failures still disable the
+subscription. Rotating the secret signs the next attempt with the new secret.
+Changing the URL, disabling or deleting the subscription, or removing
+`approval.decided` cancels its pending decision deliveries; re-enabling does not
+replay them.
+
+Verify the signature as above, then save the decision and its `id` in one
+transaction before returning 2xx. A lost acknowledgement delivers the same event
+again. Deduplicate decisions by envelope `id`, and keep those records longer than
+the seven-day delivery window; keep publication deduplication by `event + postId`.
+A late event for an older round must not replace the current round. Subscribe
+before requesting reviews, and after a missed or expired delivery recover through
+`GET /company/post-groups/:postGroupId/approval` (with
+`Accept: application/vnd.publora.company-approval.v2+json, application/json`) and
+`GET /company/post-groups/:postGroupId`. See
+[Agency LinkedIn Page reshares](agency-linkedin-reshares.md) for a complete flow.
 
 | Status/code | Meaning | Recovery |
 | --- | --- | --- |
@@ -115,7 +192,8 @@ secret rotation.
 | 409 `COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT` | Key reused for a different operation | Keep the original key for its original retry; use a fresh key for a new operation. |
 | 409 `COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT` | Original request is still running | Respect Retry-After and retry the identical request/key. |
 | 409 `COMPANY_WEBHOOK_CONFLICT` | Workspace state changed | Refresh before a new intended operation. |
+| 409 `COMPANY_WEBHOOK_CLIENT_UPDATE_REQUIRED` | The request involves `approval.decided` without the v2 `Accept` header | Send `Accept: application/vnd.publora.company-webhooks.v2+json`. |
 | 503 `COMPANY_WEBHOOK_UNAVAILABLE` | Dependency or transaction unavailable | Retry the identical request/key later. |
 
 See [Agency platform settings](agency-platform-settings.md) and
-[Company MCP tools](../mcp/tools-reference.md#company-tools-48).
+[Company MCP tools](../mcp/tools-reference.md#company-tools-49).

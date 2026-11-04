@@ -70,6 +70,8 @@ Check the current formats and settings through `GET /company/platforms`.
 | `/company/post-groups/:postGroupId` | PATCH | Update a Company draft (settings replace the map) |
 | `/company/post-groups/:postGroupId/media/reservations` | POST | Reserve a post attachment or auxiliary `youtube_thumbnail` |
 | `/company/post-groups/:postGroupId/media/:mediaFileId/complete` | POST | Complete the same Company upload reservation |
+| `/company/linkedin-page-posts` | POST | List a connected Company Page's posts as LinkedIn reshare sources ([guide](docs/guides/agency-linkedin-reshares.md)) |
+| `/company/post-groups/:postGroupId/approval` | POST | Request a client review round, optionally with a future `scheduledTime` |
 
 ### Posts
 
@@ -356,6 +358,8 @@ For agent-facing skills built on this API, see [publora/skills](https://github.c
 Agency managers use Company `/webhooks` or the separate MCP tools
 `company_list_webhooks`, `company_create_webhook`, `company_update_webhook`,
 `company_delete_webhook` and `company_regenerate_webhook_secret`.
+Subscriptions carry `post.published`, `post.failed` and/or `approval.decided`
+(client review decisions; send the Company webhook v2 `Accept` header).
 Pass an explicit top-level `workspaceId` and stable mutation `idempotencyKey`;
 there is no `command` wrapper or `action` selector. See
 [Agency webhooks](docs/guides/agency-webhooks.md); personal webhook endpoints

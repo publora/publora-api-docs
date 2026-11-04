@@ -177,3 +177,19 @@ curl -X PATCH "https://api.publora.com/api/v1/company/post-groups/$POST_GROUP_ID
 
 This example replaces the complete settings map. Include the desired settings
 for other selected platforms in a multi-platform draft.
+
+## Agency LinkedIn Page sources
+
+List published posts of a connected Company Page to pick a reshare source. The
+request is read-only and needs no `Idempotency-Key`. Use the Page connection's
+database ID from Company `/connections`, and follow `paging.nextStart` until it is
+`null`. See [Agency LinkedIn Page reshares](../../guides/agency-linkedin-reshares.md)
+for drafts, reviews and decision webhooks.
+
+```bash
+curl -X POST 'https://api.publora.com/api/v1/company/linkedin-page-posts' \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
+  -H 'Content-Type: application/json' \
+  -d '{"connectionId":"'"$PAGE_CONNECTION_ID"'","count":10}'
+```

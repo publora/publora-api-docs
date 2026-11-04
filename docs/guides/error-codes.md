@@ -263,6 +263,18 @@ These lowercase codes are top-level response fields from `POST /workspace/users`
 Company `/webhooks` uses `AGENCY_CORE_ACCESS_DENIED` (403),
 `COMPANY_WEBHOOK_INPUT_INVALID` (400), `COMPANY_WEBHOOK_NOT_FOUND` (404),
 `COMPANY_WEBHOOK_LIMIT`, `COMPANY_WEBHOOK_CONFLICT`,
-`COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT`, `COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT`
-(409), and `COMPANY_WEBHOOK_UNAVAILABLE` (503). See
-[Agency webhooks](agency-webhooks.md) for recovery and stable-retry rules.
+`COMPANY_WEBHOOK_IDEMPOTENCY_CONFLICT`, `COMPANY_WEBHOOK_IDEMPOTENCY_IN_FLIGHT`,
+`COMPANY_WEBHOOK_CLIENT_UPDATE_REQUIRED` (409), and `COMPANY_WEBHOOK_UNAVAILABLE`
+(503). See [Agency webhooks](agency-webhooks.md) for recovery and stable-retry rules.
+
+## Company LinkedIn reshare and review errors
+
+Company `/linkedin-page-posts` returns `LINKEDIN_INVALID_REQUEST` and
+`LINKEDIN_COMPANY_PAGE_REQUIRED` (400), `LINKEDIN_TOKEN_EXPIRED` and
+`LINKEDIN_RECONNECT_REQUIRED` (401), `AGENCY_CORE_ACCESS_DENIED` (403),
+`AGENCY_CORE_CONNECTION_NOT_FOUND` (404), `LINKEDIN_RATE_LIMITED` (429),
+`LINKEDIN_INVALID_RESPONSE` (502) and `COMPANY_LINKEDIN_UNAVAILABLE` (503). Timed
+client reviews add `COMPANY_APPROVAL_SCHEDULING_FAILED` (409) and
+`COMPANY_APPROVAL_SCHEDULING_UNAVAILABLE` (503); approval reads without the v2
+`Accept` header can return `COMPANY_APPROVAL_CLIENT_UPDATE_REQUIRED` (409). See
+[Agency LinkedIn Page reshares](agency-linkedin-reshares.md).
