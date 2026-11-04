@@ -234,7 +234,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 
 ## Threads That Reply or Quote
 
-`platformSettings.twitter.replyTo` makes the **head** tweet a reply to an existing post; the remaining parts chain under the head exactly as in a standalone thread. `platformSettings.twitter.quoteTweet` is likewise applied to the head part only.
+`platformSettings.twitter.replyTo` makes the **head** tweet a reply to an existing post; the remaining parts chain under the head exactly as in a standalone thread. `platformSettings.twitter.quoteTweet` is likewise applied to the head part only, and `platformSettings.twitter.aiGenerated` marks the head part's media as AI-generated (`made_with_ai`) — it is sent only when that part attaches media.
 
 ```json
 {

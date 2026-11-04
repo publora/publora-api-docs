@@ -60,6 +60,7 @@ YouTube supports a `platformSettings` object for video metadata, a YouTube playl
       "tags": ["api", "tutorial"],
       "categoryId": "22",
       "madeForKids": false,
+      "aiGenerated": false,
       "playlist": {
         "id": "PLxxxxxxxx",
         "platformId": "youtube-UCxxxxxxxx"
@@ -80,6 +81,7 @@ YouTube supports a `platformSettings` object for video metadata, a YouTube playl
 | `tags` | string[] (or comma-separated string) | — | Video tags (`snippet.tags`). YouTube caps the **combined** length at 500 characters (tags containing whitespace are quote-wrapped, costing +2 chars each); the API trims the list to fit, so an oversized list can't fail the upload. Omitted entirely when empty. |
 | `categoryId` | string | — | YouTube video category ID (e.g. `"22"` People & Blogs, `"28"` Science & Technology). When omitted, YouTube applies the channel's default. An invalid id will fail the upload — see [Category IDs](#category-ids). |
 | `madeForKids` | boolean | `false` | Sets `status.selfDeclaredMadeForKids` — YouTube's required "made for kids" (COPPA) audience declaration. **Always sent** on every upload; defaults to `false` (not made for kids). |
+| `aiGenerated` | boolean | `false` | Sets `status.containsSyntheticMedia` — YouTube's "altered or synthetic content" disclosure for realistic AI-generated or AI-altered video or audio. Sent only when `true`. Not needed for scripts, titles, thumbnails, beauty filters or clearly unrealistic content. See [Altered or synthetic content](#altered-or-synthetic-content). |
 | `playlist` | object `{ id, platformId }` | — | Add the published video to a YouTube playlist. `playlist.id` is the YouTube playlist id; `playlist.platformId` is the compound channel id (e.g. `youtube-UCxxxxxxxx`) and must match the single selected YouTube channel. Settable on `create-post`; changeable or clearable via `update-post`. See [Playlist](#playlist). |
 | `thumbnail` | object `{ mediaId, url }` | — | Custom video thumbnail referencing a Publora-tracked media asset (uploaded via the dedicated thumbnail endpoint, which returns `mediaId` and `url`). Set via `update-post` (the upload requires a `postGroupId`). See [Custom Thumbnail](#custom-thumbnail). |
 
@@ -92,6 +94,10 @@ Pass `tags` as an array of strings (`["api", "tutorial"]`) or a comma-separated 
 ### Made for kids
 
 `madeForKids` maps to YouTube's required `selfDeclaredMadeForKids` audience declaration and is sent on **every** upload (defaulting to `false`). Set it to `true` if your content is directed at children, per YouTube/COPPA rules.
+
+### Altered or synthetic content
+
+`aiGenerated` maps to YouTube's `status.containsSyntheticMedia` disclosure. Set it to `true` when the video contains realistic AI-generated or AI-altered video or audio; YouTube does not require it for scripts, titles, thumbnails, beauty filters or clearly unrealistic content. It defaults to `false` and is omitted from the upload when off. REST accepts the usual string encodings (`"true"`, `"1"`, `"yes"`, `"on"` and their negatives); MCP `create_post`/`update_post` and the Company API accept JSON booleans only. Agency drafts take it inside `draft.platformSettings.youtube`, and changing it invalidates an existing client approval. The same field exists on Instagram, TikTok and X — see [AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure).
 
 ### Category IDs
 

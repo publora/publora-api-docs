@@ -152,11 +152,11 @@ Nested reference objects are checked to their leaves — `youtube.playlist` and
 
 | Platform | Accepted keys |
 |----------|---------------|
-| `tiktok` | `viewerSetting`, `allowComments`, `allowDuet`, `allowStitch`, `autoAddMusic`, `commercialContent`, `brandOrganic`, `brandedContent` |
-| `instagram` | `videoType`, `shareToFeed`, `coverUrl` (alias `cover_url`) |
-| `youtube` | `privacy`, `title`, `tags`, `madeForKids`, `categoryId`, `playlist.{id,platformId}`, `thumbnail.{mediaId,id,url,path}` |
+| `tiktok` | `viewerSetting`, `allowComments`, `allowDuet`, `allowStitch`, `autoAddMusic`, `commercialContent`, `brandOrganic`, `brandedContent`, `aiGenerated` |
+| `instagram` | `videoType`, `shareToFeed`, `coverUrl` (alias `cover_url`), `aiGenerated` |
+| `youtube` | `privacy`, `title`, `tags`, `madeForKids`, `aiGenerated`, `categoryId`, `playlist.{id,platformId}`, `thumbnail.{mediaId,id,url,path}` |
 | `threads` | `replyControl` |
-| `twitter` | `replyTo`, `quoteTweet` |
+| `twitter` | `replyTo`, `quoteTweet`, `aiGenerated` |
 | `telegram` | `disableNotification`, `disableWebPagePreview`, `protectContent` |
 | `linkedin` | `repostEnabled`, `repostParentUrn`, `repostVisibility` |
 
@@ -168,6 +168,12 @@ silently enable music. Enabling it for known non-photo media is rejected;
 may save it for later photo uploads. See
 [TikTok automatic photo music](../platforms/tiktok.md#automatic-music-for-photo-posts).
 
+`aiGenerated` is an optional boolean on `instagram`, `tiktok`, `youtube` and
+`twitter` (default `false`) that self-discloses realistic AI-generated or
+AI-altered media to the platform: Instagram `is_ai_generated`, TikTok `is_aigc`,
+YouTube `status.containsSyntheticMedia` and X `made_with_ai`. See
+[AI-Generated Content Disclosure](#ai-generated-content-disclosure).
+
 LinkedIn repost settings default to `false`, an empty parent URN, and an empty visibility. When enabled, use a canonical `urn:li:share:...` or `urn:li:ugcPost:...` parent. `CONNECTIONS` visibility is supported only for personal connections; scheduling a company-page repost with it returns `400` with `"LinkedIn company-page reposts cannot use CONNECTIONS visibility; choose PUBLIC"`. See [LinkedIn Repost Settings](#linkedin-repost-settings) for the full contract (commentary, media rules, error strings).
 
 Still accepted, unchanged:
@@ -175,7 +181,9 @@ Still accepted, unchanged:
 - **REST aliases** — `instagram.cover_url`, `youtube.thumbnail.id` (for `mediaId`),
   `youtube.thumbnail.path` (for `url`).
 - **String booleans** — `"false"` / `"0"` / `"off"` coerce to `false` on `telegram` and
-  existing `tiktok` boolean keys. `tiktok.autoAddMusic` accepts JSON booleans only.
+  existing `tiktok` boolean keys, and on `aiGenerated` for all four disclosing
+  platforms (`"true"` / `"1"` / `"yes"` / `"on"` coerce to `true`). `tiktok.autoAddMusic`
+  accepts JSON booleans only.
 - **Comma-separated `youtube.tags`** — a string is split into an array.
 - **Legacy flat fields** — `youtube.playlistId` and `youtube.thumbnailUrl` are not
   `PLATFORM_SETTING_UNKNOWN`; they keep returning their existing migration-hint `400`
@@ -264,15 +272,18 @@ When creating via the API, these defaults are applied automatically. If you prov
     "allowStitch": false,
     "commercialContent": false,
     "brandOrganic": false,
-    "brandedContent": false
+    "brandedContent": false,
+    "aiGenerated": false
   },
   "instagram": {
-    "videoType": "REELS"
+    "videoType": "REELS",
+    "aiGenerated": false
   },
   "youtube": {
     "privacy": "public",
     "title": "",
     "madeForKids": false,
+    "aiGenerated": false,
     "playlist": {
       "id": "",
       "platformId": ""
@@ -283,7 +294,8 @@ When creating via the API, these defaults are applied automatically. If you prov
   },
   "twitter": {
     "replyTo": "",
-    "quoteTweet": ""
+    "quoteTweet": "",
+    "aiGenerated": false
   },
   "telegram": {
     "disableNotification": false,
@@ -293,11 +305,13 @@ When creating via the API, these defaults are applied automatically. If you prov
 }
 ```
 
-> **Note:** Only `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin` keys are recognized in `platformSettings`. Other platform keys (e.g., `facebook`, `bluesky`, `mastodon`) are **rejected with `400` / `PLATFORM_SETTING_UNKNOWN`** — they are no longer silently dropped. X accepts `replyTo` and `quoteTweet`; LinkedIn accepts `repostEnabled`, `repostParentUrn`, and `repostVisibility`. For `telegram`, only the three boolean keys shown above (`disableNotification`, `disableWebPagePreview`, `protectContent`) are accepted; any other key inside the telegram object is likewise a `400`, and string values like `"false"` / `"0"` / `"off"` are still coerced to `false`. See [Unknown platformSettings paths](#unknown-platformsettings-paths).
+> **Note:** Only `tiktok`, `instagram`, `youtube`, `threads`, `twitter`, `telegram`, and `linkedin` keys are recognized in `platformSettings`. Other platform keys (e.g., `facebook`, `bluesky`, `mastodon`) are **rejected with `400` / `PLATFORM_SETTING_UNKNOWN`** — they are no longer silently dropped. X accepts `replyTo`, `quoteTweet` and `aiGenerated`; LinkedIn accepts `repostEnabled`, `repostParentUrn`, and `repostVisibility`. For `telegram`, only the three boolean keys shown above (`disableNotification`, `disableWebPagePreview`, `protectContent`) are accepted; any other key inside the telegram object is likewise a `400`, and string values like `"false"` / `"0"` / `"off"` are still coerced to `false`. See [Unknown platformSettings paths](#unknown-platformsettings-paths).
 
-> **YouTube** also accepts `tags`, `categoryId`, `madeForKids`, and a `playlist` object (`{ id, platformId }`) in addition to `privacy`/`title`. A `playlist` can be set directly on `create-post`. Nested objects are validated to their leaves: `playlist` accepts only `id`/`platformId` and `thumbnail` only `mediaId`/`id`/`url`/`path` — any other nested key (e.g. `youtube.thumbnail.mediaID`) returns `400` / `PLATFORM_SETTING_UNKNOWN` rather than silently clearing the value. A custom `thumbnail` **cannot** be set on `create-post` — the thumbnail upload requires a `postGroupId`, so create the post first and set the thumbnail via `update-post`. See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings) for the full field reference.
+> **YouTube** also accepts `tags`, `categoryId`, `madeForKids`, `aiGenerated`, and a `playlist` object (`{ id, platformId }`) in addition to `privacy`/`title`. A `playlist` can be set directly on `create-post`. Nested objects are validated to their leaves: `playlist` accepts only `id`/`platformId` and `thumbnail` only `mediaId`/`id`/`url`/`path` — any other nested key (e.g. `youtube.thumbnail.mediaID`) returns `400` / `PLATFORM_SETTING_UNKNOWN` rather than silently clearing the value. A custom `thumbnail` **cannot** be set on `create-post` — the thumbnail upload requires a `postGroupId`, so create the post first and set the thumbnail via `update-post`. See [YouTube → Platform-Specific Settings](../platforms/youtube.md#platform-specific-settings) for the full field reference.
 
 > **Instagram** also accepts `coverUrl` (alias: `cover_url`) — a custom cover image for Reels. Provide a **publicly accessible http(s) URL to a JPEG image** (Instagram fetches it server-side at publish time), or [upload a cover file](upload-instagram-cover.md) (JPEG/PNG/WebP up to 8 MB) and use the URL it returns. Non-JPEG or non-http(s) URLs are rejected with `400`. An empty string clears the custom cover. Ignored for Stories and image posts. See [Instagram → Platform-Specific Settings](../platforms/instagram.md#platform-specific-settings).
+
+> **AI-generated content** — `instagram`, `tiktok`, `youtube` and `twitter` accept `aiGenerated` (boolean, default `false`) to self-disclose realistic AI-generated or AI-altered media. See [AI-Generated Content Disclosure](#ai-generated-content-disclosure).
 
 ## X Reply and Quote Settings
 
@@ -327,6 +341,40 @@ URLs are normalized to their numeric ID. IDs must contain 1–19 digits; malform
 > **Important X restriction:** on self-serve X API tiers, a programmatic reply or quote is accepted only when the target post's author **mentioned the connected account in that same post**, **quoted one of the account's posts**, or the connected account **authored the target itself**. Enterprise apps are exempt. Use these fields for inbound engagement and resurfacing your own posts, not for replying to arbitrary third-party posts.
 
 Publora cannot reliably prevalidate that relationship. The create/update request can therefore succeed, but X can reject the post later during publication. Publora records that permanent failure as `X_REPLY_NOT_AUTHORIZED`; retrying the same target does not help. Deleted, protected, or otherwise inaccessible targets can instead fail as `X_TARGET_REJECTED`.
+
+## AI-Generated Content Disclosure
+
+Instagram, TikTok, YouTube and X each offer a self-disclosure flag for realistic AI-generated or AI-altered media. Set the optional boolean `aiGenerated` under the matching `platformSettings` key. It defaults to `false`, is accepted on `create-post` and `update-post`, and is forwarded to the platform when the post publishes:
+
+```json
+{
+  "content": "Concept video rendered with a generative model.",
+  "platforms": ["instagram-123456789", "tiktok-123456789", "youtube-UCxxxxxxxx", "twitter-123456789"],
+  "scheduledTime": "2026-11-10T14:00:00.000Z",
+  "mediaUrls": ["https://cdn.example.com/renders/concept.mp4"],
+  "platformSettings": {
+    "instagram": { "aiGenerated": true },
+    "tiktok": { "viewerSetting": "PUBLIC_TO_EVERYONE", "aiGenerated": true },
+    "youtube": { "aiGenerated": true },
+    "twitter": { "aiGenerated": true }
+  }
+}
+```
+
+| Platform | Provider flag | When and where it is sent |
+|----------|---------------|---------------------------|
+| Instagram | `is_ai_generated` — the "AI info" label | On the container that is published: a single image or video, a Reel, a Story, or the parent of a carousel (never carousel children). Instagram does not allow adding or removing the label after publishing. |
+| TikTok | `is_aigc` — "Creator labeled as AI-generated" | In `post_info` of a video Direct Post (always present, `false` by default) and at the top level of the photo `content/init` request (only when `true`). |
+| YouTube | `status.containsSyntheticMedia` — "Altered or synthetic content" | On the video upload, only when `true`. |
+| X | `made_with_ai` — "Made with AI" | Only when the post attaches media, on the single post or the head tweet of a thread. A text-only post is published without it. |
+
+Each platform publishes its own rules on when disclosure is required: Meta for realistic AI-generated or AI-altered video, audio or images; TikTok for realistic AI-generated video or images (a missing label risks removal or loss of For You eligibility); YouTube for realistic AI-generated or AI-altered video or audio, but not for scripts, titles, thumbnails, beauty filters or clearly unrealistic content; X treats it as voluntary in general. Publora forwards the flag as you set it and does not detect AI content.
+
+- Like the other REST booleans, `aiGenerated` accepts the string encodings `"true"` / `"false"` / `"1"` / `"0"` / `"yes"` / `"no"` / `"on"` / `"off"`. MCP `create_post`/`update_post` and the Company API accept JSON booleans only.
+- With the default `false` the provider request is unchanged, so existing integrations need no change.
+- On `update-post`, an omitted `aiGenerated` keeps its stored value. Because Instagram fixes the label when the container is created, changing `instagram.aiGenerated` once publishing has started returns `409 POST_PUBLISH_IN_PROGRESS`, the same gate as a content edit — see [Update Post → Editing content and targets](./update-post.md#editing-content-and-targets).
+- Sending `aiGenerated` under any other platform (for example `telegram`) is an unknown path and returns `400 PLATFORM_SETTING_UNKNOWN`.
+- Agency drafts accept the same four paths inside `draft.platformSettings`; `twitter.aiGenerated` is the only X setting the Company API accepts. See [Agency platform settings](../guides/agency-platform-settings.md#ai-generated-content-disclosure).
 
 ## LinkedIn Repost Settings
 

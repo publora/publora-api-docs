@@ -93,7 +93,7 @@ The following features are **not available** via the Instagram Graph API:
 
 ## Platform-Specific Settings
 
-Instagram supports a `platformSettings` object to control video behavior:
+Instagram supports a `platformSettings` object to control video behavior and AI-content disclosure:
 
 ```json
 {
@@ -110,6 +110,7 @@ Instagram supports a `platformSettings` object to control video behavior:
 |---------|--------|---------|-------------|
 | `videoType` | `"REELS"`, `"STORIES"` | `"REELS"` | Determines how videos are published |
 | `coverUrl` | http(s) URL string | — | Custom cover image for Reels (alias: `cover_url`). Must resolve to a **JPEG image**. Two ways to set it: (1) [upload a file](../endpoints/upload-instagram-cover.md) (JPEG/PNG/WebP, up to 8 MB — Publora hosts it and converts to JPEG) and use the returned URL, or (2) pass your own **publicly accessible** JPEG URL, which Instagram fetches server-side when the Reel is created. When set, it takes precedence over frame-based cover selection (`videoTimestamp`). Send an empty string to clear. Non-JPEG or non-http(s) URLs are rejected with `400`. Settable on both `create-post` and `update-post`. Ignored for Stories and images. |
+| `aiGenerated` | boolean | `false` | Self-disclose realistic AI-generated or AI-altered video, audio or images; Instagram shows its "AI info" label (`is_ai_generated`). Sent on the container that is published — a single image or video, a Reel, a Story, or the carousel parent (never carousel children). Instagram cannot add or remove the label after publishing, so `update-post` refuses a change with `409 POST_PUBLISH_IN_PROGRESS` once publishing has started. REST also accepts `"true"`/`"false"` strings; MCP accepts booleans only. Settable on both `create-post` and `update-post`. See [AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure). |
 | `videoTimestamp` | number (milliseconds) | — | Dashboard-only top-level field for frame selection; it is not accepted by the REST create/update contract. Sending `thumbOffset` under `platformSettings.instagram` returns `400 PLATFORM_SETTING_UNKNOWN`. API callers should use `coverUrl`. |
 
 ## Examples
@@ -475,6 +476,7 @@ console.log(response.data);
 - **Carousel limits**: Carousels require between 2 and 10 media items. A single image is posted as a regular photo post, not a carousel.
 - **Reel is the default**: When posting a video, Publora defaults to publishing it as a Reel. Set `videoType: "STORIES"` to post as a Story instead.
 - **Custom Reels cover**: Set `platformSettings.instagram.coverUrl` to a publicly accessible JPEG URL to control the Reel's cover/thumbnail. Instagram downloads the image itself, so private or expiring URLs will fail at publish time. See [Platform-Specific Settings](#platform-specific-settings).
+- **AI-generated content**: Set `platformSettings.instagram.aiGenerated: true` for realistic AI-generated or AI-altered media so Instagram adds its "AI info" label. The label is fixed when the post is published and cannot be changed afterwards. See [Platform-Specific Settings](#platform-specific-settings).
 - **Stories disappear**: Stories are ephemeral and will disappear after 24 hours. This is standard Instagram behavior.
 - **Image aspect ratios**: Instagram images must be between 4:5 and 1.91:1. Scheduling rejects files outside that range with `MEDIA_ASPECT_RATIO_INVALID`; Publora does not silently crop them.
 - **Caption hashtags**: Hashtags are included in the caption text. There is no separate hashtags field.

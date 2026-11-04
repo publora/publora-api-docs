@@ -130,24 +130,27 @@ Create and schedule a post to one or more platforms.
 >     "instagram": {
 >       "videoType": "REELS | STORIES",
 >       "shareToFeed": true,
->       "coverUrl": "https://.../cover.jpg"
+>       "coverUrl": "https://.../cover.jpg",
+>       "aiGenerated": false
 >     },
 >     "tiktok": {
 >       "viewerSetting": "PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY",
 >       "allowComments": true, "allowDuet": true, "allowStitch": true,
 >       "autoAddMusic": true,
->       "commercialContent": false, "brandOrganic": false, "brandedContent": false
+>       "commercialContent": false, "brandOrganic": false, "brandedContent": false,
+>       "aiGenerated": false
 >     },
 >     "youtube": {
 >       "privacy": "public | unlisted | private",
->       "title": "string", "madeForKids": false,
+>       "title": "string", "madeForKids": false, "aiGenerated": false,
 >       "tags": ["string"], "categoryId": "string",
 >       "playlist": { "id": "string", "platformId": "string" }
 >     },
 >     "threads": { "replyControl": "everyone | accounts_you_follow | mentioned_only" },
 >     "twitter": {
 >       "replyTo": "https://x.com/user/status/123456789 or numeric ID",
->       "quoteTweet": "https://x.com/user/status/987654321 or numeric ID"
+>       "quoteTweet": "https://x.com/user/status/987654321 or numeric ID",
+>       "aiGenerated": false
 >     },
 >     "telegram": { "disableNotification": false, "disableWebPagePreview": false, "protectContent": false },
 >     "linkedin": {
@@ -170,6 +173,15 @@ non-photo media fails validation; `false` disables it when switching to video.
 Video payloads never send the parameter. Incomplete drafts without media are allowed. Both
 `create_post` and `update_post` accept it; an update that omits it retains its
 stored value. See [TikTok music](../platforms/tiktok.md#automatic-music-for-photo-posts).
+
+`aiGenerated` is an optional strict boolean on `instagram`, `tiktok`, `youtube` and
+`twitter` (default `false`) that self-discloses realistic AI-generated or AI-altered
+media: Instagram "AI info" (`is_ai_generated`, fixed when the post publishes — an
+`update_post` that changes it once publishing has started returns
+`409 POST_PUBLISH_IN_PROGRESS`), TikTok "Creator labeled as AI-generated" (`is_aigc`),
+YouTube `status.containsSyntheticMedia`, and X "Made with AI" (`made_with_ai`, sent only
+when the post attaches media, on the head tweet of a thread). An update that omits it
+keeps the stored value. See [AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure).
 
 **Example prompts:**
 
@@ -1265,13 +1277,18 @@ For a first post, save a draft with `company_create_post`, get approval of the c
 
 ### Company publishing settings and thumbnails
 
-`company_create_post` and `company_update_post` accept settings inside `draft.platformSettings`, including Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok disclosure/automatic photo music and YouTube tags/playlist/trusted custom thumbnails. Call `company_get_platforms` to verify availability. See the [Company platform settings guide](../guides/agency-platform-settings.md) for exact draft shapes, validation and approval behavior.
+`company_create_post` and `company_update_post` accept settings inside `draft.platformSettings`, including Instagram Stories, Reels cover URLs/feed sharing, Threads reply controls, LinkedIn reposts, TikTok disclosure/automatic photo music, YouTube tags/playlist/trusted custom thumbnails and the `aiGenerated` disclosure for Instagram, TikTok, YouTube and X. Call `company_get_platforms` to verify availability. See the [Company platform settings guide](../guides/agency-platform-settings.md) for exact draft shapes, validation and approval behavior.
 
 For TikTok photo Direct Post, `draft.platformSettings.tiktok.autoAddMusic` accepts
 an optional boolean with the same automatic selection and no track preview as
 personal tools. Changing it invalidates an existing client approval; save the
 changed draft and request a new approval before scheduling when review is
 required. Company updates replace the complete settings map.
+
+`draft.platformSettings.<platform>.aiGenerated` (Instagram, TikTok, YouTube and X) is a
+strict boolean, default `false`, that self-discloses realistic AI-generated or AI-altered
+media; `twitter` accepts no other Company setting. Changing it invalidates an existing
+client approval. See [AI-generated content disclosure](../guides/agency-platform-settings.md#ai-generated-content-disclosure).
 
 For a YouTube thumbnail, call `company_reserve_media` with `purpose: "youtube_thumbnail"`, upload JPEG/PNG bytes to the returned storage URL, then call `company_complete_media`. Save the returned media ID in `draft.platformSettings.youtube.thumbnail.mediaId` through `company_update_post`. It is auxiliary media, not an ordinary post image; external thumbnail URLs and personal media IDs are refused.
 

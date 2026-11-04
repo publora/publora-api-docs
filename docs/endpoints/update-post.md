@@ -37,7 +37,7 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 | `status` | string | No | `"draft"` or `"scheduled"` |
 | `scheduledTime` | string | No | New ISO 8601 UTC datetime |
 | `publishNow` | boolean | No | `true` publishes the draft or scheduled post immediately, at server time. It can be combined with other edits in the same request. Cannot be combined with a future `scheduledTime` or `status: "draft"` (`400 PUBLISH_NOW_CONFLICT`). See [Publish an existing post now](#publish-an-existing-post-now). |
-| `platformSettings` | object | No | Per-platform settings using the canonical [create-post allowlist](./create-post.md#unknown-platformsettings-paths), including X reply/quote and LinkedIn repost settings. Merged with existing settings server-side — fields you omit are preserved. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
+| `platformSettings` | object | No | Per-platform settings using the canonical [create-post allowlist](./create-post.md#unknown-platformsettings-paths), including X reply/quote, LinkedIn repost and AI-generated content disclosure settings. Merged with existing settings server-side — fields you omit are preserved. Any unknown top-level platform **or** unknown nested key is **rejected with `400 PLATFORM_SETTING_UNKNOWN`** and nothing is persisted — see [Unknown platformSettings paths](#unknown-platformsettings-paths). |
 | `firstComment` | object/null | No | Legacy single-comment replacement `{ "text": "…", "platforms": ["linkedin"] }`, or `null` to remove it. Do not send together with `firstComments`. |
 | `firstComments` | object[]/null | No | Replace the **whole ordered list** of up to three `{ text, platforms?, delaySeconds? }` comments; `null` or `[]` clears it. Delays are integer seconds 0–86,400. Validated against effective targets with the same rules as [create-post](./create-post.md#first-comment); the stored list is re-validated when targets change or the post is scheduled. A time change leaves it untouched. |
 | `mediaUrls` | string[] | No | Public **`https://`** URLs (1–10 per request) that the server downloads and attaches to the post. **Semantics are APPEND** — the media is added to the post's existing media, never replacing it. Ingestion is all-or-nothing: if any URL fails, none are attached. Plain `http://`, embedded credentials, non-443 ports, and internal/loopback hosts are rejected. Because a retry re-appends, **send an [`Idempotency-Key`](#idempotency) whenever this field is present.** |
@@ -60,6 +60,16 @@ Every field is a **patch**: omit it and the stored value is left unchanged.
 > When an appended video/document makes a stored `true` inapplicable, omitting
 > `autoAddMusic` clears that preference automatically; explicit `true` still fails
 > validation with non-photo media.
+
+> **AI-generated content disclosure (partial update):** set `instagram.aiGenerated`,
+> `tiktok.aiGenerated`, `youtube.aiGenerated` or `twitter.aiGenerated` to `true` or `false`;
+> an omitted field keeps its stored value. Instagram fixes its "AI info" label when the
+> media container is created, so changing `instagram.aiGenerated` once publishing has started
+> — the group is `processing`, an Instagram platform post is `pending`/`processing`, or it
+> already holds a media container — returns `409 POST_PUBLISH_IN_PROGRESS` like a content
+> edit. Re-read the post and retry only while it is still `draft` or `scheduled`. Resending the
+> stored value or changing another Instagram setting is not gated; TikTok, YouTube and X read
+> the flag at publish time. See [Create Post → AI-Generated Content Disclosure](./create-post.md#ai-generated-content-disclosure).
 
 ### Unknown platformSettings paths
 
@@ -105,6 +115,7 @@ curl -X PUT https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011 
 - **Adding a target to a `scheduled` post additionally re-runs scheduling checks** — plan availability and posting limits. Reordering the same IDs is not a change and skips those checks.
 - **Removing every target** is allowed only while the post is (or becomes) a draft. Scheduling an empty set returns `400 PLATFORMS_REQUIRED`.
 - **The write is all-or-nothing.** Group, platform posts, and the group's post list commit together, guarded by a compare-and-swap. A failed validation or a lost race leaves the post exactly as it was.
+- **A settings-only change of `instagram.aiGenerated` takes the same gates.** Instagram fixes its "AI info" label when the media container is created, so flipping that flag is refused with the same `POST_PUBLISH_IN_PROGRESS` responses as a content edit once publishing has started. Other `platformSettings` keys keep their own rules (see the notes above).
 
 **When editing is refused**
 

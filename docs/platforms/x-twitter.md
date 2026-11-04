@@ -79,6 +79,29 @@ Set X-specific targets in `platformSettings.twitter` when creating or updating a
 
 Publora cannot determine this relationship during create/update validation. An accepted scheduled post can later fail permanently with `X_REPLY_NOT_AUTHORIZED` when X rejects its target; repeating it unchanged will not succeed. An inaccessible, deleted, or protected target may instead fail with `X_TARGET_REJECTED`.
 
+## AI-Generated Media Disclosure
+
+Set `platformSettings.twitter.aiGenerated: true` to mark the post's media as AI-generated. X shows its "Made with AI" label (`made_with_ai`):
+
+```json
+{
+  "content": "Concept render of the new store front.",
+  "platforms": ["twitter-12345678"],
+  "scheduledTime": "2026-11-10T14:00:00.000Z",
+  "mediaUrls": ["https://cdn.example.com/renders/store-front.png"],
+  "platformSettings": {
+    "twitter": { "aiGenerated": true }
+  }
+}
+```
+
+- The flag defaults to `false` and is sent only when the post attaches media — X defines it as a media disclosure, so a text-only post is published without it.
+- On a thread it rides on the head tweet, the only part that carries media.
+- Disclosure is voluntary on X in general; X requires it for AI-generated videos of armed conflicts by creators in revenue sharing. Publora forwards the flag and does not detect AI content.
+- REST also accepts the string encodings `"true"` / `"false"` / `"1"` / `"0"` / `"yes"` / `"no"` / `"on"` / `"off"`; MCP `create_post`/`update_post` accept JSON booleans only. On `update-post` an omitted field keeps its stored value.
+- `aiGenerated` is the only `twitter` setting the Agency Company API accepts (inside `draft.platformSettings.twitter`); `replyTo` and `quoteTweet` remain personal-API only.
+- The same field exists on Instagram, TikTok and YouTube — see [AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure).
+
 ## Threading
 
 When your content exceeds the character limit, Publora automatically splits it into a thread (multiple connected tweets):
@@ -138,6 +161,7 @@ When explicit markers are detected, Publora preserves them exactly as written an
 - **Video:** Single video attached to the first tweet only
 - Subsequent tweets in the thread are text-only
 - Images and video cannot be combined in the same tweet
+- `platformSettings.twitter.aiGenerated: true` marks that head-tweet media as AI-generated (`made_with_ai`); see [AI-Generated Media Disclosure](#ai-generated-media-disclosure)
 
 ## First Comment
 
