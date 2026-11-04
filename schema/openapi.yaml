@@ -390,6 +390,10 @@ components:
               type: boolean
             brandedContent:
               type: boolean
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated video or images; TikTok shows its AI-generated label (is_aigc). Changing it invalidates Company client approval."
           description: viewerSetting is required to schedule; a draft may omit it. Commercial content requires a
             disclosure category at scheduling. A true category infers
             commercialContent when omitted; explicit false plus a true category is invalid. Branded content cannot
@@ -413,6 +417,10 @@ components:
               type: boolean
               default: true
               description: Share a Reel to the feed; false publishes only as a Reel. Ignored for Stories and feed images.
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated or AI-altered video, audio or images; Instagram shows its AI info label (is_ai_generated) on the published container, never on carousel children. Instagram cannot change the label after publishing. Changing it invalidates Company client approval."
           description: Stories require exactly one image or video; captions are omitted. coverUrl and shareToFeed
             apply only to Reel videos.
         youtube:
@@ -430,6 +438,10 @@ components:
               maxLength: 100
             madeForKids:
               type: boolean
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated or AI-altered video or audio; sent as status.containsSyntheticMedia. Changing it invalidates Company client approval."
             tags:
               type: array
               maxItems: 500
@@ -494,6 +506,15 @@ components:
               type: boolean
             protectContent:
               type: boolean
+        twitter:
+          type: object
+          additionalProperties: false
+          properties:
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose AI-generated media; X shows its Made with AI label (made_with_ai). Sent only when the post attaches media, on the head tweet of a thread. Changing it invalidates Company client approval."
+          description: aiGenerated is the only Company X setting; replyTo and quoteTweet remain personal-API only.
       description: Agency platform settings; discover the available formats and settings through GET
         /company/platforms. This complete map replaces saved settings; only selected platforms may carry entries.
     CompanyDraftInput:
@@ -700,6 +721,10 @@ components:
             shareToFeed:
               type: boolean
               description: "For Reels, false prevents sharing the Reel to the main feed"
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated or AI-altered video, audio or images; Instagram shows its AI info label (is_ai_generated) on the published container (single media, Reel, Story or carousel parent, never carousel children). Instagram cannot change the label after publishing, so update-post refuses a change with 409 POST_PUBLISH_IN_PROGRESS once publishing has started. REST also accepts the string encodings true/false/1/0/yes/no/on/off."
         tiktok:
           type: object
           additionalProperties: false
@@ -729,6 +754,10 @@ components:
             brandedContent:
               type: boolean
               default: false
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated video or images; TikTok shows its AI-generated label. Sent as is_aigc in post_info for video Direct Post (always present) and at the top level of the photo content/init request (only when true). REST also accepts the string encodings true/false/1/0/yes/no/on/off."
         youtube:
           type: object
           additionalProperties: false
@@ -743,6 +772,10 @@ components:
             madeForKids:
               type: boolean
               default: false
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose realistic AI-generated or AI-altered video or audio; sent as status.containsSyntheticMedia only when true. Not needed for scripts, titles, thumbnails, beauty filters or clearly unrealistic content. REST also accepts the string encodings true/false/1/0/yes/no/on/off."
             tags:
               description: "Video tags. REST accepts an array or a comma-separated string and caps the normalized combined tag budget at 500 characters."
               oneOf:
@@ -768,7 +801,7 @@ components:
         twitter:
           type: object
           additionalProperties: false
-          description: "X reply and quote targets. On self-serve X API tiers, the target author must have mentioned the connected account in that post, quoted one of its posts, or the connected account must have authored the target. Publora cannot prevalidate this relationship; X can reject publication later with X_REPLY_NOT_AUTHORIZED."
+          description: "X reply and quote targets, plus the made_with_ai disclosure. On self-serve X API tiers, the target author must have mentioned the connected account in that post, quoted one of its posts, or the connected account must have authored the target. Publora cannot prevalidate this relationship; X can reject publication later with X_REPLY_NOT_AUTHORIZED."
           properties:
             replyTo:
               type: string
@@ -780,6 +813,10 @@ components:
               default: ""
               description: "Full x.com/twitter.com status URL or bare 1-19 digit post ID. Quotes from the post or thread head; may be combined with replyTo and media. Empty string clears."
               example: "987654321098765432"
+            aiGenerated:
+              type: boolean
+              default: false
+              description: "Self-disclose AI-generated media; X shows its Made with AI label (made_with_ai). Sent only when the post attaches media, on the single post or the head tweet of a thread; a text-only post is published without it. REST also accepts the string encodings true/false/1/0/yes/no/on/off."
         telegram:
           type: object
           additionalProperties: false

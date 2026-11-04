@@ -28,11 +28,12 @@ incomplete; scheduling validates the full saved post and ready uploaded media.
 
 | Platform | Company settings | Rules |
 | --- | --- | --- |
-| Instagram | `videoType`: `REELS` or `STORIES`, `coverUrl`, `shareToFeed` | A Story requires exactly one image or one video; captions are omitted. Reels accept a public JPEG cover URL and feed sharing. Image albums remain feed posts. |
+| Instagram | `videoType`: `REELS` or `STORIES`, `coverUrl`, `shareToFeed`, `aiGenerated` | A Story requires exactly one image or one video; captions are omitted. Reels accept a public JPEG cover URL and feed sharing. Image albums remain feed posts. `aiGenerated` adds Instagram's "AI info" label, which cannot change after publishing. |
 | Threads | `replyControl`: `everyone`, `accounts_you_follow`, `mentioned_only` or empty | Empty uses the provider default. Reply controls do not enable post chains. |
 | LinkedIn | `repostEnabled`, `repostParentUrn`, `repostVisibility` | Use a canonical `urn:li:share:…` or `urn:li:ugcPost:…`. Commentary is optional and media is forbidden. Visibility is `PUBLIC`, `CONNECTIONS` or empty; Pages require `PUBLIC`. |
-| TikTok | `commercialContent`, `brandOrganic`, `brandedContent`, `autoAddMusic` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Automatic music can be enabled for photo Direct Post only. Existing creator privacy and interaction options still apply; scheduling requires `viewerSetting`. |
-| YouTube | `tags`, `playlist`, `thumbnail` | Tags are a string array. Playlist and thumbnail references use the exact objects below. |
+| TikTok | `commercialContent`, `brandOrganic`, `brandedContent`, `autoAddMusic`, `aiGenerated` | All are booleans. Commercial content requires your brand, a paid partnership, or both. Paid partnerships cannot use `SELF_ONLY`. Automatic music can be enabled for photo Direct Post only. `aiGenerated` adds TikTok's AI-generated label. Existing creator privacy and interaction options still apply; scheduling requires `viewerSetting`. |
+| YouTube | `tags`, `playlist`, `thumbnail`, `aiGenerated` | Tags are a string array. Playlist and thumbnail references use the exact objects below. `aiGenerated` sets `status.containsSyntheticMedia`. |
+| X | `aiGenerated` | Boolean. Sent as `made_with_ai` only when the post attaches media, on the head tweet of a thread. Replies and quotes remain personal-API only. |
 
 YouTube tags are trimmed and limited to 500 characters in total, including commas
 and quotation marks around tags containing spaces. A playlist is
@@ -136,6 +137,32 @@ scope is needed. See [TikTok automatic photo music](../platforms/tiktok.md#autom
 Changing this setting invalidates an existing client approval. Request approval
 of the changed draft before scheduling/publishing when review is required.
 
+## AI-generated content disclosure
+
+Instagram, TikTok, YouTube and X accept the optional boolean `aiGenerated`
+(default `false`) to self-disclose realistic AI-generated or AI-altered media:
+
+```json
+{"platformSettings":{"instagram":{"aiGenerated":true},"tiktok":{"viewerSetting":"PUBLIC_TO_EVERYONE","aiGenerated":true},"youtube":{"aiGenerated":true},"twitter":{"aiGenerated":true}}}
+```
+
+For `company_create_post`/`company_update_post`, place the settings object inside
+`draft`. Only JSON booleans are accepted; strings, numbers and `null` fail with
+`400 AGENCY_CORE_CONTENT_INPUT_INVALID`. `twitter` accepts no other Company
+setting: `replyTo` and `quoteTweet` remain personal-API only. Company updates
+replace the full settings map, so retain the other desired settings.
+
+The publisher sends Instagram `is_ai_generated` on the published container (the
+carousel parent, never its children), TikTok `is_aigc`, YouTube
+`status.containsSyntheticMedia` and X `made_with_ai` (only when the post attaches
+media, on the head tweet of a thread). Instagram cannot change the label after
+publishing. Each platform publishes its own disclosure rules; Publora forwards the
+flag and does not detect AI content. See
+[AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure).
+
+Changing this setting invalidates an existing client approval. Request approval
+of the changed draft before scheduling/publishing when review is required.
+
 ## Upload an Agency YouTube thumbnail
 
 1. Save a draft with its selected YouTube channel and video.
@@ -191,7 +218,7 @@ new draft clears the source thumbnail reference; upload/select it on the new dra
 ## Validation, approvals and retries
 
 Publishing-affecting settings and the selected thumbnail are included in client
-review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, disclosure, TikTok automatic photo music, tags,
+review. Editing the Story placement, Reels cover/feed sharing, reply audience, repost, commercial or AI-generated content disclosure, TikTok automatic photo music, tags,
 playlist, thumbnail or LinkedIn source snapshot invalidates existing approval.
 Finish uploads and edits before requesting a new review. Approval schedules a post
 only when the review was requested with a future `scheduledTime`; otherwise the
@@ -209,7 +236,7 @@ approved post stays a draft until you schedule it.
 After a lost response, retain the same workspace, resource IDs, body and
 idempotency key. Never send Company requests through personal tools as a fallback.
 Workspace post-event webhooks are described in [Agency webhooks](agency-webhooks.md).
-Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
+X `aiGenerated` is the only X setting in this contract; Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
 [Agency MCP tools](../mcp/tools-reference.md#company-tools-49).

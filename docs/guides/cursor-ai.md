@@ -273,8 +273,8 @@ declare namespace Publora {
     scheduledTime?: string;
     status?: 'draft' | 'scheduled';
     platformSettings?: {
-      instagram?: { videoType?: 'REELS' | 'STORIES'; coverUrl?: string };
-      tiktok?: { allowComments?: boolean; allowDuet?: boolean; allowStitch?: boolean; autoAddMusic?: boolean }; // Photo Direct Post only; TikTok chooses music, no track selection/preview. Omit to preserve behavior.
+      instagram?: { videoType?: 'REELS' | 'STORIES'; coverUrl?: string; aiGenerated?: boolean }; // aiGenerated: self-disclose realistic AI media (Instagram "AI info" label); also accepted on tiktok, youtube and twitter.
+      tiktok?: { allowComments?: boolean; allowDuet?: boolean; allowStitch?: boolean; autoAddMusic?: boolean; aiGenerated?: boolean }; // Photo Direct Post only; TikTok chooses music, no track selection/preview. Omit to preserve behavior.
       telegram?: { disableNotification?: boolean; disableWebPagePreview?: boolean; protectContent?: boolean };
     };
   }

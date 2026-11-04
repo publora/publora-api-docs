@@ -57,7 +57,8 @@ TikTok has extensive publishing settings that you can control through the `platf
       "allowStitch": false,
       "commercialContent": false,
       "brandOrganic": false,
-      "brandedContent": false
+      "brandedContent": false,
+      "aiGenerated": false
     }
   }
 }
@@ -147,6 +148,14 @@ Reference: [TikTok photo Direct Post API](https://developers.tiktok.com/docs/en/
 | `brandedContent` | boolean | `false` | Paid partnership or sponsored content |
 
 > **Note**: If `commercialContent` is `true`, then at least one of `brandOrganic` or `brandedContent` must also be `true`. Publora will return a validation error if `commercialContent` is enabled without specifying which type of commercial content applies.
+
+### AI-Generated Content Disclosure
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `aiGenerated` | boolean | `false` | Self-disclose realistic AI-generated video or images; TikTok shows its "Creator labeled as AI-generated" label (`is_aigc`) |
+
+TikTok requires the label for realistic AI-generated video or images; a missing disclosure risks removal or loss of For You eligibility. Publora sends the value as `is_aigc`: inside `post_info` for video Direct Post (always present, `false` by default) and at the top level of the photo `content/init` request (only when `true`). REST accepts the usual string encodings (`"true"`, `"1"`, `"yes"`, `"on"` and their negatives); MCP `create_post`/`update_post` and the Company API accept JSON booleans only. Agency drafts take it inside `draft.platformSettings.tiktok`, and changing it invalidates an existing client approval. The same field exists on Instagram, YouTube and X — see [AI-Generated Content Disclosure](../endpoints/create-post.md#ai-generated-content-disclosure).
 
 ## Examples
 
@@ -398,6 +407,7 @@ console.log(response.data);
 - **Minimum 23 FPS**: Videos must have a frame rate of at least 23 frames per second. Videos below this threshold will be rejected by TikTok.
 - **Supported formats**: Publora's scheduling validator accepts MP4, MOV, and WebM. A presigned URL can be issued for a broader `video/*` MIME type, but that upload-layer acceptance does not make AVI or MKV publishable.
 - **Commercial content disclosure**: If your video promotes a brand or is part of a paid partnership, you must set the appropriate commercial content flags. Failing to do so may violate TikTok's community guidelines.
+- **AI-generated content disclosure**: Set `aiGenerated: true` for realistic AI-generated video or images so TikTok applies its AI-generated label; undisclosed AI content risks removal or loss of For You eligibility. See [AI-Generated Content Disclosure](#ai-generated-content-disclosure).
 - **Brand content dependencies**: Setting `commercialContent` to `true` requires at least one of `brandOrganic` or `brandedContent` to also be `true`. Publora will return a validation error if `commercialContent` is enabled without specifying which type applies.
 - **Viewer setting restrictions**: Some viewer settings may limit the interaction options available. For example, `SELF_ONLY` posts cannot receive comments from others.
 - **Processing time**: TikTok videos may take some time to process after upload. The post may not appear immediately on the profile.

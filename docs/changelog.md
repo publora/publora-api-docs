@@ -60,6 +60,29 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-11-04
+
+### AI-generated content disclosure — publora.com #836
+
+- **Affected surface:** personal REST `create-post`/`update-post`, MCP `create_post`/`update_post`,
+  Company REST draft create/update and `company_create_post`/`company_update_post`, and the
+  personal/Agency editors. Released in [publora.com PR #844](https://github.com/publora/publora.com/pull/844).
+- **Tag:** Additive, opt-in.
+- **Change:** Optional boolean `platformSettings.{instagram,tiktok,youtube,twitter}.aiGenerated`
+  (default `false`) self-discloses realistic AI-generated or AI-altered media. It is sent as
+  Instagram `is_ai_generated` on the published container (carousel parent only; Instagram cannot
+  change the label after publishing), TikTok `is_aigc`, YouTube `status.containsSyntheticMedia`
+  and X `made_with_ai` (only when the post attaches media, on the head tweet of a thread).
+  `twitter` becomes a Company settings owner with `aiGenerated` as its only Company setting;
+  `replyTo`/`quoteTweet` stay personal-API only. A personal `update-post` that changes
+  `instagram.aiGenerated` once publishing has started returns `409 POST_PUBLISH_IN_PROGRESS`,
+  like a content edit.
+- **Migration action:** None for existing callers; the default leaves provider requests unchanged
+  (TikTok video uploads keep sending `is_aigc: false`). Agency clients preserve the complete
+  settings map on update and request a new client approval after changing this setting when
+  review is required. See [AI-Generated Content Disclosure](endpoints/create-post.md#ai-generated-content-disclosure)
+  and [Agency platform settings](guides/agency-platform-settings.md#ai-generated-content-disclosure).
+
 ## 2026-10-22
 
 ### Agency Workspace webhooks — publora.com #775
