@@ -51,7 +51,7 @@ Add Publora to your MCP configuration:
 
 ### 3. Restart Your Client
 
-After restarting, your client lists 20 personal tools + 49 Company tools (69 total). Personal tools are included on every plan, with individual features subject to plan limits; Company tools require the appropriate Company account and role; client workspace publishing requires Agency access. Try asking:
+After restarting, your client lists 20 personal tools + 52 Company tools (72 total). Personal tools are included on every plan, with individual features subject to plan limits; Company tools require the appropriate Company account and role; client workspace publishing requires Agency access. Try asking:
 
 > "List my connected social media accounts"
 
@@ -133,9 +133,9 @@ MCP servers don't conflict -- Claude loads all servers and merges their tools. E
 
 ---
 
-## Available Tools (69 total)
+## Available Tools (72 total)
 
-Publora exposes 20 personal tools + 49 Company tools (69 total). The tables below list the personal tools. The [49 `company_*` tools](../mcp/tools-reference.md#company-tools-49) cover Agency client work and permitted Company account administration. Access follows the current account type and role.
+Publora exposes 20 personal tools + 52 Company tools (72 total). The tables below list the personal tools. The [52 `company_*` tools](../mcp/tools-reference.md#company-tools-52) cover Agency client work and permitted Company account administration. Access follows the current account type and role.
 
 ### Posts
 
@@ -355,7 +355,7 @@ MCP uses sessions for stateful connections. If you see "Invalid or missing sessi
 | **Interface** | Natural language via AI | HTTP requests |
 | **Best for** | Interactive exploration, quick tasks | Programmatic integration, automation |
 | **Setup** | One-time config | Per-request auth |
-| **Tools** | 20 personal tools + 49 Company tools (69 total; Company account and role required; Agency access for client publishing) | Full API access |
+| **Tools** | 20 personal tools + 52 Company tools (72 total; Company account and role required; Agency access for client publishing) | Full API access |
 | **Rate limits** | Same as REST API | Same |
 
 Use MCP for conversational workflows. Use REST API for production integrations.

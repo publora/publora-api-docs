@@ -87,6 +87,8 @@ connection: you cannot select another organization, author or URL.
   source; a missing flag does not guarantee that LinkedIn accepts the reshare.
 - The original can change or disappear after this read. Publication still runs the
   normal LinkedIn checks.
+- To re-read known posts by ID or list a post's comments and reactions, see
+  [Agency LinkedIn Page reads](agency-linkedin-page-reads.md).
 
 Reading requires internal content view access in the Workspace and a Company Page
 connection with a usable token. Organization posts require the Page's existing
@@ -224,5 +226,5 @@ Without it, list and detail responses omit the approval details of a declined
 post, and a dedicated approval read of a declined or timed round returns
 `409 COMPANY_APPROVAL_CLIENT_UPDATE_REQUIRED`. The MCP tools send the v2 header.
 
-See also [Company MCP tools](../mcp/tools-reference.md#company-tools-49) and
+See also [Company MCP tools](../mcp/tools-reference.md#company-tools-52) and
 [LinkedIn reshare](../endpoints/linkedin-reshare.md) for personal accounts.

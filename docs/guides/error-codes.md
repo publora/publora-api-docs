@@ -278,3 +278,23 @@ client reviews add `COMPANY_APPROVAL_SCHEDULING_FAILED` (409) and
 `COMPANY_APPROVAL_SCHEDULING_UNAVAILABLE` (503); approval reads without the v2
 `Accept` header can return `COMPANY_APPROVAL_CLIENT_UPDATE_REQUIRED` (409). See
 [Agency LinkedIn Page reshares](agency-linkedin-reshares.md).
+
+## Company LinkedIn Page read errors
+
+Company `/linkedin-page-posts/batch`, `/linkedin-page-posts/comments` and
+`/linkedin-page-posts/reactions` return the codes of the Page post list above,
+plus:
+
+| Code | HTTP | Meaning | Recovery |
+|---|---:|---|---|
+| `LINKEDIN_BATCH_UNAVAILABLE` | 403 | Batch only: the Page connection was authorized through an older LinkedIn app | Follow the steps in `message`: reconnect the Page, or have the Workspace manager contact Publora support |
+| `LINKEDIN_INSUFFICIENT_SCOPE` | 403 | The Page connection lacks a required LinkedIn read permission | Follow the reconnect steps in `message`, then retry |
+| `LINKEDIN_ACCESS_DENIED` | 403 | LinkedIn refused access to the resource | Check the Page connection's access, then retry |
+| `LINKEDIN_NOT_FOUND` | 404 | Comments/reactions: the post is missing, unpublished or not authored by this Page | Use a `postedId` from the Page's post list |
+| `LINKEDIN_TEMPORARILY_UNAVAILABLE` | 5xx | The LinkedIn read failed | Retry later |
+| `LINKEDIN_REQUEST_TIMEOUT` | 504 | The LinkedIn read deadline elapsed | Retry with backoff |
+
+A batch response with HTTP 200 lists per-post failures in `data.errors[].code`:
+`LINKEDIN_TOKEN_EXPIRED`, `LINKEDIN_ACCESS_DENIED`, `LINKEDIN_NOT_FOUND`,
+`LINKEDIN_RATE_LIMITED` or `LINKEDIN_ITEM_UNAVAILABLE`. See
+[Agency LinkedIn Page reads](agency-linkedin-page-reads.md#errors).

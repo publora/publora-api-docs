@@ -50,7 +50,7 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).
 - **Tag:** Breaking MCP names and argument envelopes; personal contracts, Company REST endpoints and OAuth are unchanged.
 - **Change:** Each operation has a specific schema, description and effect annotations. Arguments move out of `command`; choose the operation by its tool name instead of `action`.
-- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-49); do not send the old wrappers. This documentation must publish with or after that server deployment.
+- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-52); do not send the old wrappers. This documentation must publish with or after that server deployment.
 
 
 ### 2026-08-25 — scheduledTime strict-mode ramp
@@ -59,6 +59,31 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Tag:** **Potentially breaking**, configuration-dependent.
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
+
+## 2026-11-05
+
+### Agency LinkedIn Page post, comment and reaction reads — publora.com #871, #877
+
+- **Affected surface:** Company REST `POST /linkedin-page-posts/batch`,
+  `POST /linkedin-page-posts/comments` and `POST /linkedin-page-posts/reactions`,
+  and the read-only MCP tools `company_get_linkedin_page_posts_batch`,
+  `company_list_linkedin_page_post_comments` and
+  `company_list_linkedin_page_post_reactions` (52 Company / 72 total tools).
+  Released in [publora.com PR #874](https://github.com/publora/publora.com/pull/874)
+  and [PR #879](https://github.com/publora/publora.com/pull/879).
+- **Tag:** Additive, read-only.
+- **Change:** Read up to 50 known posts of a connected Company Page in one request,
+  optionally with comment and reaction summaries; per-post failures are returned
+  next to the successful items. List the top-level comments or reactions of one
+  published Page post with offset paging. Engagement reads need Workspace analytics
+  view access and the Page's `r_organization_social_feed` permission. Batch reads
+  need a Page connection authorized through Publora's current LinkedIn app. New
+  errors: `403 LINKEDIN_BATCH_UNAVAILABLE` and, with reconnect steps in `message`,
+  `403 LINKEDIN_INSUFFICIENT_SCOPE`.
+- **Migration action:** None for existing callers. To use the new reads with an
+  older Page connection, reconnect the Page through the Workspace's **Copy
+  reconnect link** as the error message describes. Refresh the MCP tool catalogue.
+  See [Agency LinkedIn Page reads](guides/agency-linkedin-page-reads.md).
 
 ## 2026-11-04
 
