@@ -13,7 +13,6 @@ POST https://api.publora.com/api/v1/get-upload-url
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Set to `mcp` for MCP tool access |
 | `Content-Type` | Yes | `application/json` |
 
@@ -333,14 +332,11 @@ for (const image of images) {
 | Status | Error | Cause |
 |--------|-------|-------|
 | 400 | `"fileName, contentType, and postGroupId are required"` | Missing `fileName`, `contentType`, or `postGroupId` |
-| 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ID |
 | 401 | `"API key is required"` | `x-publora-key` header is missing entirely |
 | 401 | `"Invalid API key"` | `x-publora-key` is present but invalid |
 | 401 | `"Invalid API key owner"` | API key exists but the associated user account was not found |
 | 403 | `"API access is not enabled for this account"` | The user's account does not have API access enabled |
 | 403 | `"MCP access is not enabled for this account"` | The `x-publora-client: mcp` header was sent but `entitlements.features.mcpAccess` is not enabled |
-| 403 | `"Workspace access is not enabled for this key"` | API key does not have workspace access enabled |
-| 403 | `"User is not managed by key"` | Managed user does not belong to the API key owner's workspace |
 | 500 | `"Failed to create upload URL"` | Internal server error during URL generation |
 
 ## Server-Side Video Upload

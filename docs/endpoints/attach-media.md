@@ -17,7 +17,6 @@ POST https://api.publora.com/api/v1/attach-media/:postGroupId
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `"mcp"`) |
 | `Content-Type` | Yes | `application/json` |
 | `Idempotency-Key` | No | Recommended. With it, a retry replays the first result instead of attaching the file a second time. See [Idempotency](#idempotency). The MCP tool always sends one. |

@@ -203,11 +203,11 @@ curl -v -X POST https://mcp.publora.com \
 
 **Solutions:**
 
-1. **Verify workspace** — Check you're connected to the correct Publora workspace
+1. **Verify account** — Check you're connected to the correct Publora account
 
 2. **Check subscription** — Ensure your plan includes API access
 
-3. **Verify resource ownership** — You can only access your own workspace's data
+3. **Verify resource ownership** — You can only access your own account's data
 
 ---
 

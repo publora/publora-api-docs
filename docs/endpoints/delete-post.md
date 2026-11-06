@@ -13,7 +13,6 @@ DELETE https://api.publora.com/api/v1/delete-post/:postGroupId
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `"mcp"`) |
 
 ## Path Parameters
@@ -420,19 +419,14 @@ echo "Summary: $SUCCEEDED succeeded, $FAILED failed"
 | Status | Response | Cause |
 |--------|----------|-------|
 | 400 | `{ "error": "Invalid post group ID" }` | `postGroupId` is not a valid ObjectId |
-| 400 | `{ "error": "Invalid x-publora-user-id" }` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `{ "error": "API key is required" }` | Missing `x-publora-key` header |
 | 401 | `{ "error": "Invalid API key" }` | `x-publora-key` value is incorrect or revoked |
 | 401 | `{ "error": "Invalid API key owner" }` | The API key exists but its owner account could not be found |
 | 403 | `{ "error": "API access is not enabled for this account" }` | No active subscription or API access not enabled |
 | 403 | `{ "error": "MCP access is not enabled for this account" }` | The account does not have MCP access enabled (MCP-only keys) |
-| 403 | `{ "error": "Workspace access is not enabled for this key" }` | The API key does not have workspace/managed-user permissions |
-| 403 | `{ "error": "User is not managed by key" }` | The `x-publora-user-id` references a user not managed by this API key |
 | 404 | `{ "error": "Post group not found" }` | The post group ID doesn't exist or belongs to another user |
 | 500 | `{ "error": "Failed to delete post group" }` | Server error during database transaction (deletion is rolled back) |
 | 500 | `{ "error": "Internal server error" }` | Unexpected server error in middleware |
-
-> **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 
 ## Important Notes
 

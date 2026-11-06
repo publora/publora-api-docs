@@ -13,12 +13,11 @@ POST https://api.publora.com/api/v1/create-post
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `mcp` for MCP integrations). Affects which access controls are checked. |
 | `Idempotency-Key` | No | Opt-in duplicate protection. A client-generated unique string. Retrying with the **same key and same body** replays the original response instead of creating a second post. See [Idempotency](#idempotency). |
 | `Content-Type` | Yes | `application/json` |
 
-> **Browser usage:** CORS permits `x-publora-key`, `x-publora-user-id`, `x-publora-client`, and `Idempotency-Key`, but only requests from origins in Publora's deployment allowlist are accepted. An arbitrary integrator origin can still fail preflight. Even from an allowed origin, embedding a secret API key in client-side code exposes it; prefer a server-side proxy.
+> **Browser usage:** CORS permits `x-publora-key`, `x-publora-client`, and `Idempotency-Key`, but only requests from origins in Publora's deployment allowlist are accepted. An arbitrary integrator origin can still fail preflight. Even from an allowed origin, embedding a secret API key in client-side code exposes it; prefer a server-side proxy.
 
 ## Request Body
 
@@ -225,8 +224,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 - Never reuse a key across different posts; the second one gets `422`.
 - On `409`, wait and retry the identical request rather than dropping the key — a stuck
   in-flight claim frees up after ~3 minutes and the retry then completes or replays.
-- Keys are scoped to the acting user (the managed user when `x-publora-user-id` is set),
-  so keys cannot collide across accounts.
+- Keys are scoped to the API key's user, so keys cannot collide across accounts.
 - **Records expire after 24 hours.** After that a reused key is treated as new and
   creates a second post — keep retries well inside that window.
 - Body comparison is order-insensitive (JSON keys are canonicalized), so re-serializing
@@ -590,14 +588,11 @@ Platform IDs use `<lowercase-prefix>-<id>`. The prefix must contain only lowerca
 | 400 | `"Media ingestion failed"` | One or more `mediaUrls` could not be downloaded/probed; per-URL detail in the `mediaResults` array |
 | 429 | `"Media URL ingestion rate limit reached (60 URLs/hour)…"` | `code: "MEDIA_URL_RATE_LIMITED"`, `retryAfterSec` + `Retry-After` header |
 | 400 | `"platformSettings must be an object"` | `platformSettings` is provided but is not a plain object (e.g., array, null, or primitive after JSON parsing) |
-| 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is incorrect or revoked |
-| 401 | `"Invalid API key owner"` | API key exists but the associated workspace/user could not be resolved |
+| 401 | `"Invalid API key owner"` | API key exists but its user could not be resolved |
 | 403 | `"API access is not enabled for this account"` | The account has `apiAccess` disabled (a custom plan; standard plans including the free Starter plan include API access) |
 | 403 | `"MCP access is not enabled for this account"` | Returned when `x-publora-client: mcp` is set but MCP access is not enabled |
-| 403 | `"Workspace access is not enabled for this key"` | The API key does not have workspace/managed-user permissions |
-| 403 | `"User is not managed by key"` | The `x-publora-user-id` references a user not managed by this API key |
 | 403 | LimitExceededError (structured) | Plan limit reached (see below) |
 | 409 | `"A request with this idempotency key is still in flight"` | `code: "IDEMPOTENCY_IN_FLIGHT"`. An earlier request with the same `Idempotency-Key` has not finished. Retry the identical request shortly. See [Idempotency](#idempotency) |
 | 422 | `"Idempotency key was already used with a different request body"` | `code: "IDEMPOTENCY_KEY_CONFLICT"`. The same `Idempotency-Key` was reused with a different body. Generate a fresh key per logical create |

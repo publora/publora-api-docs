@@ -205,7 +205,7 @@ curl https://api.publora.com/api/v1/get-post/507f1f77bcf86cd799439011 \
 - [Upload images and videos](guides/media-uploads.md)
 - [Post to specific platforms](guides/cross-platform.md)
 - [LinkedIn analytics](endpoints/linkedin-statistics.md)
-- [Workspace / B2B API](guides/workspace.md)
+- [Agency client posts (Company API and MCP)](guides/agency-quickstart.md)
 - [Error handling](guides/error-handling.md)
 
 

@@ -145,7 +145,7 @@ Each Publora plan enforces limits on monthly posts, scheduled (pending) posts, a
 
 **Key details:**
 
-- **Monthly-post scope:** Starter's 15 monthly posts are account-wide; paid-plan `monthlyPosts` are counted per connection (for example, 100 for one LinkedIn connection and 100 for one Twitter connection). The active `scheduledPosts` queue limit is workspace-wide on every plan, not per connection. Connection count and schedule horizon are separate plan limits.
+- **Monthly-post scope:** Starter's 15 monthly posts are account-wide; paid-plan `monthlyPosts` are counted per connection (for example, 100 for one LinkedIn connection and 100 for one Twitter connection). The active `scheduledPosts` queue limit is account-wide on every plan, not per connection. Connection count and schedule horizon are separate plan limits.
 - **Starter plan includes API and MCP access** (`apiAccess: true`, `mcpAccess: true`) — the free tier can use the REST API and MCP server (3 connected accounts, 15 posts/month account-wide).
 - **Starter plan can post to any of the 10 platforms** (no platform restriction).
 

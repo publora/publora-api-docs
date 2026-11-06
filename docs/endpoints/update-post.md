@@ -13,7 +13,6 @@ PUT https://api.publora.com/api/v1/update-post/:postGroupId
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `"mcp"`) |
 | `Content-Type` | Yes | `application/json` |
 | `Idempotency-Key` | No | Opt-in retry safety. Any client-generated unique string (e.g. a UUID). See [Idempotency](#idempotency). **Strongly recommended when sending `mediaUrls`** — without it, a retried update appends the media a second time. |
@@ -271,7 +270,7 @@ Send an optional `Idempotency-Key` header with any value unique to the logical o
 | Same key, original still running | `409` `IDEMPOTENCY_IN_FLIGHT` |
 | New key | Processed normally |
 
-Keys are scoped to the **acting user** (the managed user when `x-publora-user-id` is set) and expire **24 hours** after first use. Two different users can safely use the same key string.
+Keys are scoped to the API key's user and expire **24 hours** after first use. Two different users can safely use the same key string.
 
 > **Why it matters most here:** `mediaUrls` on `update-post` has **append** semantics. A timeout or network blip on a request that already committed leaves you no way to tell whether it landed — and a naive retry appends the same media **again**, producing duplicate attachments on the post. With an `Idempotency-Key`, the retry replays the original response instead. **Always send one when the body contains `mediaUrls`.**
 
@@ -578,22 +577,17 @@ def update_post_safely(post_group_id, updates):
 | 503 | codes `MEDIA_UPLOAD_PENDING`, `MEDIA_VALIDATION_PENDING` | An attached upload is not in storage yet, or its validation did not finish in time. The post was not scheduled or changed; validation progress on the media is kept. Retry after the `Retry-After` header (also `retryAfterSec`). |
 | 503 | `"Unable to check Threads permissions. Please try scheduling again shortly."` — code `THREADS_PERMISSIONS_UNAVAILABLE` | Scheduling a Threads chain (a Threads target with more than one part) needed a permission check that Publora could not complete. The body is only `{ code, error }`, with no `retryable` field and no `Retry-After` header. Retry in a few seconds; it never means reconnect. See [Threads chain codes](../guides/error-codes.md#at-scheduling). |
 | 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
-| 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is incorrect or revoked |
 | 401 | `"Invalid API key owner"` | The API key exists but its owner account could not be found |
 | 403 | `"API access is not enabled for this account"` | No active subscription or API access not enabled |
 | 403 | `"MCP access is not enabled for this account"` | The account does not have MCP access enabled (MCP-only keys) |
-| 403 | `"Workspace access is not enabled for this key"` | The API key does not have workspace/managed-user permissions |
-| 403 | `"User is not managed by key"` | The `x-publora-user-id` references a user not managed by this API key |
 | 403 | `LimitExceededError` (structured JSON) | Rescheduling would exceed the account's posting limits for the target time slot (see below) |
 | 404 | `"Post group not found"` | No post with this ID belongs to the acting user |
 | 500 | `"Failed to update post"` | Internal server error |
 | 500 | `"Internal server error"` | Unexpected server error in middleware |
 
 > **Note:** The `status` field must be a **non-empty string**. The server uses a JavaScript falsy check, so empty strings (`""`), `null`, and `0` are all treated as absent. `content` and `platforms` are detected by **key presence**, not truthiness — sending `"content": ""` or `"platforms": []` counts as a real edit. If `status` and `scheduledTime` are both falsy and none of `content`, `platforms`, `platformSettings`, or `mediaUrls` is present, you will receive the "At least one of status, scheduledTime, content, platforms, platformSettings, or mediaUrls must be provided" error.
-
-> **Note:** If `x-publora-user-id` matches the API key owner, no workspace check is triggered — the header is effectively a no-op in that case.
 
 > **Note:** A `postGroupId` that is not a valid MongoDB ObjectId returns `400 { "error": "Invalid post group ID" }` before any lookup. Pass the IDs returned by create-post or list-posts.
 

@@ -17,7 +17,6 @@ GET https://api.publora.com/api/v1/post-logs/:postGroupId
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Set to `mcp` for MCP tool access |
 
 > **MCP access:** If the `x-publora-client: mcp` header is sent, the server validates `entitlements.features.mcpAccess` and returns `403 "MCP access is not enabled for this account"` if the feature is not enabled.
@@ -234,14 +233,11 @@ async function debugFailedPost(postGroupId) {
 | Status | Error | Cause |
 |--------|-------|-------|
 | 400 | `"Invalid post group ID"` | `postGroupId` is not a valid ObjectId |
-| 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ID |
 | 401 | `"API key is required"` | `x-publora-key` header is missing entirely |
 | 401 | `"Invalid API key"` | `x-publora-key` is present but invalid |
 | 401 | `"Invalid API key owner"` | API key exists but the associated user account was not found |
 | 403 | `"API access is not enabled for this account"` | The user's account does not have API access enabled |
 | 403 | `"MCP access is not enabled for this account"` | The `x-publora-client: mcp` header was sent but `entitlements.features.mcpAccess` is not enabled |
-| 403 | `"Workspace access is not enabled for this key"` | API key does not have workspace access enabled |
-| 403 | `"User is not managed by key"` | Managed user does not belong to the API key owner's workspace |
 | 404 | `"Post group not found"` | No post with this ID belongs to the acting user |
 | 500 | `"Failed to get post logs"` | Server error |
 
