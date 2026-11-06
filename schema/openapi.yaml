@@ -9,10 +9,6 @@ info:
     Free Starter plan, no credit card needed. Pro is priced per connected
     account: from $5.99/account/month, or $3.99 billed yearly, with automatic
     volume discounts from the 6th account. See https://publora.com/pricing.
-
-    ## Workspace API
-    The Workspace API allows you to manage multiple users under a single account.
-    **To enable Workspace access, please contact Publora support at serge@publora.com.**
   version: "1.0.0"
   contact:
     email: serge@publora.com
@@ -38,8 +34,6 @@ tags:
     description: LinkedIn-specific analytics and interactions
   - name: Webhooks
     description: Manage webhook endpoints for real-time notifications
-  - name: Workspace
-    description: "Manage multiple users (requires Workspace access - contact support)"
   - name: Logs
     description: Post logs and debugging
 
@@ -930,37 +924,6 @@ components:
           type: string
         to:
           type: string
-
-    ManagedUser:
-      type: object
-      properties:
-        _id:
-          type: string
-          description: "User ID"
-          example: "507f1f77bcf86cd799439011"
-        username:
-          type: string
-          description: "User email"
-          example: "user@example.com"
-        displayName:
-          type: string
-          example: "John Doe"
-        role:
-          type: string
-          enum: [managed]
-          example: "managed"
-        dailyPostsLeft:
-          type: integer
-          example: 100
-        connectionsPageUrl:
-          type: string
-          format: uri
-          nullable: true
-          description: "URL for user to connect their social accounts"
-        connectionsPageTokenExpiresAt:
-          type: string
-          format: date-time
-          nullable: true
 
     Webhook:
       type: object
@@ -2137,13 +2100,6 @@ paths:
       operationId: getPlatformConnections
       tags:
         - Connections
-      parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
       responses:
         "200":
           description: List of connected accounts
@@ -2235,8 +2191,8 @@ paths:
     get:
       summary: Read plan, features and publishing quotas
       description: |
-        Read-only snapshot of the personal account behind the API key (or the
-        managed user named by `x-publora-user-id`): plan, available features,
+        Read-only snapshot of the personal account behind the API key: plan,
+        available features,
         publishing quotas, schedule horizon and allowed platforms. Call it before
         a batch of posts and after a quota or feature error. Quotas count platform
         posts; `limit: null` means unlimited. The snapshot is advisory
@@ -2246,12 +2202,6 @@ paths:
       tags:
         - Posts
       parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
         - name: scheduledTime
           in: query
           required: false
@@ -2336,12 +2286,6 @@ paths:
       tags:
         - Posts
       parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
         - name: Idempotency-Key
           in: header
           required: false
@@ -2359,8 +2303,8 @@ paths:
             - Same key + different body → `422` (`IDEMPOTENCY_KEY_CONFLICT`).
               Nothing is created.
 
-            Keys are scoped to the acting user (the managed user when
-            `x-publora-user-id` is set), so they never collide across accounts.
+            Keys are scoped to the API key's user, so they never collide across
+            accounts.
             Records expire 24 hours after they are created; reusing a key after
             that window is treated as a brand-new request.
           schema:
@@ -2590,11 +2534,6 @@ paths:
           schema:
             type: string
           example: "507f1f77bcf86cd799439011"
-        - name: x-publora-user-id
-          in: header
-          required: false
-          schema:
-            type: string
       responses:
         "200":
           description: Post details
@@ -2718,11 +2657,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: x-publora-user-id
-          in: header
-          required: false
-          schema:
-            type: string
         - name: Idempotency-Key
           in: header
           required: false
@@ -2743,8 +2677,8 @@ paths:
 
             The key is bound to this `postGroupId` as well as the body, so the
             same key reused against a different post counts as a different
-            request. Keys are scoped to the acting user (the managed user when
-            `x-publora-user-id` is set), so they never collide across accounts.
+            request. Keys are scoped to the API key's user, so they never collide
+            across accounts.
             Records expire 24 hours after they are created; reusing a key after
             that window is treated as a brand-new request.
           schema:
@@ -3136,11 +3070,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: x-publora-user-id
-          in: header
-          required: false
-          schema:
-            type: string
       responses:
         "200":
           description: Post deleted
@@ -3260,12 +3189,6 @@ paths:
       operationId: getUploadUrl
       tags:
         - Media
-      parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -3456,11 +3379,6 @@ paths:
           schema:
             type: string
           example: "507f1f77bcf86cd799439011"
-        - name: x-publora-user-id
-          in: header
-          required: false
-          schema:
-            type: string
         - name: Idempotency-Key
           in: header
           required: false
@@ -3750,13 +3668,6 @@ paths:
       operationId: uploadInstagramCover
       tags:
         - Media
-      parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -3868,13 +3779,6 @@ paths:
       operationId: uploadYouTubeThumbnail
       tags:
         - Media
-      parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -5082,12 +4986,6 @@ paths:
       tags:
         - Posts
       parameters:
-        - name: x-publora-user-id
-          in: header
-          required: false
-          description: Managed user ID (workspace only)
-          schema:
-            type: string
         - name: page
           in: query
           required: false
@@ -5826,423 +5724,6 @@ paths:
                   value: { "error": "postedId must be a valid LinkedIn URN" }
         "404":
           description: LinkedIn connection not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  # ============================================================================
-  # WORKSPACE API
-  # To enable Workspace access, please contact Publora support at serge@publora.com
-  # ============================================================================
-
-  /workspace/users:
-    parameters:
-      - $ref: "#/components/parameters/XPubloraClient"
-    get:
-      summary: List managed users
-      description: |
-        Retrieve all users managed under your workspace.
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: getManagedUsers
-      tags:
-        - Workspace
-      responses:
-        "200":
-          description: List of managed users
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ManagedUser"
-        "403":
-          description: Workspace access not enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "Workspace access is not enabled for this key"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-    post:
-      summary: Create a managed user
-      description: |
-        Create a new managed user under your workspace.
-        The user can then connect their social accounts via a connection URL.
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: createManagedUser
-      tags:
-        - Workspace
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [username]
-              properties:
-                username:
-                  type: string
-                  format: email
-                  description: "User's email address (must be unique)"
-                  example: "user@example.com"
-                displayName:
-                  type: string
-                  description: "Display name (defaults to email if not provided)"
-                  example: "John Doe"
-      responses:
-        "201":
-          description: User created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user:
-                    $ref: "#/components/schemas/ManagedUser"
-        "400":
-          description: Missing required fields
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "Email is required"
-        "403":
-          description: Workspace access not enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "409":
-          description: |
-            An account with this email already exists. The response includes
-            `userId` and membership fields (`attachable`, `requiresConsent`,
-            `reason`, `alreadyInWorkspace`, `managedByAnotherWorkspace`). When
-            `attachable: true`, attach the user via POST /workspace/users/attach.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "User with this email already exists"
-                code: "email_exists"
-                userId: "6626a1f5e4b0c91a2d3f4567"
-                alreadyInWorkspace: false
-                managedByAnotherWorkspace: false
-                reason: "standalone_user_exists"
-                attachable: true
-                requiresConsent: true
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /workspace/users/attach:
-    parameters:
-      - $ref: "#/components/parameters/XPubloraClient"
-    post:
-      summary: Attach an existing user
-      description: |
-        Attach an existing standalone Publora user to your workspace as a managed
-        user. Because the target account already exists, this requires the target
-        user's consent: a valid access token belonging to that user (the
-        `accessToken` returned when they sign in), passed as `userAccessToken`.
-        Re-attaching a user who is already in your workspace is idempotent and
-        does not require a consent token.
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: attachManagedUser
-      tags:
-        - Workspace
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: "The existing user's email. Provide either email or userId (also accepted as `username`)."
-                  example: "user@example.com"
-                userId:
-                  type: string
-                  description: "The existing user's ObjectId. Provide either email or userId."
-                  example: "6626a1f5e4b0c91a2d3f4567"
-                userAccessToken:
-                  type: string
-                  description: "The target user's access token, proving consent. Required unless the user is already in your workspace. Also accepted as `attachToken` in the body or via the `x-publora-user-token` header."
-              example:
-                email: "user@example.com"
-                userAccessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      responses:
-        "200":
-          description: User attached (or already in your workspace)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user:
-                    $ref: "#/components/schemas/ManagedUser"
-                  alreadyInWorkspace:
-                    type: boolean
-                    description: "true if the user was already managed by your workspace (idempotent re-attach)"
-                    example: false
-        "400":
-          description: Missing/invalid identifier, mismatched email vs userId, or the owner's own account
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "Email or userId is required"
-                code: "missing_identifier"
-        "403":
-          description: Workspace access not enabled, the target user's consent token is missing/invalid/mismatched, or attaching would exceed the plan's connection limit
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "Target user consent token is required"
-                code: "attach_consent_required"
-        "404":
-          description: No active user matches the identifier
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "User not found"
-                code: "user_not_found"
-        "409":
-          description: The target user is inactive, a workspace owner, in another workspace, or has an active subscription
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "Cannot attach a user with an active subscription"
-                code: "user_has_active_subscription"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /workspace/users/{userId}:
-    parameters:
-      - $ref: "#/components/parameters/XPubloraClient"
-    delete:
-      summary: Detach a managed user
-      description: |
-        Remove a user from your workspace. The user account is not deleted,
-        but is no longer managed by your workspace.
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: detachManagedUser
-      tags:
-        - Workspace
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "507f1f77bcf86cd799439011"
-      responses:
-        "200":
-          description: User detached
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        "400":
-          description: Invalid userId
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Workspace access not enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found or not managed by this key
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /workspace/users/{userId}/api-key:
-    parameters:
-      - $ref: "#/components/parameters/XPubloraClient"
-    post:
-      summary: Generate API key for managed user
-      description: |
-        Generate a new API key for a managed user. This key can be used
-        to make API calls on behalf of the managed user (e.g., create posts
-        to their connected social accounts).
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: generateManagedUserApiKey
-      tags:
-        - Workspace
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: API key generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "API key generated successfully"
-                  apiKey:
-                    type: string
-                    description: "The generated API key (save it securely - shown only once)"
-                    example: "sk_lx5abc.a1b2c3d4e5f6..."
-                  userId:
-                    type: string
-        "400":
-          description: Invalid userId
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Workspace or API access not enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              examples:
-                noWorkspace:
-                  value: { "error": "Workspace access is not enabled for this key" }
-                noApiAccess:
-                  value: { "error": "API access is not enabled for this workspace owner" }
-        "404":
-          description: User not found or not managed by this key
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /workspace/users/{userId}/connection-url:
-    parameters:
-      - $ref: "#/components/parameters/XPubloraClient"
-    post:
-      summary: Get connection URL for managed user
-      description: |
-        Get or generate a URL that allows a managed user to connect their
-        social media accounts. The URL expires after a configurable period
-        (default: 90 days).
-
-        **Requires Workspace access - contact serge@publora.com to enable.**
-      operationId: getConnectionUrl
-      tags:
-        - Workspace
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                rotate:
-                  type: boolean
-                  description: "Force generation of a new token even if current is valid"
-                  default: false
-                expiresInDays:
-                  type: integer
-                  description: "Number of days until the token expires"
-                  default: 90
-                  example: 30
-      responses:
-        "200":
-          description: Connection URL
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-                    format: uri
-                    description: "URL for user to connect their social accounts"
-                    example: "https://app.publora.com/connect/abc123..."
-                  tokenExpiresAt:
-                    type: string
-                    format: date-time
-                    description: "When the connection URL expires"
-        "400":
-          description: Invalid userId
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Workspace access not enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found or not managed by this key
           content:
             application/json:
               schema:

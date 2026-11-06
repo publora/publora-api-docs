@@ -131,7 +131,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 
 ### Getting Started
 - [Quick Start Guide](https://docs.publora.com/getting-started) — first post in 60 seconds
-- [Authentication](https://docs.publora.com/authentication) — API keys and workspace auth
+- [Authentication](https://docs.publora.com/authentication) — API keys and MCP auth
 
 ### Endpoint Reference
 - [Create Post](https://docs.publora.com/endpoints/create-post) — schedule posts across platforms, or publish now with `publishNow: true`
@@ -159,6 +159,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [X / Twitter](https://docs.publora.com/platforms/x-twitter) · [LinkedIn](https://docs.publora.com/platforms/linkedin) · [Instagram](https://docs.publora.com/platforms/instagram) · [Threads](https://docs.publora.com/platforms/threads) · [TikTok](https://docs.publora.com/platforms/tiktok) · [YouTube](https://docs.publora.com/platforms/youtube) · [Facebook](https://docs.publora.com/platforms/facebook) · [Bluesky](https://docs.publora.com/platforms/bluesky) · [Mastodon](https://docs.publora.com/platforms/mastodon) · [Telegram](https://docs.publora.com/platforms/telegram)
 
 ### Usage Guides
+- [Agency Quickstart](https://docs.publora.com/guides/agency-quickstart) — end-to-end Company API and MCP flow for client posts
 - [Agency Platform Settings](https://docs.publora.com/guides/agency-platform-settings) — Company Stories, reply controls, reposts, disclosures and YouTube metadata/thumbnails
 - [Agency LinkedIn Page Reshares](https://docs.publora.com/guides/agency-linkedin-reshares) — employee reshares of a Company Page post with per-employee client reviews
 - [Agency LinkedIn Page Reads](https://docs.publora.com/guides/agency-linkedin-page-reads) — Company Page posts by ID, comments and reactions
@@ -172,7 +173,6 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [Cross-Platform Posting](https://docs.publora.com/guides/cross-platform) — one call, many platforms
 - [LinkedIn Analytics](https://docs.publora.com/guides/analytics) — post performance, account metrics
 - [Error Handling](https://docs.publora.com/guides/error-handling) — status codes, retries
-- [Workspace / B2B API](https://docs.publora.com/guides/workspace) — managed users, white-label
 
 ### AI Integration
 - [MCP Server](https://docs.publora.com/guides/mcp-server) — Claude, Cursor and other MCP clients. In Claude, install from the [connectors directory](https://claude.ai/directory/publora)

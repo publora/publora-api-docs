@@ -69,13 +69,11 @@ Once you have an account with connected social platforms:
 
 The dashboard multi-key endpoint (`POST /auth/api-keys`) requires **dashboard session authentication**, not API-key authentication. An existing key therefore cannot mint another named dashboard key for its owner.
 
-There is one scoped workspace exception: an authorized workspace-owner key can call `POST /api/v1/workspace/users/:userId/api-key` for an already managed user. That endpoint generates or replaces the managed user's single current `User.apiKey`; it does not create another owner/dashboard multi-key record.
-
 This is intentional for security reasons:
 
 | Concern | Why Session-Auth-Only |
 |---------|-------------------|
-| **Key theft prevention** | API-key auth cannot mint additional dashboard multi-key records for its owner; the workspace exception is restricted to an already managed user and replaces that user's current key |
+| **Key theft prevention** | API-key auth cannot mint additional dashboard multi-key records for its owner |
 | **Human verification** | Dashboard login ensures a human authorized the key |
 | **Audit trail** | All key generation is logged with user/IP information |
 | **Accidental exposure** | Prevents automated systems from creating excess keys |
@@ -169,16 +167,16 @@ Publora currently mints two API-key shapes:
 # Dashboard key (POST /auth/api-keys)
 sk_mrmbzomn_1a2b3c4d.964793af0123456789abcdef0123456789abcdef0123456789ab
 
-# Single-current User.apiKey (session `/auth/generate-api-key` or managed-user workspace endpoint)
+# Single-current User.apiKey (session `/auth/generate-api-key`)
 sk_mrmbzomn.964793af0123456789abcdef0123456789abcdef0123456789ab
 ```
 
 - Both start with `sk_`, contain a base36 timestamp, use one dot separator, and end with 52 random hex characters.
 - Dashboard keys add an 8-hex collision-resistant segment before the dot: `sk_<timestamp_base36>_<8_hex>.<52_hex>` (about 73 characters today).
-- Single-current `User.apiKey` keys use `sk_<timestamp_base36>.<52_hex>` (64 characters today). They are produced both by session-authenticated `/auth/generate-api-key` for the current user and by the API-key-authenticated managed-user workspace endpoint.
+- Single-current `User.apiKey` keys use `sk_<timestamp_base36>.<52_hex>` (64 characters today). They are produced by session-authenticated `/auth/generate-api-key` for the current user.
 - Exact total length varies as the base36 timestamp grows. The authentication shape gate accepts 20–200 URL-safe characters, requires `sk_`, and requires a dot; the stored hash remains authoritative.
 - **Dashboard keys:** Maximum **10 active keys** per user; each dashboard key has a name with a 100-character maximum.
-- **Single-current `User.apiKey`:** Each user has one stored current key in this form. Session generation replaces the caller's key; workspace generation replaces the managed user's key via `$set`. Neither adds a named dashboard multi-key record.
+- **Single-current `User.apiKey`:** Each user has one stored current key in this form. Session generation replaces the caller's key and does not add a named dashboard multi-key record.
 
 > **Note:** The middleware enforces the broad shape above before its legacy-user fallback. A key without `sk_` or a dot is rejected even if an old user record exists; do not rely on pre-format keys.
 
@@ -281,24 +279,7 @@ Publora's MCP server sets `x-publora-client: mcp` on its internal REST requests 
 
 Claude Desktop, Cursor, and other MCP clients do not send this REST header; they authenticate to `mcp.publora.com`, and Publora's MCP server adds it downstream. A direct REST caller may also set `x-publora-client`; the value `mcp` opts that request into the same entitlement check.
 
-The backend stores any non-empty `x-publora-client` value verbatim as `req.apiUser.client`; when the header is absent it uses `"api"`.
-
-### Internal Request Context (`req.apiUser`)
-
-After successful authentication, the middleware attaches a `req.apiUser` object with the following fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `userId` | `ObjectId` | The effective user ID (target user if workspace, otherwise key owner) |
-| `ownerId` | `ObjectId` | The billing owner's user ID (may differ from the direct key owner for managed workspace users, resolved via `resolveWorkspaceEntitlementsByActor`) |
-| `ownerUser` | `Object` | Subset of the `actorUser` document (the user whose API key was used, resolved via workspace entitlements) containing `{ _id, permissions, isAdmin }` |
-| `billingOwnerUser` | `Object` | The user responsible for billing. Contains `{ _id, permissions, isAdmin, entitlements }`. May differ from `ownerUser` in workspace setups |
-| `keyPrefix` | `string` | The portion before the required dot separator, retained for lookup/log context without exposing the secret suffix |
-| `isWorkspace` | `boolean` | `true` if acting on behalf of a managed user via `x-publora-user-id` |
-| `client` | `string` | Arbitrary client identifier copied from `x-publora-client`; `"api"` when absent. Publora's MCP server sends `"mcp"` |
-| `entitlements` | `Object` | Feature flags and plan capabilities for the billing owner |
-
-> **Note:** These fields are internal to the server — they are not returned in API responses. They are documented here for contributors and advanced integrators who may encounter them in error messages or logs.
+The backend records any non-empty `x-publora-client` value verbatim as the request's client identifier; when the header is absent it uses `"api"`.
 
 ## Complete Authentication Workflow
 
@@ -408,49 +389,18 @@ const { posts } = await response.json();
 console.log(`Found ${posts.length} posts`);
 ```
 
-## Workspace Authentication
-
-For B2B workspaces managing multiple users, add the user ID header. There is no separate "workspace API key" — you use the same API key. The middleware checks `actorUser` (resolved via workspace entitlements), which may differ from the direct key owner for managed users.
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `x-publora-key` | Your API key | Authenticates your account |
-| `x-publora-user-id` | Managed user's ObjectId | Specifies which user to act as |
-
-The target user must have their `parentUser` field set to the API key owner. This `parentUser` relationship is what authorizes the key owner to act on behalf of that user. Without it, the request will be rejected with a 403 error.
-
-> **Note:** Passing your own user ID as `x-publora-user-id` is a no-op — the middleware detects the self-reference and skips the workspace/parentUser check entirely. The request proceeds as if the header were not set.
-
-```javascript
-const response = await fetch('https://api.publora.com/api/v1/create-post', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-publora-key': process.env.PUBLORA_API_KEY,
-    'x-publora-user-id': '507f1f77bcf86cd799439011'  // Managed user (must have parentUser set to key owner)
-  },
-  body: JSON.stringify({
-    content: 'Posted on behalf of managed user',
-    platforms: ['twitter-123456']
-  })
-});
-```
-
 ## Error Handling
 
 ### Authentication Errors
 
 | Status | Error | Cause | Solution |
 |--------|-------|-------|----------|
-| 400 | `"Invalid x-publora-user-id"` | `x-publora-user-id` header is not a valid ObjectId | Provide a valid 24-character hex ObjectId |
 | 401 | `"API key is required"` | Missing `x-publora-key` header | Include the `x-publora-key` header with your API key |
 | 401 | `"Invalid API key"` | Key is wrong or has been revoked | Generate a new key at API in sidebar |
 | 401 | `"Invalid API key owner"` | User associated with the key could not be found | Contact support; the key owner account may be deleted |
 | 403 | `"API access is not enabled for this account"` | Account lacks the API access entitlement | Contact support if you expect API access |
 | 403 | `"Your current plan does not include API access"` | API access is disabled for this account (returned by key management endpoints) | Contact support if you expect API access |
 | 403 | `"MCP access is not enabled for this account"` | Account lacks MCP access entitlement (sent via MCP client) | Upgrade your plan to include MCP access |
-| 403 | `"Workspace access is not enabled for this key"` | Used `x-publora-user-id` but key owner does not have `workspacesEnabled` | Enable workspace access on your account or remove the header. **Note:** Admin users (`isAdmin: true`) automatically bypass this check and have workspace access regardless of the `workspacesEnabled` permission |
-| 403 | `"User is not managed by key"` | Target user's `parentUser` is not set to the key owner | Ensure the managed user has `parentUser` set to your user ID |
 | 400 | `"Maximum of 10 active API keys allowed"` | Attempted to create an API key when 10 active keys already exist | Delete an existing key before creating a new one |
 | 400 | `"Name must be a string with maximum 100 characters"` | POST `/auth/api-keys` — name is not a string or exceeds 100 characters | Provide a valid name under 100 characters |
 | 404 | `"User not found"` | POST `/auth/api-keys` — authenticated user could not be found in the database | Contact support; the account may be deleted |

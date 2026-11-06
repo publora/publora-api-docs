@@ -2,7 +2,7 @@
 
 This guide covers how to handle errors from the Publora API, including HTTP status codes, error response formats, retry strategies, and dealing with partial failures.
 
-For a code-by-code lookup covering top-level, validation, media-ingestion, and workspace errors, see the [API Error Code Catalog](./error-codes.md).
+For a code-by-code lookup covering top-level, validation, media-ingestion, and plan-limit errors, see the [API Error Code Catalog](./error-codes.md).
 
 ## How It Works
 
@@ -13,7 +13,7 @@ The Publora API uses standard HTTP status codes to indicate success or failure. 
 | Code | Meaning | Description |
 |---|---|---|
 | `200` | OK | Request succeeded (GET, PUT, DELETE, and most POST endpoints including `create-post`) |
-| `201` | Created | Resource created successfully (used by specific POST endpoints such as workspace user creation) |
+| `201` | Created | Resource created successfully (used by specific POST endpoints such as `POST /webhooks` and LinkedIn reaction and comment creation) |
 | `400` | Bad Request | Invalid input, missing required fields, or malformed data |
 | `401` | Unauthorized | Missing or invalid API key |
 | `403` | Forbidden | Valid API key but insufficient permissions or plan limits reached |
@@ -22,7 +22,7 @@ The Publora API uses standard HTTP status codes to indicate success or failure. 
 | `422` | Unprocessable Entity | An `Idempotency-Key` was reused with a different request body |
 | `500` | Internal Server Error | Something went wrong on Publora's side |
 
-> **Note:** Most POST endpoints (including `create-post`) return `200` on success, but workspace user creation (`POST /workspace/users`) returns `201`. Check for both `200` and `201` as success codes in your error handling logic.
+> **Note:** Most POST endpoints (including `create-post`) return `200` on success, but some creation endpoints (`POST /webhooks`, `POST /linkedin-reactions`, `POST /linkedin-comments`) return `201`. Check for both `200` and `201` as success codes in your error handling logic.
 
 ### Error Response Format
 
@@ -86,15 +86,13 @@ Production configuration can force strict mode on or off, or move the sunset, so
 |---|---|---|---|
 | `401` | `"API key is required"` | The `x-publora-key` header is missing | Include a valid API key in the `x-publora-key` header |
 | `401` | `"Invalid API key"` | The `x-publora-key` header contains an invalid or revoked key | Verify your API key is correct |
-| `401` | `"Invalid API key owner"` | Workspace resolution failed for the API key (the key exists but its owner account could not be resolved) | Verify the API key is associated with a valid account, or regenerate the key |
+| `401` | `"Invalid API key owner"` | The key exists but its owner account could not be resolved | Verify the API key is associated with a valid account, or regenerate the key |
 | `403` | `"API access is not enabled for this account"` | API access is disabled for this account (a custom plan with `apiAccess` turned off — standard plans, including the free Starter plan, include API access) | Contact support if you expect API access |
-| `403` | `"Workspace access is not enabled for this key"` | The API key does not have workspace-level access enabled | Verify the API key has the correct permissions, or generate a new key with workspace access |
 | `403` | `"Subscription required"` | Your account does not have an active subscription. Response includes `message: "No active plan entitlements found for this account."` **Note:** This error is currently unreachable in practice because `resolveEntitlementsForOwner()` always falls back to the Starter plan when no paid subscription exists. The middleware code exists and is documented here for completeness, but with the current entitlement resolution logic this error cannot occur. | Subscribe to a paid plan |
 | `403` | `"Account on hold"` | Your account has been placed on hold. Response includes `message: "Your account is temporarily on hold. Please contact support."`, `holdExpiresAt` (ISO 8601 timestamp), and `holdReason` fields. **Note:** This error only applies to dashboard routes, not the external REST API. The `checkHold` middleware is not applied to external API endpoints. | Wait until the hold expires or contact support to resolve the issue |
 | `403` | `"Account inactive"` | Your account has been deactivated. Response includes `message: "Your account is inactive."` **Note:** This error is currently unreachable. The `checkSubscription` middleware is imported but never mounted on any route (dead code), so this error cannot occur on either dashboard or external API endpoints. It is documented here for completeness. | Contact support@publora.com to reactivate your account |
 | `403` | Limit exceeded (structured) | You have exceeded a usage limit for your plan. Response uses `LimitExceededError` format with fields: `code`, `error` (short label), `message` (long text), `metric`, `limit`, `used`, `requested`, `remaining`, `periodStart`, `periodEnd`, `planName`, plus context-specific fields (see below) | Wait for the current period to reset, reduce usage, or upgrade your plan |
 | `403` | `"MCP access is not enabled for this account"` | Your account does not have MCP access enabled | Contact support or upgrade your plan to enable MCP access |
-| `400` | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header contains a malformed user ID (not a valid ObjectId format). A valid-format but non-existent user ID returns `403` `"User is not managed by key"` instead | Verify the user ID is a valid ObjectId and belongs to the account associated with the MCP API key |
 | `400` | `"Invalid scheduled time format"` | The `scheduledTime` is not a valid ISO 8601 string | Use a valid time in the format `YYYY-MM-DDTHH:mm:ss.sssZ` |
 | `404` | `"Post group not found"` | The post group ID does not exist or does not belong to your account | Verify the ID and ensure you are using the correct API key |
 | `400` | `"Cannot update post: post is currently in {status} status"` | Attempting to modify a post that is in a non-editable status (e.g., `published`, `failed`) | Only `draft` and `scheduled` posts can be updated. The external API and dashboard have **different** update rules. The external API rejects any post not in `draft` or `scheduled` status. The dashboard controller rejects posts in `published` or `failed` status — meaning `partially_published` posts **can** be updated via the dashboard but **not** via the API. Neither checks `processingStatus`. Note: `processing` is not a value of the `status` field — it is tracked separately via the `processingStatus` field (values: `pending`, `processing`, `finished`). The `status` field values are: `draft`, `scheduled`, `published`, `failed`, `partially_published`. |
@@ -167,7 +165,7 @@ The `code` field in a `LimitExceededError` response identifies the specific limi
 | `CONNECTIONS_OVER_LIMIT` | Number of connected accounts exceeds the plan limit |
 | `CHANNEL_LIMIT_REACHED` | Maximum number of channels for the plan has been reached |
 
-> **Note on `CHANNEL_LIMIT_REACHED`:** The `checkConnectionLimit` middleware returns a **different response format** from the standard `LimitExceededError`. When `canExpand: true`, the response includes `planKey`, `planName`, `currentQuantity`, `targetQuantity`, `connectionCount`, and `pricing` (expansion pricing details). When `canExpand: false`, the response varies depending on whether the user's billing is managed by a workspace owner. For billing-managed users, only `success`, `code`, `error`, and `canExpand` are returned. For non-managed users, `connectionCount` is also included in the response. If you are handling connection limit errors specifically, parse these fields rather than the standard `LimitExceededError` shape.
+> **Note on `CHANNEL_LIMIT_REACHED`:** The `checkConnectionLimit` middleware returns a **different response format** from the standard `LimitExceededError`. When `canExpand: true`, the response includes `planKey`, `planName`, `currentQuantity`, `targetQuantity`, `connectionCount`, and `pricing` (expansion pricing details). When `canExpand: false`, the same fields are present with `targetQuantity` and `pricing` set to `null`. Every variant also carries `error`, `message` and `upgradeUrl`. If you are handling connection limit errors specifically, parse these fields rather than the standard `LimitExceededError` shape.
 
 ### LimitExceededError Context Fields
 

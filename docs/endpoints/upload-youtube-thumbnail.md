@@ -15,7 +15,6 @@ POST https://api.publora.com/api/v1/upload-youtube-thumbnail
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `Content-Type` | Yes | `multipart/form-data` |
 
 ## Request Body

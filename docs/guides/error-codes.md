@@ -224,37 +224,15 @@ These appear in `posts[].error.code` from `GET /get-post`, never as an HTTP stat
 > `PUBLISH_OUTCOME_UNKNOWN`.** Parts marked `published` in `threadParts` already
 > exist on the platform; recreating the post duplicates them.
 
-## Workspace attachment codes
-
-These lowercase codes are top-level response fields from `POST /workspace/users` or `POST /workspace/users/attach`.
-
-| Code | HTTP | Meaning | Recovery |
-|---|---:|---|---|
-| `email_exists` | 409 | A user with the requested email already exists | Inspect the returned attachment status; use the attach flow when allowed |
-| `missing_identifier` | 400 | Neither email nor user ID was supplied | Send one identifier |
-| `invalid_user_id` | 400 | The user ID is malformed | Send a Mongo ObjectId |
-| `invalid_email` | 400 | The email format is invalid | Correct the email |
-| `user_not_found` | 404 | No active target user was found | Check the identifier |
-| `identifier_mismatch` | 400 | Supplied email and user ID identify different users | Correct one identifier |
-| `user_inactive` | 409 | The target user is inactive | Reactivate the user before attaching |
-| `cannot_attach_self` | 400 | The workspace owner was supplied as the target | Choose another user |
-| `user_is_workspace_owner` | 409 | The target owns a workspace | A workspace owner cannot be attached as managed |
-| `user_in_another_workspace` | 409 | The target already belongs to another workspace | Detach it from the other workspace first |
-| `user_has_active_subscription` | 409 | The target has a blocking subscription | Resolve that subscription before attaching |
-| `attach_consent_required` | 403 | Attaching an existing standalone user requires its consent token | Supply the target user's access token |
-| `invalid_attach_consent` | 403 | The consent token is invalid or revoked | Obtain a fresh token from the target user |
-| `attach_consent_mismatch` | 403 | The token belongs to another user | Supply the target user's own token |
-
 ## Source coverage
 
 - Top-level scheduling and idempotency responses: `backend/src/app/routes/apiRoute.js`.
-- Plan/workspace entitlement responses: `backend/src/app/services/limitsService.js`.
+- Plan entitlement responses: `backend/src/app/services/limitsService.js`.
 - Scheduling guards and media state: `backend/src/app/helpers/scheduledPlatformsGuard.js`, `mediaStatusTransitions.js`, `mediaUploadPolicy.js`, `probeMediaUpload.js`, and `apiValidationRecovery.js`.
 - Per-URL ingestion: `backend/src/app/helpers/mediaUrlIngest.js` and `mediaUrlSecurity.js`.
 - File-reference input for `attach-media`: `backend/src/app/helpers/mediaFileInput.js`.
 - Validation codes actually emitted by scheduling: `backend/src/app/services/postValidationService.js` and `errors/ValidationError.js`.
 - Threads chain permission and publish errors: `backend/src/app/helpers/threadsPermissions.js`, `backend/src/app/services/threadsPostPreflight.js`, and `scheduler-service/src/app/controllers/threadsController.js`.
-- Workspace attachment responses: `backend/src/app/controllers/workspaceApiController.js`.
 - LinkedIn interaction/analytics errors: `backend/src/app/controllers/linkedinController.js`.
 - Mastodon/Bluesky analytics responses: `backend/src/app/controllers/platformAnalyticsController.js` and `backend/src/app/services/platformAnalytics/`.
 

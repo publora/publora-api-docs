@@ -26,7 +26,7 @@ processingStatus field:  pending --> processing --> finished
 
 - `scheduledTime` must be in **ISO 8601 UTC format** (e.g., `2026-03-15T14:30:00.000Z`). An invalid format returns a `400 "Invalid scheduled time format"` error.
 - A `scheduledTime` that is in the past or exactly equal to `now` (`scheduledTime <= now`) is **never silently accepted**. See [Past scheduled times](#past-scheduled-times) below -- the API either clamps it and warns you, or rejects it.
-- The `scheduledPosts` limit counts active platform-level posts across the whole workspace for every plan. A post group targeting 3 platforms consumes 3 slots; it is not a per-connection limit.
+- The `scheduledPosts` limit counts active platform-level posts across the whole account for every plan. A post group targeting 3 platforms consumes 3 slots; it is not a per-connection limit.
 - **Schedule horizon:** Starter plan users can schedule up to **7 days** in advance. Current Pro plans have no horizon limit. [`GET /account-context`](../endpoints/account-context.md) returns your exact `maxScheduledDate`.
 - **Monthly post limits:** Starter allows **15 posts/month** (account-wide); current Pro plans allow **5,000 posts/month per connection** (fair use). Legacy plans keep their own limits — see [Rate Limits](rate-limits.md) and read your live numbers from [`GET /account-context`](../endpoints/account-context.md). Note: scheduled posts are counted per-platform post, not per post group. A single post group targeting 3 platforms counts as 3 posts toward your limit.
 - **Starter plan can post to every platform except X/Twitter**; `allowedPlatforms` in [`GET /account-context`](../endpoints/account-context.md) lists the platforms of your plan.

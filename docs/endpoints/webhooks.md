@@ -17,7 +17,6 @@ Receive real-time post lifecycle notifications, including scheduled, published, 
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 
 ---
 

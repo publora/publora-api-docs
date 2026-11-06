@@ -13,7 +13,6 @@ GET https://api.publora.com/api/v1/list-posts
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `mcp` for MCP integrations). Affects which access controls are checked. |
 
 ## Query Parameters
@@ -404,14 +403,11 @@ echo "$ALL_POSTS" > scheduled_posts.json
 | 400 | `"Invalid sortBy. Must be one of: createdAt, updatedAt, scheduledTime"` | Invalid sortBy field |
 | 400 | `"Invalid fromDate format"` | fromDate is not a valid date string (not parseable by `new Date()`) |
 | 400 | `"Invalid toDate format"` | toDate is not a valid date string (not parseable by `new Date()`) |
-| 400 | `"Invalid x-publora-user-id"` | The `x-publora-user-id` header value is not a valid ObjectId format |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | The provided API key is not valid |
-| 401 | `"Invalid API key owner"` | API key exists but the associated workspace/user could not be resolved |
+| 401 | `"Invalid API key owner"` | API key exists but its user could not be resolved |
 | 403 | `"API access is not enabled for this account"` | The account does not have API access enabled |
 | 403 | `"MCP access is not enabled for this account"` | Returned when `x-publora-client: mcp` is set but MCP access is not enabled |
-| 403 | `"Workspace access is not enabled for this key"` | The API key does not have workspace/managed-user permissions |
-| 403 | `"User is not managed by key"` | The `x-publora-user-id` references a user not managed by this API key |
 | 500 | `"Failed to list posts"` | Internal server error |
 
 > **Note:** The `page` and `limit` parameters do not return errors for out-of-range values. Instead, they are silently clamped to valid ranges: `page` is clamped to a minimum of 1, and `limit` is clamped to the range 1–100 (with falsy values like 0 defaulting to 20).

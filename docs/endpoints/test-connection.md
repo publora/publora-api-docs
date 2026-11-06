@@ -13,7 +13,6 @@ POST https://api.publora.com/api/v1/test-connection/:platformId
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `mcp`). Used for MCP access gating. |
 
 ## Path Parameters
@@ -230,14 +229,11 @@ If the platform has no test-connection validator implemented (e.g., Pinterest), 
 | Status | Error | Cause |
 |--------|-------|-------|
 | 400 | `"Invalid platformId format"` | `platformId` doesn't contain a dash or is malformed. **Note:** Parsed the same way as in `create-post`: split at the first dash (so a Telegram bot ID such as `telegram--1001234567890` is valid), with a lowercase-letter prefix; the non-empty ID may not contain whitespace, `/`, `?`, or `#`; colons are allowed. |
-| 400 | `"Invalid x-publora-user-id"` | `x-publora-user-id` header contains an invalid ObjectId |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is not a valid key |
 | 401 | `"Invalid API key owner"` | The API key's owner account could not be found |
 | 403 | `"API access is not enabled for this account"` | Account does not have API access enabled |
 | 403 | `"MCP access is not enabled for this account"` | MCP access is not enabled when `x-publora-client: mcp` is sent |
-| 403 | `"Workspace access is not enabled for this key"` | API key does not have workspace permissions |
-| 403 | `"User is not managed by key"` | The `x-publora-user-id` user is not managed by this API key |
 | 500 | `"Internal server error"` | Unexpected error in middleware |
 | 404 | `"Connection not found"` | Invalid platformId or connection doesn't exist |
 | 500 | `"Failed to test connection"` | Server error during validation |

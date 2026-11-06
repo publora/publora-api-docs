@@ -13,7 +13,6 @@ GET https://api.publora.com/api/v1/platform-connections
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace only) |
 | `x-publora-client` | No | Client identifier (e.g., `mcp`). Used for MCP access gating. |
 
 > **Browser usage:** CORS permits the Publora headers above, but only requests from origins in Publora's deployment allowlist are accepted. An arbitrary integrator origin can still fail preflight. Keep the API key on a backend or serverless function; exposing it in client-side JavaScript leaks the credential.
@@ -307,22 +306,17 @@ print(f"Connected to {len(platform_ids)} platforms: {platform_ids}")
 
 | Status | Error | Cause |
 |--------|-------|-------|
-| 400 | `"Invalid x-publora-user-id"` | `x-publora-user-id` header contains an invalid ObjectId |
 | 401 | `"API key is required"` | Missing `x-publora-key` header |
 | 401 | `"Invalid API key"` | `x-publora-key` value is not a valid key |
 | 401 | `"Invalid API key owner"` | The API key's owner account could not be found |
 | 403 | `"API access is not enabled for this account"` | Account does not have API access enabled |
 | 403 | `"MCP access is not enabled for this account"` | MCP access is not enabled when `x-publora-client: mcp` is sent |
-| 403 | `"Workspace access is not enabled for this key"` | API key does not have workspace permissions |
-| 403 | `"User is not managed by key"` | The `x-publora-user-id` user is not managed by this API key |
 | 500 | `"Internal server error"` | Unexpected error in middleware |
 | 500 | `"Failed to fetch platform connections"` | Server error while fetching connections |
 
 ## Connecting Accounts
 
 Social accounts are connected via the Publora dashboard (OAuth flow). The API does not support connecting new accounts programmatically -- use the dashboard at [app.publora.com](https://app.publora.com).
-
-For workspace users, generate a connection URL via the [Workspace API](../guides/workspace.md).
 
 ### Pinterest connection limitation
 

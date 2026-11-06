@@ -15,7 +15,6 @@ GET https://api.publora.com/api/v1/account-context
 | Header | Required | Description |
 |--------|----------|-------------|
 | `x-publora-key` | Yes | Your API key |
-| `x-publora-user-id` | No | Managed user ID (workspace keys only). Returns that user's context instead of the key owner's. |
 
 ## Query Parameters
 

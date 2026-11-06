@@ -60,6 +60,22 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-11-06
+
+### Legacy workspace API removed from the documentation; Agency quickstart added
+
+- **Affected surface:** documentation only. The `/api/v1/workspace/*` endpoints,
+  the `x-publora-user-id` header, managed-user errors and the Workspace / B2B
+  guide are no longer documented.
+- **Tag:** Documentation change. Runtime behaviour is unchanged; the legacy
+  workspace API will be disabled later.
+- **Change:** Agency client work is documented only through the Company API and
+  the `company_*` MCP tools. The new [Agency quickstart](guides/agency-quickstart.md)
+  walks through context, channels, draft, media, client review, scheduling and
+  recovery. `usageScope: "legacy_workspace"` in account context is unchanged.
+- **Migration action:** New integrations that manage client posts should use the
+  [Agency quickstart](guides/agency-quickstart.md).
+
 ## 2026-11-05
 
 ### Agency LinkedIn Page post, comment and reaction reads — publora.com #871, #877

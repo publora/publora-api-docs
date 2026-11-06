@@ -1,6 +1,6 @@
 ---
 name: publora-api
-description: Use this skill when scheduling, publishing, or managing social media posts across multiple platforms (Twitter/X, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram) via the Publora REST API. Also use for retrieving LinkedIn analytics and managing workspace users.
+description: Use this skill when scheduling, publishing, or managing social media posts across multiple platforms (Twitter/X, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, Telegram) via the Publora REST API. Also use for retrieving LinkedIn analytics and for Agency client posts through the Company API.
 ---
 
 # Publora API Skill
@@ -15,7 +15,7 @@ This skill provides complete documentation for the Publora social media scheduli
 - Retrieving LinkedIn analytics (impressions, reactions, followers)
 - Adding reactions and comments to LinkedIn posts
 - Setting up webhooks for post status notifications
-- Managing workspace team members
+- Drafting, reviewing and scheduling Agency client posts ([Agency quickstart](docs/guides/agency-quickstart.md))
 - Cross-platform posting workflows
 
 ## API Overview
@@ -58,7 +58,8 @@ const response = await fetch('https://api.publora.com/api/v1/platform-connection
 
 ### Agency client posts
 
-Use Company context and exact Workspace IDs for Agency work. The
+Use Company context and exact Workspace IDs for Agency work. Start with the
+[Agency quickstart](docs/guides/agency-quickstart.md) for the end-to-end flow. The
 [Agency platform settings guide](docs/guides/agency-platform-settings.md) covers
 Stories, reply controls, reposts, disclosure and YouTube metadata/thumbnails.
 Check the current formats and settings through `GET /company/platforms`.
@@ -131,17 +132,6 @@ Check the current formats and settings through `GET /company/platforms`.
 | `/webhooks/:id` | PATCH | Update a webhook |
 | `/webhooks/:id` | DELETE | Delete a webhook |
 | `/webhooks/:id/regenerate-secret` | POST | Regenerate webhook secret |
-
-### Workspace
-
-> **Note:** Workspace access requires approval. Contact support@publora.com to enable.
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/workspace/users` | GET | List team members |
-| `/workspace/users` | POST | Add team member |
-| `/workspace/users/attach` | POST | Attach an existing Publora user (needs the user's consent token) |
-| `/workspace/users/:userId` | DELETE | Remove team member |
 
 ## Common Patterns
 

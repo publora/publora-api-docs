@@ -593,4 +593,3 @@ This endpoint has generous rate limits. For most use cases, you can call it as n
 
 - [Create Post](../endpoints/create-post.md) - Create posts using platformIds
 - [Test Connection](../endpoints/test-connection.md) - Validate a connection before posting
-- [Workspace](workspace.md) - Manage connections for multiple users
