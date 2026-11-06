@@ -193,3 +193,28 @@ curl -X POST 'https://api.publora.com/api/v1/company/linkedin-page-posts' \
   -H 'Content-Type: application/json' \
   -d '{"connectionId":"'"$PAGE_CONNECTION_ID"'","count":10}'
 ```
+
+Read known Page posts by ID, with comment and reaction summaries, then list one
+post's comments or reactions. Follow `paging.nextStart` until it is `null`. See
+[Agency LinkedIn Page reads](../../guides/agency-linkedin-page-reads.md) for
+permissions and per-post errors.
+
+```bash
+curl -X POST 'https://api.publora.com/api/v1/company/linkedin-page-posts/batch' \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
+  -H 'Content-Type: application/json' \
+  -d '{"connectionId":"'"$PAGE_CONNECTION_ID"'","postedIds":["'"$POSTED_ID"'"],"includeEngagement":true}'
+
+curl -X POST 'https://api.publora.com/api/v1/company/linkedin-page-posts/comments' \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
+  -H 'Content-Type: application/json' \
+  -d '{"connectionId":"'"$PAGE_CONNECTION_ID"'","postedId":"'"$POSTED_ID"'","count":10}'
+
+curl -X POST 'https://api.publora.com/api/v1/company/linkedin-page-posts/reactions' \
+  -H "x-publora-key: $PUBLORA_API_KEY" \
+  -H "X-Publora-Workspace-Id: $WORKSPACE_ID" \
+  -H 'Content-Type: application/json' \
+  -d '{"connectionId":"'"$PAGE_CONNECTION_ID"'","postedId":"'"$POSTED_ID"'","count":10}'
+```

@@ -196,4 +196,4 @@ before requesting reviews, and after a missed or expired delivery recover throug
 | 503 `COMPANY_WEBHOOK_UNAVAILABLE` | Dependency or transaction unavailable | Retry the identical request/key later. |
 
 See [Agency platform settings](agency-platform-settings.md) and
-[Company MCP tools](../mcp/tools-reference.md#company-tools-49).
+[Company MCP tools](../mcp/tools-reference.md#company-tools-52).

@@ -239,4 +239,4 @@ Workspace post-event webhooks are described in [Agency webhooks](agency-webhooks
 X `aiGenerated` is the only X setting in this contract; Twitter replies/quotes, Threads chains and YouTube `categoryId` remain outside this extension.
 
 See [Agency first comments](agency-first-comments.md) and the
-[Agency MCP tools](../mcp/tools-reference.md#company-tools-49).
+[Agency MCP tools](../mcp/tools-reference.md#company-tools-52).

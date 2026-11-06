@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Publora exposes **20 personal tools + 49 Company tools (69 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#company-tools-49), whose availability follows the current Company account type and role. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
+Publora exposes **20 personal tools + 52 Company tools (72 total)**. This page documents the personal tools with parameters, examples, and code snippets, and lists the [Agency tools](#company-tools-52), whose availability follows the current Company account type and role. Personal tools are included on every plan, with individual features subject to plan limits. Media can be attached three ways: the fast path (pass public **https** URLs via `mediaUrls` on `create_post`/`update_post`), a file reference from ChatGPT via `attach_media`, or the upload dance (`get_upload_url` → HTTP PUT → `complete_media`). Three additional LinkedIn feed-retrieval tools (`linkedin_posts`, `linkedin_post_comments`, `linkedin_post_reactions`) are pending LinkedIn approval of the `r_member_social` permission — see [LinkedIn Feed Retrieval Tools](#linkedin-feed-retrieval-tools-coming-soon--requires-linkedin-approval) below. Mastodon and Bluesky analytics are available as `post_stats` and `profile_stats`; LinkedIn analytics and the managed-user endpoints (`/api/v1/workspace/*`) are available via the [REST OpenAPI reference](https://docs.publora.com/openapi.yaml), not MCP. Agency client workspaces use the separate `company_*` MCP tools. See the note under `update_post` for the Agency single first-comment contract.
 
 > **Note:** Most tools return the backend API object. `list_connections` deliberately wraps the backend list as `{ "connections": [...] }` for MCP structured content. `list_posts` also supports a `concise` mode that truncates content previews and adds response-format metadata.
 
@@ -1215,9 +1215,9 @@ async def list_mentionables():
 
 ---
 
-## Company Tools (49)
+## Company Tools (52)
 
-The catalogue contains 49 separate Company operations alongside 20 personal tools, for 69 total. Each operation has its own description, input schema and effect annotations. Access follows the caller's Company account type, role and current capabilities; client Workspace publishing requires Agency access. Personal tools never access Company content. Start with `company_list_contexts`, then `company_get_workspace_context` for the selected Workspace. Copy returned Account, Workspace and channel IDs exactly.
+The catalogue contains 52 separate Company operations alongside 20 personal tools, for 72 total. Each operation has its own description, input schema and effect annotations. Access follows the caller's Company account type, role and current capabilities; client Workspace publishing requires Agency access. Personal tools never access Company content. Start with `company_list_contexts`, then `company_get_workspace_context` for the selected Workspace. Copy returned Account, Workspace and channel IDs exactly.
 
 Arguments are top-level: there is no `command` wrapper or `action` selector. For example, call `company_list_channels` with `{"workspaceId":"<returned Workspace ID>"}`. For a zero-argument operation, send `arguments: {}`. The [public server card](https://mcp.publora.com/.well-known/mcp/server-card.json) contains the deployed input schemas; authenticated `tools/list` is authoritative for your connection.
 
@@ -1243,6 +1243,9 @@ Arguments are top-level: there is no `command` wrapper or `action` selector. For
 | `company_get_connection_link` | Read the Workspace's existing private client connection link |
 | `company_get_tiktok_creator_info` | Read current TikTok creator options for a Workspace connection before selecting privacy and interaction settings |
 | `company_list_linkedin_page_posts` | List published posts authored by a connected LinkedIn Company Page in ONE Workspace (read-only) |
+| `company_get_linkedin_page_posts_batch` | Read up to 50 known published posts of one connected LinkedIn Company Page, optionally with comment and reaction summaries (read-only) |
+| `company_list_linkedin_page_post_comments` | List top-level comments on one published LinkedIn Company Page post (read-only) |
+| `company_list_linkedin_page_post_reactions` | List reactions on one published LinkedIn Company Page post (read-only) |
 | `company_generate_connection_link` | Generate or reuse a private Workspace link for connecting client channels |
 | `company_rotate_connection_link` | Replace a Workspace's private channel connection link, invalidating the previous URL |
 | `company_revoke_connection_link` | Revoke the Workspace's client channel connection link |
@@ -1309,6 +1312,33 @@ Read-only. Lists published posts authored by a connected LinkedIn Company Page, 
 | `sortBy` | string | No | `LAST_MODIFIED` (default) or `CREATED` |
 
 Follow `paging.nextStart` with the same connection, `count` and `sortBy` until it is `null`; a short or empty page can still have a next page. Use an item's `postedId` verbatim as `draft.platformSettings.linkedin.repostParentUrn`, and copy its `sourceSnapshot` unchanged to `draft.repostSourceSnapshot` so the client review shows the original text. `company_get_post` returns the saved snapshot when called with `includeRepostSource: true`. See [Agency LinkedIn Page reshares](../guides/agency-linkedin-reshares.md).
+
+### company_get_linkedin_page_posts_batch
+
+Read-only. Reads up to 50 known published posts of one connected LinkedIn Company Page, optionally with comment and reaction summaries.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `workspaceId` | string | Yes | Exact Workspace ID |
+| `connectionId` | string | Yes | The Company Page connection's `id` from `company_list_channels` |
+| `postedIds` | string[] | Yes | 1–50 canonical `urn:li:share:…` or `urn:li:ugcPost:…` IDs, for example from `company_list_linkedin_page_posts` |
+| `includeEngagement` | boolean | No | Default `false`. `true` adds an `engagement` summary per post and needs Workspace analytics view access |
+
+Successful posts are in `data.items` in request order; per-post failures are in `data.errors` with `postedId`, `source`, `status` and `code`. The Page connection must be authorized through Publora's current LinkedIn app. On `LINKEDIN_BATCH_UNAVAILABLE` or `LINKEDIN_INSUFFICIENT_SCOPE`, show the instructions from the error message to the user and wait until a Page admin has reconnected the Page before retrying. See [Agency LinkedIn Page reads](../guides/agency-linkedin-page-reads.md#read-posts-by-id).
+
+### company_list_linkedin_page_post_comments / company_list_linkedin_page_post_reactions
+
+Read-only. List top-level comments or reactions on one published post authored by the selected Company Page.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `workspaceId` | string | Yes | Exact Workspace ID |
+| `connectionId` | string | Yes | The Company Page connection's `id` from `company_list_channels` |
+| `postedId` | string | Yes | Canonical share or ugcPost `postedId` from `company_list_linkedin_page_posts` |
+| `start` | integer | No | Offset, default 0. Pass the previous `paging.nextStart` |
+| `count` | integer | No | Page size from 1 to 100, default 10 |
+
+Both tools need Workspace internal-content and analytics view access. Each page verifies the post's author and published state, then reads its engagement, using two LinkedIn calls. Follow `data.paging.nextStart` with the same connection, post and `count` until it is `null`. On `LINKEDIN_INSUFFICIENT_SCOPE`, show the recovery instructions from the error message and wait for the indicated action before retrying. See [Agency LinkedIn Page reads](../guides/agency-linkedin-page-reads.md#list-comments-or-reactions) for item fields.
 
 ### company_list_audit_log
 

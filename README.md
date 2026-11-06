@@ -71,6 +71,9 @@ curl -X POST https://api.publora.com/api/v1/create-post \
 | `GET/POST` | `/webhooks` | Manage webhook notifications | [View](https://docs.publora.com/endpoints/webhooks) |
 | `GET/POST` | `/company/webhooks` | Manage Agency Workspace webhooks | [View](https://docs.publora.com/guides/agency-webhooks) |
 | `POST` | `/company/linkedin-page-posts` | List a connected Company Page's posts as reshare sources | [View](https://docs.publora.com/guides/agency-linkedin-reshares) |
+| `POST` | `/company/linkedin-page-posts/batch` | Read up to 50 Company Page posts by ID, optionally with engagement summaries | [View](https://docs.publora.com/guides/agency-linkedin-page-reads) |
+| `POST` | `/company/linkedin-page-posts/comments` | List comments on a Company Page post | [View](https://docs.publora.com/guides/agency-linkedin-page-reads) |
+| `POST` | `/company/linkedin-page-posts/reactions` | List reactions on a Company Page post | [View](https://docs.publora.com/guides/agency-linkedin-page-reads) |
 | `POST` | `/post-statistics` | Get Mastodon/Bluesky post engagement | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/profile-statistics` | Get Mastodon/Bluesky follower counts | [View](https://docs.publora.com/endpoints/platform-statistics) |
 | `POST` | `/linkedin-post-statistics` | Get LinkedIn post analytics | [View](https://docs.publora.com/endpoints/linkedin-statistics) |
@@ -158,6 +161,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 ### Usage Guides
 - [Agency Platform Settings](https://docs.publora.com/guides/agency-platform-settings) — Company Stories, reply controls, reposts, disclosures and YouTube metadata/thumbnails
 - [Agency LinkedIn Page Reshares](https://docs.publora.com/guides/agency-linkedin-reshares) — employee reshares of a Company Page post with per-employee client reviews
+- [Agency LinkedIn Page Reads](https://docs.publora.com/guides/agency-linkedin-page-reads) — Company Page posts by ID, comments and reactions
 - [Scheduling Posts](https://docs.publora.com/guides/scheduling) — timing, drafts, batch scheduling
 - [Bulk Scheduling](https://docs.publora.com/guides/bulk-scheduling) — CSV import, weekly content batches
 - [Threading Guide](https://docs.publora.com/guides/threading) — post multi-part threads via API

@@ -71,6 +71,9 @@ Check the current formats and settings through `GET /company/platforms`.
 | `/company/post-groups/:postGroupId/media/reservations` | POST | Reserve a post attachment or auxiliary `youtube_thumbnail` |
 | `/company/post-groups/:postGroupId/media/:mediaFileId/complete` | POST | Complete the same Company upload reservation |
 | `/company/linkedin-page-posts` | POST | List a connected Company Page's posts as LinkedIn reshare sources ([guide](docs/guides/agency-linkedin-reshares.md)) |
+| `/company/linkedin-page-posts/batch` | POST | Read up to 50 Company Page posts by ID, optionally with engagement summaries ([guide](docs/guides/agency-linkedin-page-reads.md)) |
+| `/company/linkedin-page-posts/comments` | POST | List comments on one Company Page post ([guide](docs/guides/agency-linkedin-page-reads.md)) |
+| `/company/linkedin-page-posts/reactions` | POST | List reactions on one Company Page post ([guide](docs/guides/agency-linkedin-page-reads.md)) |
 | `/company/post-groups/:postGroupId/approval` | POST | Request a client review round, optionally with a future `scheduledTime` |
 
 ### Posts
