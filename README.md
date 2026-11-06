@@ -185,6 +185,7 @@ All plans include full API access. Machine-readable pricing: [publora.com/pricin
 - [cURL Examples](https://docs.publora.com/examples/curl/all-endpoints) — command-line reference
 - [Zapier Integration](https://docs.publora.com/examples/no-code/zapier-integration) — native Zapier app (beta): instant triggers, post actions, searches
 - [Make Integration](https://docs.publora.com/examples/no-code/make-integration) — visual workflows
+- [Kit App](https://docs.publora.com/examples/no-code/kit-app) — turns each Kit broadcast into a draft, scheduled or published post
 
 ### API Specification
 - [OpenAPI 3.0 Spec](schema/openapi.yaml)
