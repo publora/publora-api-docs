@@ -20,8 +20,10 @@ security:
   - ApiKeyAuth: []
 
 tags:
+  - name: Company Context
+    description: Agency Accounts, Workspaces, capabilities and publishing channels
   - name: Company Publishing
-    description: Agency draft platform settings and trusted Company media
+    description: Agency drafts, media, scheduling, recovery and client reviews
   - name: Posts
     description: Create, update, delete, and list posts
   - name: Connections
@@ -53,7 +55,13 @@ components:
           schema:
             $ref: "#/components/schemas/CompanyDomainError"
     CompanyAuthenticationFailed:
-      description: API key authentication failed; existing API authentication error envelope.
+      description: >-
+        Missing, invalid or revoked API key, in the API-key envelope `{error, code?}`. Repeated failures for one
+        key return 429 API_KEY_AUTH_RATE_LIMITED with Retry-After.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyAuthError"
     CompanyBillingRequired:
       description: Company billing access is required (COMPANY_BILLING_REQUIRED).
       content:
@@ -61,11 +69,16 @@ components:
           schema:
             $ref: "#/components/schemas/CompanyDomainError"
     CompanyAccessDenied:
-      description: Workspace or role unavailable (AGENCY_CORE_ACCESS_DENIED).
+      description: >-
+        AGENCY_CORE_ACCESS_DENIED: the Workspace header is missing or invalid, the Workspace is not accessible, the
+        role lacks the capability or the Account is not an Agency. Refusals of the API key itself
+        (API_ACCESS_REQUIRED, MCP_ACCESS_REQUIRED, USER_INACTIVE) use the API-key envelope.
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CompanyDomainError"
+            anyOf:
+              - $ref: "#/components/schemas/CompanyDomainError"
+              - $ref: "#/components/schemas/CompanyAuthError"
     CompanyResourceNotFound:
       description: Post or media does not exist in the selected Workspace.
       content:
@@ -73,14 +86,22 @@ components:
           schema:
             $ref: "#/components/schemas/CompanyDomainError"
     CompanyConflict:
-      description: Content/media state or idempotency conflict; refetch before a changed request.
+      description: >-
+        Content or media state conflict, or AGENCY_CORE_IDEMPOTENCY_IN_FLIGHT / AGENCY_CORE_IDEMPOTENCY_KEY_CONFLICT.
+        Refetch before sending a changed request; for an in-flight request wait Retry-After and resend the
+        identical body and key.
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/RetryAfter"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/CompanyDomainError"
     CompanyMediaMismatch:
-      description: Invalid upload contract or verified media metadata (AGENCY_CORE_MEDIA_TYPE_MISMATCH), or file size
-        above the limit (AGENCY_CORE_MEDIA_SIZE_EXCEEDED).
+      description: >-
+        AGENCY_CORE_MEDIA_TYPE_MISMATCH: invalid body or Idempotency-Key, unsupported type, or uploaded bytes that
+        do not match the reservation; AGENCY_CORE_MEDIA_SIZE_EXCEEDED: file size above the limit. Media commands
+        have no 400.
       content:
         application/json:
           schema:
@@ -91,6 +112,53 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/CompanyDomainError"
+    CompanyContextUnavailable:
+      description: >-
+        AGENCY_CORE_C2_UNAVAILABLE: every context failure, including an unknown or inaccessible Workspace. Re-read
+        `/company/contexts/v2` or retry later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyContextInternalError:
+      description: AGENCY_CORE_INTERNAL_ERROR, an unexpected context failure.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyScheduleInvalid:
+      description: >-
+        AGENCY_CORE_CONTENT_INPUT_INVALID: invalid body, time, query or Idempotency-Key, or the draft fails a
+        publishing check (channels, ready media, client approval, platform rules). With
+        `includeValidationDetails=true`, `validationErrors` lists the failed checks.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyValidationErrorResponse"
+    CompanyApprovalInvalid:
+      description: >-
+        COMPANY_APPROVAL_INVALID: invalid body, or a missing, malformed or inaccessible post group ID (approval
+        operations return 400 instead of 404). AGENCY_CORE_CONTENT_INPUT_INVALID: missing or invalid
+        Idempotency-Key on a keyed command.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+    CompanyApprovalUnavailable:
+      description: >-
+        COMPANY_APPROVAL_UNAVAILABLE, AGENCY_CORE_CONTENT_UNAVAILABLE or AGENCY_CORE_CONTENT_GRAPH_INVALID. Retry
+        the identical request later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompanyDomainError"
+
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying the identical request.
+      schema:
+        type: integer
+        minimum: 1
 
   parameters:
     CompanyWebhookId:
@@ -134,6 +202,32 @@ components:
       schema:
         type: string
         pattern: ^[a-f0-9]{24}$
+    CompanyAccountId:
+      name: accountId
+      in: path
+      required: true
+      description: Exact Account ID from `/company/contexts/v2`.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyWorkspacePathId:
+      name: workspaceId
+      in: path
+      required: true
+      description: Exact Workspace ID from `/company/contexts/v2`.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+    CompanyIncludeValidationDetails:
+      name: includeValidationDetails
+      in: query
+      required: false
+      description: Send `true` to add `validationErrors` to a failed publishing check. No other query parameter is
+        accepted.
+      schema:
+        type: string
+        enum:
+          - "true"
     XPubloraClient:
       name: x-publora-client
       in: header
@@ -530,7 +624,9 @@ components:
           items:
             type: string
             maxLength: 300
-          description: Exact Company channel keys; [] permits a channel-less draft.
+          uniqueItems: true
+          description: Exact Company channel keys `<platform>-<platformId>` from `/company/connections`; [] permits a
+            channel-less draft.
         platformContents:
           type: object
           additionalProperties:
@@ -587,6 +683,33 @@ components:
           nullable: true
           description: One first comment under supported own posts. null clears; firstComments arrays and delays remain
             personal-only.
+        repostSourceSnapshot:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+            - postedId
+            - commentary
+            - capturedAt
+          properties:
+            postedId:
+              type: string
+              pattern: ^urn:li:(share|ugcPost):[0-9]+$
+            commentary:
+              type: string
+              maxLength: 30000
+            authorName:
+              type: string
+              nullable: true
+            publishedAt:
+              type: string
+              format: date-time
+              nullable: true
+            capturedAt:
+              type: string
+              format: date-time
+          description: Original LinkedIn post saved as the review preview of a Company Page reshare; it must match the
+            enabled LinkedIn repost target. null clears.
     CompanyMediaReservationInput:
       type: object
       additionalProperties: false
@@ -598,12 +721,25 @@ components:
         fileName:
           type: string
           minLength: 1
+          maxLength: 255
+          description: No control characters or surrounding whitespace.
         contentType:
           type: string
-          minLength: 1
+          enum:
+            - image/jpeg
+            - image/png
+            - image/gif
+            - image/webp
+            - image/tiff
+            - image/avif
+            - video/mp4
+            - video/quicktime
+            - video/webm
+            - application/pdf
         sizeBytes:
           type: integer
           minimum: 1
+          description: Exact byte count of the upload. At most 100 MiB for images and documents and 512 MiB for video.
         type:
           type: string
           enum:
@@ -616,21 +752,6 @@ components:
             - youtube_thumbnail
           description: Omit for ordinary media. Auxiliary thumbnails require JPEG/PNG, type image, at most 2097152 bytes
             and at least 640x360 actual pixels.
-    CompanyCommandResponse:
-      type: object
-      additionalProperties: false
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          type: object
-          additionalProperties: true
-          description: Company command data with accountId/workspaceId and fields appropriate to the command.
     CompanyDomainError:
       type: object
       additionalProperties: false
@@ -647,6 +768,1529 @@ components:
           type: string
         message:
           type: string
+    CompanyObjectId:
+      type: string
+      pattern: ^[a-f0-9]{24}$
+    CompanyAuthError:
+      type: object
+      description: >-
+        API-key authentication envelope shared with the personal API; it is not the Company domain error envelope.
+        Coded refusals add `code`, for example API_ACCESS_REQUIRED, MCP_ACCESS_REQUIRED, USER_INACTIVE or
+        API_KEY_AUTH_RATE_LIMITED.
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+    CompanyValidationIssue:
+      type: object
+      required:
+        - code
+        - message
+        - platform
+        - channelKey
+        - field
+      properties:
+        code:
+          type: string
+          description: >-
+            Machine-readable reason, for example CONTENT_TOO_LONG, MEDIA_REQUIRED, MEDIA_NOT_READY,
+            PLATFORM_SETTING_REQUIRED, PLATFORMS_REQUIRED or APPROVAL_REQUIRED.
+        message:
+          type: string
+          maxLength: 500
+          description: Human-readable text; do not parse it.
+        platform:
+          type: string
+          nullable: true
+        channelKey:
+          type: string
+          nullable: true
+        field:
+          type: string
+          maxLength: 100
+          nullable: true
+    CompanyValidationErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - code
+        - message
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        code:
+          type: string
+        message:
+          type: string
+        validationErrors:
+          type: array
+          maxItems: 100
+          description: Present only with `includeValidationDetails=true` when a publishing check failed.
+          items:
+            $ref: "#/components/schemas/CompanyValidationIssue"
+    CompanyCommandResult:
+      type: string
+      enum:
+        - applied
+        - replayed
+      description: >-
+        `applied` for a new command, `replayed` for an identical retry with the same Idempotency-Key. A replay
+        returns the original result and the same status code.
+    CompanyAccountCapabilities:
+      type: object
+      required:
+        - canCreateWorkspace
+        - canArchiveWorkspace
+        - canInviteMembers
+        - canManageMembers
+        - canInviteAdmins
+        - canManagePeople
+        - canViewAudit
+      properties:
+        canCreateWorkspace:
+          type: boolean
+        canArchiveWorkspace:
+          type: boolean
+        canInviteMembers:
+          type: boolean
+        canManageMembers:
+          type: boolean
+        canInviteAdmins:
+          type: boolean
+        canManagePeople:
+          type: boolean
+        canViewAudit:
+          type: boolean
+    CompanyWorkspaceCapabilities:
+      type: object
+      required:
+        - canViewContent
+        - canWriteDrafts
+        - canScheduleOrPublish
+        - canManageConnections
+        - canManageAccess
+        - canRename
+        - canViewAnalytics
+        - canUploadMedia
+        - canViewAudit
+      properties:
+        canViewContent:
+          type: boolean
+          description: Read drafts, posts, media, reviews and channels.
+        canWriteDrafts:
+          type: boolean
+          description: Create and edit drafts and recover failed posts.
+        canScheduleOrPublish:
+          type: boolean
+          description: Schedule, reschedule, unschedule and request or cancel client reviews.
+        canManageConnections:
+          type: boolean
+        canManageAccess:
+          type: boolean
+        canRename:
+          type: boolean
+        canViewAnalytics:
+          type: boolean
+          description: Reserved; currently always false.
+        canUploadMedia:
+          type: boolean
+          description: Reserve, complete and delete draft media. Requires canWriteDrafts.
+        canViewAudit:
+          type: boolean
+    CompanyAccountBilling:
+      type: object
+      description: >-
+        Agency billing state. With `payment_required`, Company mutations except unscheduling return
+        402 COMPANY_BILLING_REQUIRED.
+      required:
+        - status
+        - trialStartedAt
+        - trialEndsAt
+        - serverNow
+        - purchasedQuantity
+        - paidPeriodStart
+        - paidPeriodEnd
+        - planKey
+        - subscriptionStatus
+        - cancelAtPeriodEnd
+      properties:
+        status:
+          type: string
+          enum:
+            - granted_unlimited
+            - paid
+            - trial
+            - payment_required
+        trialStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        serverNow:
+          type: string
+          format: date-time
+        purchasedQuantity:
+          type: integer
+          nullable: true
+        paidPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        paidPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        planKey:
+          type: string
+          nullable: true
+        subscriptionStatus:
+          type: string
+          nullable: true
+        cancelAtPeriodEnd:
+          type: boolean
+    CompanyContextWorkspace:
+      type: object
+      required:
+        - id
+        - name
+        - logoUrl
+        - status
+        - roleSlug
+        - isDefault
+        - purpose
+        - isSubjectWorkspace
+        - commandVersion
+        - capabilities
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+        roleSlug:
+          type: string
+          enum:
+            - manager
+            - publisher
+            - contributor
+            - viewer
+        isDefault:
+          type: boolean
+        purpose:
+          type: string
+          enum:
+            - collaborative
+            - member_publishing
+        isSubjectWorkspace:
+          type: boolean
+        commandVersion:
+          type: integer
+          minimum: 1
+        capabilities:
+          $ref: "#/components/schemas/CompanyWorkspaceCapabilities"
+    CompanyContextAccount:
+      type: object
+      required:
+        - id
+        - membershipId
+        - name
+        - logoUrl
+        - kind
+        - status
+        - accountRole
+        - presentationMode
+        - runtimeMode
+        - publishingPaused
+        - commandVersion
+        - capabilities
+        - workspaces
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        membershipId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        kind:
+          type: string
+          enum:
+            - personal
+            - team
+            - agency
+        status:
+          type: string
+          enum:
+            - active
+        billing:
+          $ref: "#/components/schemas/CompanyAccountBilling"
+        accountRole:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        presentationMode:
+          type: string
+          enum:
+            - workspaces
+            - people
+        runtimeMode:
+          type: string
+          enum:
+            - legacy_personal
+            - agency_core
+        publishingPaused:
+          type: boolean
+        commandVersion:
+          type: integer
+          minimum: 1
+        capabilities:
+          $ref: "#/components/schemas/CompanyAccountCapabilities"
+        workspaces:
+          type: array
+          description: Default Workspace first. Always empty for Corporate accounts.
+          items:
+            $ref: "#/components/schemas/CompanyContextWorkspace"
+      description: >-
+        `billing` is present only for `kind: agency`. Company content endpoints work only in Agency Workspaces;
+        Corporate accounts (`kind: team`, `presentationMode: people`) list no Workspaces.
+    CompanyContextResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - schemaVersion
+            - defaultContext
+            - singleContext
+            - accounts
+          properties:
+            schemaVersion:
+              type: integer
+              enum:
+                - 2
+            defaultContext:
+              type: object
+              nullable: true
+              description: Set only when exactly one Account/Workspace pair exists.
+              required:
+                - accountId
+                - workspaceId
+              properties:
+                accountId:
+                  $ref: "#/components/schemas/CompanyObjectId"
+                workspaceId:
+                  $ref: "#/components/schemas/CompanyObjectId"
+            singleContext:
+              type: boolean
+            accounts:
+              type: array
+              items:
+                $ref: "#/components/schemas/CompanyContextAccount"
+    CompanyConnection:
+      type: object
+      required:
+        - id
+        - accountId
+        - workspaceId
+        - platform
+        - platformId
+        - username
+        - displayName
+        - profileImageUrl
+        - profileUrl
+        - connectionSubtype
+        - subscriptionType
+        - status
+        - lastSuccessfulPost
+        - lastErrorAt
+        - addedAt
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        accountId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        workspaceId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        platform:
+          type: string
+          enum:
+            - twitter
+            - threads
+            - bluesky
+            - tiktok
+            - instagram
+            - mastodon
+            - youtube
+            - linkedin
+            - telegram
+            - facebook
+        platformId:
+          type: string
+          nullable: true
+          description: The draft channel key is `<platform>-<platformId>`.
+        username:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        profileImageUrl:
+          type: string
+          nullable: true
+        profileUrl:
+          type: string
+          nullable: true
+        connectionSubtype:
+          type: string
+          enum:
+            - personal
+            - company
+            - null
+          nullable: true
+        subscriptionType:
+          type: string
+          enum:
+            - None
+            - Basic
+            - Premium
+            - PremiumPlus
+            - null
+          nullable: true
+          description: X subscription tier where known.
+        status:
+          type: string
+          enum:
+            - active
+            - reconnect_required
+        lastSuccessfulPost:
+          type: string
+          format: date-time
+          nullable: true
+        lastErrorAt:
+          type: string
+          format: date-time
+          nullable: true
+        addedAt:
+          type: string
+          format: date-time
+          nullable: true
+        linkedinReconnectRecommended:
+          type: boolean
+          description: LinkedIn channels only, with `includeLinkedinReconnectRecommended=1`.
+        activationStatus:
+          type: string
+          enum:
+            - pending
+          description: Present only while the channel waits for billing activation; it cannot be scheduled yet.
+        externalOwners:
+          type: array
+          description: Present only for channels attributed to a trusted integration.
+          items:
+            type: object
+            properties:
+              instanceId:
+                type: string
+              companyId:
+                type: string
+              credentialId:
+                type: string
+    CompanyConnectionListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - accountId
+            - workspaceId
+            - items
+          properties:
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            items:
+              type: array
+              description: All publishing channels of the Workspace, oldest first; not paginated.
+              items:
+                $ref: "#/components/schemas/CompanyConnection"
+    CompanyRepostSourceSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - postedId
+        - commentary
+        - capturedAt
+      properties:
+        postedId:
+          type: string
+          pattern: ^urn:li:(share|ugcPost):[0-9]+$
+        commentary:
+          type: string
+          maxLength: 30000
+        authorName:
+          type: string
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        capturedAt:
+          type: string
+          format: date-time
+    CompanyApprovalSummary:
+      type: object
+      required:
+        - status
+        - requestedAt
+        - decidedAt
+        - expiresAt
+      properties:
+        status:
+          $ref: "#/components/schemas/CompanyApprovalStatus"
+        requestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    CompanyApprovalStatus:
+      type: string
+      enum:
+        - none
+        - pending
+        - approved
+        - changes_requested
+        - declined
+        - outdated
+    CompanyPostGroupStatus:
+      type: string
+      enum:
+        - draft
+        - scheduled
+        - published
+        - failed
+        - partially_published
+    CompanyPostGroup:
+      type: object
+      required:
+        - id
+        - accountId
+        - workspaceId
+        - scheduledTime
+        - platforms
+        - platformContents
+        - isPlatformSpecific
+        - sameContent
+        - topic
+        - content
+        - notes
+        - videoTimestamp
+        - mediaFileIds
+        - postIds
+        - status
+        - processingStatus
+        - platformSettings
+        - threadingSettings
+        - errorMessage
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        accountId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        workspaceId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        approval:
+          allOf:
+            - $ref: "#/components/schemas/CompanyApprovalSummary"
+          description: >-
+            Only with `includeApproval=true`. A declined review is left out unless the request sends
+            `Accept: application/vnd.publora.company-approval.v2+json`.
+        scheduledTime:
+          type: string
+          format: date-time
+          nullable: true
+        platforms:
+          type: array
+          description: Selected channel keys `<platform>-<platformId>`.
+          items:
+            type: string
+        platformContents:
+          type: object
+          additionalProperties:
+            type: object
+            required:
+              - content
+              - isBase
+            properties:
+              content:
+                type: string
+              isBase:
+                type: boolean
+        isPlatformSpecific:
+          type: boolean
+        sameContent:
+          type: boolean
+        topic:
+          type: string
+        content:
+          type: string
+        notes:
+          type: string
+        videoTimestamp:
+          type: number
+        mediaFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyObjectId"
+        postIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyObjectId"
+        status:
+          $ref: "#/components/schemas/CompanyPostGroupStatus"
+        processingStatus:
+          type: string
+          enum:
+            - pending
+            - processing
+            - finished
+            - null
+          nullable: true
+        platformSettings:
+          $ref: "#/components/schemas/CompanyPlatformSettings"
+        firstComment:
+          type: object
+          description: Present only when set.
+          required:
+            - text
+          properties:
+            text:
+              type: string
+            platforms:
+              type: array
+              items:
+                type: string
+        repostSourceSnapshot:
+          allOf:
+            - $ref: "#/components/schemas/CompanyRepostSourceSnapshot"
+          description: Only with `includeRepostSource=true` for a LinkedIn Page reshare.
+        threadingSettings:
+          type: object
+          description: Always empty.
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CompanyPost:
+      type: object
+      description: One channel of a post group, with its publication result.
+      required:
+        - id
+        - accountId
+        - workspaceId
+        - postGroupId
+        - content
+        - platform
+        - platformId
+        - status
+        - error
+        - postedId
+        - permalink
+        - publishedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        accountId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        workspaceId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        postGroupId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        content:
+          type: string
+        platform:
+          type: string
+        platformId:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - scheduled
+            - pending
+            - processing
+            - published
+            - failed
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+              nullable: true
+            message:
+              type: string
+              maxLength: 200
+              nullable: true
+            platformStatusCode:
+              type: integer
+              minimum: 100
+              maximum: 599
+              nullable: true
+            platformError:
+              type: string
+              maxLength: 200
+              nullable: true
+            failedAt:
+              type: string
+              format: date-time
+              nullable: true
+            retryable:
+              type: boolean
+              nullable: true
+            publishOutcomeUnknown:
+              type: boolean
+              nullable: true
+              description: True when the platform may have published the post. Check the platform before recovering.
+        publishDeferral:
+          type: object
+          description: Only with `includePublishDeferral=true` while publication is deferred.
+          required:
+            - reason
+            - deferredAt
+          properties:
+            reason:
+              type: string
+              enum:
+                - global_stop
+                - account_paused
+                - account_suspended
+                - dependency_unavailable
+                - billing_required
+            deferredAt:
+              type: string
+              format: date-time
+        postedId:
+          type: string
+          nullable: true
+        permalink:
+          type: string
+          format: uri
+          nullable: true
+        firstCommentResult:
+          $ref: "#/components/schemas/FirstCommentResult"
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CompanyPostGroupDetailResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - group
+            - posts
+          properties:
+            group:
+              $ref: "#/components/schemas/CompanyPostGroup"
+            posts:
+              type: array
+              maxItems: 20
+              items:
+                $ref: "#/components/schemas/CompanyPost"
+    CompanyDraftResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - result
+            - accountId
+            - workspaceId
+            - groupId
+            - postIds
+          properties:
+            result:
+              $ref: "#/components/schemas/CompanyCommandResult"
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            groupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            postIds:
+              type: array
+              items:
+                $ref: "#/components/schemas/CompanyObjectId"
+    CompanyScheduleInput:
+      type: object
+      additionalProperties: false
+      required:
+        - scheduledTime
+      properties:
+        scheduledTime:
+          type: string
+          format: date-time
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$
+          description: >-
+            UTC with exactly three fractional digits, for example 2026-11-20T09:00:00.000Z. A past or current time
+            publishes as soon as possible; keep the same value on retries.
+    CompanyScheduleResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - result
+            - accountId
+            - workspaceId
+            - groupId
+            - scheduledTime
+            - postCount
+          properties:
+            result:
+              $ref: "#/components/schemas/CompanyCommandResult"
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            groupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            scheduledTime:
+              type: string
+              format: date-time
+            postCount:
+              type: integer
+              minimum: 1
+    CompanyUnscheduleResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - result
+            - accountId
+            - workspaceId
+            - groupId
+            - status
+            - postCount
+          properties:
+            result:
+              $ref: "#/components/schemas/CompanyCommandResult"
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            groupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            status:
+              type: string
+              enum:
+                - draft
+            postCount:
+              type: integer
+              minimum: 1
+    CompanyRecoverResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - result
+            - accountId
+            - workspaceId
+            - sourceGroupId
+            - groupId
+            - status
+            - postIds
+            - recoveredPlatforms
+            - excludedPlatforms
+            - mediaCount
+          properties:
+            result:
+              $ref: "#/components/schemas/CompanyCommandResult"
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            sourceGroupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            groupId:
+              allOf:
+                - $ref: "#/components/schemas/CompanyObjectId"
+              description: The new draft; the failed source post group is not changed.
+            status:
+              type: string
+              enum:
+                - draft
+            postIds:
+              type: array
+              items:
+                $ref: "#/components/schemas/CompanyObjectId"
+            recoveredPlatforms:
+              type: array
+              description: Channel keys copied into the new draft.
+              items:
+                type: string
+            excludedPlatforms:
+              type: array
+              description: Channels left out because they published or their outcome is unknown.
+              items:
+                type: object
+                required:
+                  - key
+                  - reason
+                properties:
+                  key:
+                    type: string
+                  reason:
+                    type: string
+                    enum:
+                      - published
+                      - unknown_outcome
+            mediaCount:
+              type: integer
+              minimum: 0
+    CompanyApprovalRequestInput:
+      type: object
+      additionalProperties: false
+      properties:
+        managerComment:
+          type: string
+          maxLength: 5000
+          description: Optional note shown to the client.
+        scheduledTime:
+          type: string
+          format: date-time
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$
+          nullable: true
+          description: >-
+            Optional future UTC time with exactly three fractional digits. When set, the client's approval
+            schedules this exact version; do not schedule it again. If the time passes before the decision, the
+            approved post stays a draft.
+    CompanyApproval:
+      type: object
+      required:
+        - postGroupId
+        - status
+        - requestedAt
+        - decidedAt
+        - expiresAt
+        - reviewId
+        - managerComment
+        - reviewUrl
+        - expired
+        - decision
+        - notificationStatus
+      properties:
+        postGroupId:
+          $ref: "#/components/schemas/CompanyObjectId"
+        status:
+          $ref: "#/components/schemas/CompanyApprovalStatus"
+        requestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The review page expires 30 days after the request.
+        publication:
+          type: object
+          description: Present only when the review was requested with a `scheduledTime`.
+          required:
+            - scheduledTime
+            - status
+          properties:
+            scheduledTime:
+              type: string
+              format: date-time
+            status:
+              $ref: "#/components/schemas/CompanyPostGroupStatus"
+        reviewId:
+          type: string
+          nullable: true
+        managerComment:
+          type: string
+        reviewUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: >-
+            Private review page for the client. Publora does not send it: deliver it yourself, treat it as a
+            bearer credential and keep it out of logs.
+        expired:
+          type: boolean
+        decision:
+          type: object
+          nullable: true
+          required:
+            - decision
+            - comment
+            - decidedAt
+            - attachments
+          properties:
+            decision:
+              type: string
+              enum:
+                - approved
+                - changes_requested
+                - declined
+            comment:
+              type: string
+            decidedAt:
+              type: string
+              format: date-time
+            attachments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  fileName:
+                    type: string
+                  mimeType:
+                    type: string
+                  sizeBytes:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
+        notificationStatus:
+          type: string
+          enum:
+            - pending
+            - sending
+            - sent
+            - failed
+            - null
+          nullable: true
+          description: Delivery of the decision email to the user who requested the review.
+    CompanyApprovalReadResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          allOf:
+            - $ref: "#/components/schemas/CompanyApproval"
+            - type: object
+              required:
+                - canRequestApproval
+              properties:
+                canRequestApproval:
+                  type: boolean
+                  description: >-
+                    True for a draft when the caller can request reviews. Otherwise false, and `reviewUrl` is
+                    null.
+    CompanyApprovalCommandResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          allOf:
+            - type: object
+              required:
+                - result
+              properties:
+                result:
+                  $ref: "#/components/schemas/CompanyCommandResult"
+            - $ref: "#/components/schemas/CompanyApproval"
+    CompanyApprovalNotificationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - notificationStatus
+          properties:
+            notificationStatus:
+              type: string
+              enum:
+                - pending
+                - sending
+                - sent
+                - failed
+                - null
+              nullable: true
+              description: "`sending` means another attempt is in progress; try again after a few minutes."
+    CompanyPlatformVariant:
+      type: object
+      properties:
+        variants:
+          type: array
+          items:
+            type: string
+        contentMaxChars:
+          type: integer
+        media:
+          type: object
+          properties:
+            requirement:
+              type: string
+              enum:
+                - required
+                - optional
+            maxItems:
+              type: integer
+            kinds:
+              type: array
+              items:
+                type: string
+            maxImages:
+              type: integer
+            maxVideos:
+              type: integer
+            maxDocuments:
+              type: integer
+            mixedMedia:
+              type: boolean
+        settings:
+          type: object
+          description: Allowed `platformSettings` keys for this platform.
+          additionalProperties:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                  - boolean
+                  - string
+                  - array
+                  - object
+              required:
+                type: boolean
+                description: Required when the draft is scheduled.
+              values:
+                type: array
+                items:
+                  type: string
+              maxLength:
+                type: integer
+              maxItems:
+                type: integer
+              maxTotalLength:
+                type: integer
+              properties:
+                type: object
+    CompanyPlatformsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - publishablePlatforms
+            - connectOnlyPlatforms
+            - basicVariants
+          properties:
+            publishablePlatforms:
+              type: array
+              items:
+                type: string
+            connectOnlyPlatforms:
+              type: array
+              description: Platforms that can be connected but not published, currently `pinterest`.
+              items:
+                type: string
+            basicVariants:
+              type: object
+              additionalProperties:
+                $ref: "#/components/schemas/CompanyPlatformVariant"
+            xPostCharacterLimits:
+              type: object
+              description: Only with `includeXPremiumLimits=true`.
+              properties:
+                standard:
+                  type: integer
+                bySubscriptionType:
+                  type: object
+                  additionalProperties:
+                    type: integer
+    CompanyMediaPreview:
+      type: object
+      required:
+        - id
+        - url
+        - type
+        - mimeType
+        - status
+      properties:
+        id:
+          $ref: "#/components/schemas/CompanyObjectId"
+        url:
+          type: string
+          format: uri
+          nullable: true
+          description: Set only when `status` is `ready`.
+        type:
+          type: string
+          enum:
+            - image
+            - video
+            - document
+            - null
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - uploading
+            - ready
+            - failed
+            - deleting
+        purpose:
+          type: string
+          enum:
+            - youtube_thumbnail
+    CompanyMediaListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - accountId
+            - workspaceId
+            - postGroupId
+            - mediaFileIds
+            - items
+          properties:
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            postGroupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            mediaFileIds:
+              type: array
+              description: Draft media in publishing order.
+              items:
+                $ref: "#/components/schemas/CompanyObjectId"
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CompanyMediaPreview"
+            youtubeThumbnail:
+              allOf:
+                - $ref: "#/components/schemas/CompanyMediaPreview"
+              description: Present only when a YouTube thumbnail is selected.
+    CompanyMediaReservationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - accountId
+            - workspaceId
+            - mediaFileId
+            - postGroupId
+            - uploadUrl
+            - uploadHeaders
+            - fileUrl
+            - contentType
+            - type
+            - sizeBytes
+            - expiresAt
+            - status
+          properties:
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            mediaFileId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            postGroupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            uploadUrl:
+              type: string
+              format: uri
+              description: Presigned PUT URL, valid until `expiresAt`.
+            uploadHeaders:
+              type: object
+              description: Send every header exactly, plus Content-Length equal to `sizeBytes`.
+              required:
+                - Content-Type
+                - If-None-Match
+              properties:
+                Content-Type:
+                  type: string
+                If-None-Match:
+                  type: string
+                  enum:
+                    - "*"
+            fileUrl:
+              type: string
+              format: uri
+            contentType:
+              type: string
+            type:
+              type: string
+              enum:
+                - image
+                - video
+                - document
+            sizeBytes:
+              type: integer
+            purpose:
+              type: string
+              enum:
+                - youtube_thumbnail
+            expiresAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              enum:
+                - uploading
+    CompanyMediaCompleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - accountId
+            - workspaceId
+            - mediaFileId
+            - postGroupId
+            - status
+            - contentType
+            - type
+            - sizeBytes
+            - metadata
+            - bytesProbedAt
+          properties:
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            mediaFileId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            postGroupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            status:
+              type: string
+              enum:
+                - ready
+            contentType:
+              type: string
+              nullable: true
+            type:
+              type: string
+              enum:
+                - image
+                - video
+                - document
+                - null
+              nullable: true
+            sizeBytes:
+              type: integer
+            purpose:
+              type: string
+              enum:
+                - youtube_thumbnail
+            fileUrl:
+              type: string
+              format: uri
+              description: Thumbnails only.
+            metadata:
+              type: object
+              required:
+                - width
+                - height
+                - durationSeconds
+              properties:
+                width:
+                  type: number
+                  nullable: true
+                height:
+                  type: number
+                  nullable: true
+                durationSeconds:
+                  type: number
+                  nullable: true
+            bytesProbedAt:
+              type: string
+              format: date-time
+              nullable: true
+    CompanyMediaDeleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - accountId
+            - workspaceId
+            - mediaFileId
+            - postGroupId
+            - status
+            - deletionAfter
+          properties:
+            accountId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            workspaceId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            mediaFileId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            postGroupId:
+              $ref: "#/components/schemas/CompanyObjectId"
+            status:
+              type: string
+              enum:
+                - deleting
+            deletionAfter:
+              type: string
+              format: date-time
+              description: Storage cleanup runs after this time.
     YouTubePlaylistReference:
       type: object
       nullable: true
@@ -1831,26 +3475,140 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CompanyDomainError"
+  /company/contexts/v2:
+    get:
+      tags:
+        - Company Context
+      operationId: getCompanyContexts
+      summary: List the Accounts and Workspaces of the API key owner
+      description: >-
+        Start Agency work here. Pass an exact `accounts[].workspaces[].id` as `X-Publora-Workspace-Id` and check
+        that Workspace's `capabilities` before acting. `defaultContext` is set only when exactly one
+        Account/Workspace pair exists. Corporate accounts (`kind: team`, `presentationMode: people`) list no
+        Workspaces; their members publish their own posts with the personal API.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+      responses:
+        "200":
+          description: Accounts with Workspaces and capabilities; `accounts` is empty without Company memberships.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyContextResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "500":
+          $ref: "#/components/responses/CompanyContextInternalError"
+        "503":
+          $ref: "#/components/responses/CompanyContextUnavailable"
+  /company/accounts/{accountId}/workspaces/{workspaceId}/context:
+    parameters:
+      - $ref: "#/components/parameters/CompanyAccountId"
+      - $ref: "#/components/parameters/CompanyWorkspacePathId"
+    get:
+      tags:
+        - Company Context
+      operationId: getCompanyWorkspaceContext
+      summary: Read the context of one Agency Workspace
+      description: >-
+        Same shape as `/company/contexts/v2`, limited to this Account and Workspace, for example to refresh
+        capabilities before a command. An unknown or inaccessible Workspace returns 503 AGENCY_CORE_C2_UNAVAILABLE,
+        not 403 or 404.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+      responses:
+        "200":
+          description: One Account with one Workspace; `defaultContext` is that pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyContextResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "500":
+          $ref: "#/components/responses/CompanyContextInternalError"
+        "503":
+          $ref: "#/components/responses/CompanyContextUnavailable"
+  /company/connections:
+    get:
+      tags:
+        - Company Context
+      operationId: listCompanyConnections
+      summary: List the publishing channels of a Workspace
+      description: >-
+        Requires `canViewContent`. Draft channel keys are `<platform>-<platformId>`. A channel with
+        `status: reconnect_required` must be reconnected before scheduling. Pinterest is connect-only and is not
+        listed.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - name: includeLinkedinReconnectRecommended
+          in: query
+          required: false
+          description: Send `1` to add `linkedinReconnectRecommended` to LinkedIn channels.
+          schema:
+            type: string
+            enum:
+              - "1"
+      responses:
+        "200":
+          description: Every publishing channel of the selected Workspace.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyConnectionListResponse"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "503":
+          description: AGENCY_CORE_CONNECTION_UNAVAILABLE. Retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
   /company/platforms:
     get:
       tags:
         - Company Publishing
       operationId: getCompanyPublishingFormats
       summary: Discover available Company publishing formats
+      description: >-
+        Publishable and connect-only platforms with the content, media and `platformSettings` limits of Agency
+        drafts. No Workspace header is needed.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - name: includeXPremiumLimits
+          in: query
+          required: false
+          description: Send `true` to add `xPostCharacterLimits` for X Premium channels.
+          schema:
+            type: string
+            enum:
+              - "true"
       responses:
         "200":
-          description: success/data with publishablePlatforms, connectOnlyPlatforms and exact basicVariants settings
-            metadata.
+          description: Platform formats and settings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyPlatformsResponse"
         "401":
-          description: API key authentication failed; existing API authentication error envelope.
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
   /company/post-groups:
     post:
       tags:
         - Company Publishing
       operationId: createCompanyDraft
-      summary: Create an Agency draft with platform settings
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      summary: Create an Agency draft
+      description: >-
+        Requires `canWriteDrafts`. Every field is optional; `{}` creates an empty draft. `platforms` takes channel
+        keys from `/company/connections`. Discover formats and settings with `/company/platforms`. This operation
+        never schedules; use the schedule command.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
@@ -1863,11 +3621,11 @@ paths:
               $ref: "#/components/schemas/CompanyDraftInput"
       responses:
         "201":
-          description: Successful Company response.
+          description: Draft created. An identical retry returns the original result with `result` set to `replayed`.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyDraftResponse"
         "400":
           $ref: "#/components/responses/CompanyInvalidInput"
         "401":
@@ -1876,8 +3634,6 @@ paths:
           $ref: "#/components/responses/CompanyBillingRequired"
         "403":
           $ref: "#/components/responses/CompanyAccessDenied"
-        "404":
-          $ref: "#/components/responses/CompanyResourceNotFound"
         "409":
           $ref: "#/components/responses/CompanyConflict"
         "503":
@@ -1885,13 +3641,78 @@ paths:
   /company/post-groups/{postGroupId}:
     parameters:
       - $ref: "#/components/parameters/CompanyPostGroupId"
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPostGroup
+      summary: Read an Agency post group and its channel posts
+      description: >-
+        Requires `canViewContent`. `group.status` and `posts[].status` report the publication result: failed
+        posts carry `error`, published posts `postedId` and `permalink`. Send
+        `Accept: application/vnd.publora.company-approval.v2+json, application/json` to also receive declined
+        reviews with `includeApproval=true`; the response then uses that media type.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - name: includeApproval
+          in: query
+          required: false
+          description: "`true` adds `group.approval`."
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+        - name: includePublishDeferral
+          in: query
+          required: false
+          description: "`true` adds `posts[].publishDeferral` while publication is deferred."
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+        - name: includeRepostSource
+          in: query
+          required: false
+          description: "`true` adds `group.repostSourceSnapshot` for a LinkedIn Page reshare."
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        "200":
+          description: Post group and up to 20 channel posts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyPostGroupDetailResponse"
+            application/vnd.publora.company-approval.v2+json:
+              schema:
+                $ref: "#/components/schemas/CompanyPostGroupDetailResponse"
+        "400":
+          description: AGENCY_CORE_CONTENT_INPUT_INVALID, an unknown query parameter or value.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
     patch:
       tags:
         - Company Publishing
       operationId: updateCompanyDraft
       summary: Update an Agency draft
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      description: >-
+        Requires `canWriteDrafts`. Partial update of a draft; send at least one field. Omitted `platforms` keep the
+        current selection. Changing text, channels, media or settings makes a requested client review outdated.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
@@ -1906,11 +3727,11 @@ paths:
               minProperties: 1
       responses:
         "200":
-          description: Successful Company response.
+          description: Draft updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyDraftResponse"
         "400":
           $ref: "#/components/responses/CompanyInvalidInput"
         "401":
@@ -1922,9 +3743,439 @@ paths:
         "404":
           $ref: "#/components/responses/CompanyResourceNotFound"
         "409":
-          $ref: "#/components/responses/CompanyConflict"
+          description: >-
+            AGENCY_CORE_GROUP_NOT_EDITABLE (not a draft), AGENCY_CORE_GROUP_CONFLICT or AGENCY_CORE_POST_CONFLICT
+            (changed concurrently), or an idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
         "503":
           $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/schedule:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: scheduleCompanyPostGroup
+      summary: Schedule a draft
+      description: >-
+        Requires `canScheduleOrPublish`. The draft needs selected channels that are all usable, ready media and,
+        while a client review is requested, the client's current approval. To publish now, send the current UTC time and
+        keep the same value on retries. Move a scheduled post with reschedule.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+        - $ref: "#/components/parameters/CompanyIncludeValidationDetails"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyScheduleInput"
+      responses:
+        "200":
+          description: Scheduled. Publication runs asynchronously; read the post group for the result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyScheduleResponse"
+        "400":
+          $ref: "#/components/responses/CompanyScheduleInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          description: COMPANY_BILLING_REQUIRED for the Account or a selected channel waiting for billing activation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          description: >-
+            AGENCY_CORE_GROUP_CONFLICT (not a draft, including an already scheduled post, or changed concurrently),
+            AGENCY_CORE_POST_ALREADY_PROCESSING, AGENCY_CORE_POST_CONFLICT, AGENCY_CORE_CONNECTION_MISSING, or an
+            idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/reschedule:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: rescheduleCompanyPostGroup
+      summary: Change the time of a scheduled post
+      description: >-
+        Requires `canScheduleOrPublish`. Works only before publishing starts; the same publishing checks as
+        schedule run again.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+        - $ref: "#/components/parameters/CompanyIncludeValidationDetails"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyScheduleInput"
+      responses:
+        "200":
+          description: Rescheduled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyScheduleResponse"
+        "400":
+          $ref: "#/components/responses/CompanyScheduleInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          description: COMPANY_BILLING_REQUIRED for the Account or a selected channel waiting for billing activation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          description: >-
+            AGENCY_CORE_GROUP_NOT_RESCHEDULABLE (not scheduled), AGENCY_CORE_GROUP_CONFLICT,
+            AGENCY_CORE_POST_ALREADY_PROCESSING, AGENCY_CORE_POST_CONFLICT, AGENCY_CORE_CONNECTION_MISSING, or an
+            idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/unschedule:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: unscheduleCompanyPostGroup
+      summary: Return a scheduled post to a draft
+      description: >-
+        Requires `canScheduleOrPublish`. Works only before publishing starts. Allowed without active billing, so
+        posts can be stopped while billing is required.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "200":
+          description: The post group is a draft again.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyUnscheduleResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          description: >-
+            AGENCY_CORE_GROUP_NOT_UNSCHEDULABLE, AGENCY_CORE_POST_ALREADY_PROCESSING, AGENCY_CORE_POST_CONFLICT, or
+            an idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyUnavailable"
+  /company/post-groups/{postGroupId}/recover:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: recoverCompanyPostGroup
+      summary: Copy failed channels into a new draft
+      description: >-
+        Requires `canWriteDrafts`. For a failed or partially published post group, creates a new draft with the
+        confirmed failed channels and copies the media; the source is not changed. Channels that published or
+        whose outcome is unknown are listed in `excludedPlatforms`. A YouTube thumbnail is not copied.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "201":
+          description: New draft created. An identical retry returns the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyRecoverResponse"
+        "400":
+          $ref: "#/components/responses/CompanyInvalidInput"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "404":
+          $ref: "#/components/responses/CompanyResourceNotFound"
+        "409":
+          description: >-
+            AGENCY_CORE_GROUP_NOT_RECOVERABLE (no confirmed failed channel), AGENCY_CORE_RECOVERY_MEDIA_UNAVAILABLE,
+            AGENCY_CORE_CONNECTION_MISSING, AGENCY_CORE_GROUP_CONFLICT, AGENCY_CORE_POST_CONFLICT, or an
+            idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "429":
+          description: AGENCY_CORE_MEDIA_WORKSPACE_QUOTA_EXCEEDED while copying media. Respect Retry-After.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: >-
+            AGENCY_CORE_RECOVERY_COPY_FAILED (no draft was created; retry the identical request),
+            AGENCY_CORE_CONTENT_UNAVAILABLE or AGENCY_CORE_CONTENT_GRAPH_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+  /company/post-groups/{postGroupId}/approval:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    get:
+      tags:
+        - Company Publishing
+      operationId: getCompanyPostApproval
+      summary: Read the client review of a post group
+      description: >-
+        Requires `canViewContent`. Send `Accept: application/vnd.publora.company-approval.v2+json, application/json`;
+        without it, a declined review or one requested with a `scheduledTime` returns
+        409 COMPANY_APPROVAL_CLIENT_UPDATE_REQUIRED.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      responses:
+        "200":
+          description: Current review round; `status` is `none` when no review was requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyApprovalReadResponse"
+            application/vnd.publora.company-approval.v2+json:
+              schema:
+                $ref: "#/components/schemas/CompanyApprovalReadResponse"
+        "400":
+          $ref: "#/components/responses/CompanyApprovalInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: COMPANY_APPROVAL_CLIENT_UPDATE_REQUIRED. Repeat the request with the v2 Accept header.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyApprovalUnavailable"
+    post:
+      tags:
+        - Company Publishing
+      operationId: requestCompanyPostApproval
+      summary: Request a client review
+      description: >-
+        Requires `canScheduleOrPublish`. Starts a new review round for the saved draft and replaces the previous
+        one. Finish edits and media first. `reviewUrl` in the response is a private page for the client, valid
+        until `expiresAt`; Publora does not send it, so deliver it yourself. Editing the draft afterwards makes
+        the round outdated.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyApprovalRequestInput"
+      responses:
+        "200":
+          description: Review requested. An identical retry returns the original result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyApprovalCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyApprovalInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: >-
+            COMPANY_APPROVAL_NOT_READY (not a draft, no channels or media not ready),
+            COMPANY_APPROVAL_TARGET_UNAVAILABLE (a selected channel is no longer connected),
+            COMPANY_APPROVAL_CONFLICT, or an idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          description: >-
+            COMPANY_APPROVAL_SCHEDULING_UNAVAILABLE (a review with `scheduledTime` cannot be requested right now),
+            COMPANY_APPROVAL_UNAVAILABLE, AGENCY_CORE_CONTENT_UNAVAILABLE or AGENCY_CORE_CONTENT_GRAPH_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+    delete:
+      tags:
+        - Company Publishing
+      operationId: cancelCompanyPostApproval
+      summary: Cancel the client review
+      description: >-
+        Requires `canScheduleOrPublish`. Removes the review from a draft, so it can be scheduled without the
+        client's approval. Use it only when the user asks.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+        - $ref: "#/components/parameters/CompanyIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "200":
+          description: Review removed; `status` is `none`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyApprovalCommandResponse"
+        "400":
+          $ref: "#/components/responses/CompanyApprovalInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: COMPANY_APPROVAL_CONFLICT (not a draft), or an idempotency conflict.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyApprovalUnavailable"
+  /company/post-groups/{postGroupId}/approval/notification:
+    parameters:
+      - $ref: "#/components/parameters/CompanyPostGroupId"
+    post:
+      tags:
+        - Company Publishing
+      operationId: retryCompanyApprovalNotification
+      summary: Retry the review decision email
+      description: >-
+        Requires `canScheduleOrPublish`. When the client decides, Publora emails the user who requested the
+        review. Call this when `notificationStatus` is `failed`. Not keyed; Idempotency-Key is ignored.
+      parameters:
+        - $ref: "#/components/parameters/XPubloraClient"
+        - $ref: "#/components/parameters/CompanyWorkspaceId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+      responses:
+        "200":
+          description: Delivery state after the attempt.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyApprovalNotificationResponse"
+        "400":
+          $ref: "#/components/responses/CompanyApprovalInvalid"
+        "401":
+          $ref: "#/components/responses/CompanyAuthenticationFailed"
+        "402":
+          $ref: "#/components/responses/CompanyBillingRequired"
+        "403":
+          $ref: "#/components/responses/CompanyAccessDenied"
+        "409":
+          description: COMPANY_APPROVAL_CONFLICT, the client has not decided yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDomainError"
+        "503":
+          $ref: "#/components/responses/CompanyApprovalUnavailable"
   /company/post-groups/{postGroupId}/media:
     parameters:
       - $ref: "#/components/parameters/CompanyPostGroupId"
@@ -1933,30 +4184,25 @@ paths:
         - Company Publishing
       operationId: getCompanyPostMedia
       summary: Read ordinary media and selected auxiliary YouTube thumbnail
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      description: Requires `canViewContent`. `url` is set only for ready files. No query parameter is accepted.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
       responses:
         "200":
-          description: Successful Company response.
+          description: Draft media in publishing order.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyMediaListResponse"
         "400":
           $ref: "#/components/responses/CompanyInvalidInput"
         "401":
           $ref: "#/components/responses/CompanyAuthenticationFailed"
-        "402":
-          $ref: "#/components/responses/CompanyBillingRequired"
         "403":
           $ref: "#/components/responses/CompanyAccessDenied"
         "404":
           $ref: "#/components/responses/CompanyResourceNotFound"
-        "409":
-          $ref: "#/components/responses/CompanyConflict"
         "503":
           $ref: "#/components/responses/CompanyUnavailable"
   /company/post-groups/{postGroupId}/media/reservations:
@@ -1967,8 +4213,10 @@ paths:
         - Company Publishing
       operationId: reserveCompanyPostMedia
       summary: Reserve ordinary media or an auxiliary YouTube thumbnail
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      description: >-
+        Requires `canUploadMedia` on a draft. PUT the exact bytes to `uploadUrl` with every `uploadHeaders` entry,
+        then call complete. Limits: 35 media per draft; per Workspace 20 pending uploads and 250 reservations or
+        10 GiB per 24 hours. An identical retry returns the same reservation with a freshly signed URL.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
@@ -1981,11 +4229,11 @@ paths:
               $ref: "#/components/schemas/CompanyMediaReservationInput"
       responses:
         "201":
-          description: Successful Company response.
+          description: Upload reserved.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyMediaReservationResponse"
         "401":
           $ref: "#/components/responses/CompanyAuthenticationFailed"
         "402":
@@ -1997,8 +4245,12 @@ paths:
         "422":
           $ref: "#/components/responses/CompanyMediaMismatch"
         "429":
-          description: Workspace upload budget or pending-upload limit reached
-            (AGENCY_CORE_MEDIA_WORKSPACE_QUOTA_EXCEEDED). Respect Retry-After.
+          description: >-
+            AGENCY_CORE_MEDIA_WORKSPACE_QUOTA_EXCEEDED, the Workspace upload budget or pending-upload limit was
+            reached. Respect Retry-After.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
           content:
             application/json:
               schema:
@@ -2014,13 +4266,15 @@ paths:
         - Company Publishing
       operationId: completeCompanyPostMedia
       summary: Verify a Company media upload
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      description: >-
+        Requires `canUploadMedia`. Not keyed; completing a ready file returns the same result. On
+        409 AGENCY_CORE_MEDIA_UPLOAD_PENDING retry after Retry-After; after AGENCY_CORE_MEDIA_RESERVATION_EXPIRED
+        delete the file and reserve again.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -2029,11 +4283,11 @@ paths:
               properties: {}
       responses:
         "200":
-          description: Successful Company response.
+          description: Upload verified; the file is ready.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyMediaCompleteResponse"
         "401":
           $ref: "#/components/responses/CompanyAuthenticationFailed"
         "402":
@@ -2057,13 +4311,14 @@ paths:
         - Company Publishing
       operationId: removeCompanyPostMedia
       summary: Detach media and accept delayed storage cleanup
-      description: Agency/Company path. Discover available formats using Company /platforms. Uses the caller’s current Company Workspace
-        permissions.
+      description: >-
+        Requires `canUploadMedia`. Detaches the file from the draft and deletes it from storage after
+        `deletionAfter`. A requested client review becomes outdated. Not keyed; a repeat returns the same result.
       parameters:
         - $ref: "#/components/parameters/XPubloraClient"
         - $ref: "#/components/parameters/CompanyWorkspaceId"
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -2072,11 +4327,11 @@ paths:
               properties: {}
       responses:
         "202":
-          description: Successful Company response.
+          description: Detached; storage cleanup is pending.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CompanyCommandResponse"
+                $ref: "#/components/schemas/CompanyMediaDeleteResponse"
         "401":
           $ref: "#/components/responses/CompanyAuthenticationFailed"
         "402":

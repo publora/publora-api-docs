@@ -62,6 +62,21 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 
 ## 2026-11-06
 
+### OpenAPI covers the Agency core flow
+
+- **Affected surface:** documentation only: `/openapi.yaml` and `/openapi.json`.
+- **Tag:** Documentation change; runtime behaviour is unchanged.
+- **Change:** The schema now describes Company context (`/company/contexts/v2`,
+  Workspace context), channels (`/company/connections`), post group detail,
+  schedule, reschedule, unschedule, recover and client reviews
+  (`/company/post-groups/:postGroupId/approval`). Draft, media and platform
+  operations have typed responses instead of a generic `data` object; the create
+  draft and media list operations no longer list error statuses they cannot return.
+- **Migration action:** Clients generated from the schema should regenerate. The
+  generic `CompanyCommandResponse` schema is replaced by operation-specific
+  response schemas. See the [Agency quickstart](guides/agency-quickstart.md) for
+  the flow.
+
 ### Legacy workspace API removed from the documentation; Agency quickstart added
 
 - **Affected surface:** documentation only. The `/api/v1/workspace/*` endpoints,
