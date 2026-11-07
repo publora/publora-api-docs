@@ -34,13 +34,15 @@ In the Publora dashboard, connect the social platforms you want to post to:
 
 ## Pricing Plans
 
-| Plan | Monthly | Yearly −33% | Posts/Month | Accounts | Platforms | Video Upload |
+| Plan | Monthly | Yearly up to −33% | Posts/Month | Accounts | Platforms | Video Upload |
 |------|---------|-------------|-------------|----------|-----------|--------------|
 | **Starter** | Free | Free | 15 | 3 | All platforms, except X | 50MB |
 | **Pro**, per account | 1–5 · $5.99<br>6–20 · $2.99<br>21+ · $0.99 | $3.99<br>$1.99<br>$0.66 | Unlimited | 1–1,000 | All platforms | 250MB |
-| **Agency** | Custom | Custom | Unlimited | Custom | All platforms | Custom |
+| **Agency** | 1–10 · $59 flat<br>11–50 · $3.00 each<br>51+ · $1.50 each | $47.20 flat<br>$2.40 each<br>$1.20 each | Unlimited | From 10 | All platforms | Custom |
 
 Pro is priced per connected account and the tiers combine automatically — e.g. 10 accounts = 5 × $5.99 + 5 × $2.99 = **$44.90/mo** ($29.90/mo billed yearly).
+
+Agency is priced per connected account across all client workspaces, minimum 10: $59/mo flat covers the first 10, then $3.00 each for accounts 11–50 and $1.50 each for 51+ — e.g. 20 accounts = $59 + 10 × $3.00 = **$89/mo** ($71.20/mo billed yearly, 20% off). Agency access is enabled on request, with no self-serve signup: contact us via [agencies.publora.com](https://agencies.publora.com) or [publora.com/pricing](https://publora.com/pricing).
 
 - **Starter** is free forever — great for trying the API
 - View full details at [publora.com/pricing](https://publora.com/pricing) (machine-readable: [publora.com/pricing.md](https://publora.com/pricing.md))
