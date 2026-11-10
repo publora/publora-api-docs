@@ -147,7 +147,7 @@ Each Publora plan enforces limits on monthly posts, scheduled (pending) posts, a
 
 - **Monthly-post scope:** Starter's 15 monthly posts are account-wide; paid-plan `monthlyPosts` are counted per connection (for example, 100 for one LinkedIn connection and 100 for one Twitter connection). The active `scheduledPosts` queue limit is account-wide on every plan, not per connection. Connection count and schedule horizon are separate plan limits.
 - **Starter plan includes API and MCP access** (`apiAccess: true`, `mcpAccess: true`) — the free tier can use the REST API and MCP server (3 connected accounts, 15 posts/month account-wide).
-- **Starter plan can post to any of the 10 platforms** (no platform restriction).
+- **Starter plan can post to every platform except X/Twitter.** Publishing to X requires Pro: a new Starter account that targets X gets `403 PLATFORM_NOT_AVAILABLE`. Starter accounts that already used X before the restriction keep it. `allowedPlatforms` in [`GET /account-context`](../endpoints/account-context.md) lists the platforms of your plan.
 
 > **Note:** Per-request API rate limiting (requests/minute) is **planned but not currently enforced**. The limits above (monthly posts, scheduled posts, schedule horizon) are the enforced plan-based limits. Future API rate limiting will be documented here when implemented.
 
