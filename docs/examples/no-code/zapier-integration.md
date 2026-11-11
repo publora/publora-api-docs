@@ -17,7 +17,7 @@ In the Publora dashboard, open **API** in the left sidebar (or go straight to [a
 
 ## Step 2 — Open the Publora app on Zapier
 
-Go to [zapier.com/apps/publora/integrations](https://zapier.com/apps/publora/integrations) and click **Connect Publora to 9,000+ apps**, or start a Zap from scratch and search for **Publora** in the editor.
+Sign in to Zapier, go to [zapier.com/apps/publora/integrations](https://zapier.com/apps/publora/integrations) and click **Connect Publora to 9,000+ apps**, or start a Zap from scratch and search for **Publora** in the editor.
 
 ## Step 3 — Connect your account
 
@@ -38,6 +38,8 @@ Once it goes through, the account shows up in the step and can be reused by ever
 - **New Failed Post** — a post failed to publish to a connected account
 - **Post Returned to Draft** — a scheduled post went back to draft and won't publish until it's scheduled again
 
+![The four Publora triggers, all marked Instant, in the Zap editor's event picker](../../images/zapier/zapier-g-trigger-event.png)
+
 **Actions** (Publora does something):
 
 - **Create Post** — schedules a post, saves a draft, or publishes right away
@@ -47,7 +49,7 @@ Once it goes through, the account shows up in the step and can be reused by ever
 - **Add LinkedIn Reaction** — adds your reaction to a LinkedIn post
 - **Reshare LinkedIn Post** — reshares a post to your profile or Company Page
 
-The LinkedIn actions take the post's URN, which **New Published Post** provides as Posted ID.
+The LinkedIn actions take the post's URN, which **New Published Post** provides as Posted ID. That trigger fires for every platform, so add a **Filter by Zapier** step that lets only LinkedIn posts through.
 
 **Searches:**
 
@@ -56,9 +58,7 @@ The LinkedIn actions take the post's URN, which **New Published Post** provides 
 
 ## Example: publish new blog posts automatically
 
-Wire up **RSS by Zapier → New Item in Feed** as the trigger, then **Publora → Create Post** as the action. Picking the event takes one click:
-
-![Choosing a Publora trigger event in the Zap editor](../../images/zapier/zapier-g-trigger-event.png)
+Wire up **RSS by Zapier → New Item in Feed** as the trigger, then **Publora → Create Post** as the action.
 
 Create Post starts with Content, Platforms, Schedule Time, Media URLs and Publish Now. The optional fields sit below them:
 
@@ -66,7 +66,7 @@ Create Post starts with Content, Platforms, Schedule Time, Media URLs and Publis
 
 Pick your accounts under **Platforms**. The dropdown lists the accounts you've connected in Publora, so there are no IDs to copy by hand. Map the feed's title and link into **Content**, then leave **Schedule Time** empty to create a draft, set a time to schedule it, or turn on **Publish Now** to post right away. Test the step, then publish the Zap. Every new post in the feed now becomes a post on your networks.
 
-**First Comment 1 to 3** add up to three comments under your own post on LinkedIn, X, Threads, Bluesky and Mastodon. **Platform Options** shows extra settings for the platforms you choose, such as who can view a TikTok, a YouTube title, or who can reply on Threads.
+**First Comment 1 to 3** add up to three comments under your own post on LinkedIn, X, Threads, Bluesky and Mastodon, each with an optional delay in seconds. **Platform Options** shows extra settings for the platforms you choose, such as who can view a TikTok, a YouTube title, or who can reply on Threads.
 
 ## Example: get alerted when something publishes
 
@@ -95,4 +95,4 @@ To catch problems, use **New Failed Post** or **Post Returned to Draft** the sam
 
 ## Calling the API directly
 
-The Zapier app covers scheduling, editing, and publishing events. If you need an endpoint it doesn't expose, you can still call the Publora API from a **Webhooks by Zapier** step: send a POST to `https://api.publora.com/api/v1/create-post` with your key in the `x-publora-key` header. See [Authentication](../../authentication.md) for the key setup and [Core Workflows](../curl/all-endpoints.md) for every endpoint in curl form.
+The Zapier app covers posts, LinkedIn comments, reactions and reshares, and post status events. If you need an endpoint it doesn't expose, you can still call the Publora API from a **Webhooks by Zapier** step: send a POST to `https://api.publora.com/api/v1/create-post` with your key in the `x-publora-key` header. See [Authentication](../../authentication.md) for the key setup and [Core Workflows](../curl/all-endpoints.md) for every endpoint in curl form.

@@ -60,6 +60,15 @@ This page records externally relevant REST and MCP contract changes. Dates are d
 - **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
 - **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
+## 2026-11-11
+
+### Zapier app 1.3.0 leaves beta
+
+- **Affected surface:** No REST or MCP contract change. The native Zapier app is out of beta at version 1.3.0, built on the public API and [webhooks](endpoints/webhooks.md).
+- **Tag:** Additive.
+- **Change:** New instant triggers **New Failed Post** (`post.failed`) and **Post Returned to Draft** (`post.demoted`). New actions **Create LinkedIn Comment**, **Add LinkedIn Reaction** and **Reshare LinkedIn Post**. **Create Post** adds **Publish Now**, up to three first comments and **Platform Options**; **Update Post** can also change the text and accounts. The [Zapier guide](examples/no-code/zapier-integration.md) is updated.
+- **Migration action:** None.
+
 ## 2026-11-06
 
 ### OpenAPI covers the Agency core flow
