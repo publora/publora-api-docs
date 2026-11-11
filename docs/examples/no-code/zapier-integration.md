@@ -2,9 +2,7 @@
 
 Publora has a native Zapier app, so anything that can start a Zap can also publish to your social accounts. A new row in a spreadsheet, a fresh item in an RSS feed, a message in Slack. Any of them can turn into a scheduled post across your connected platforms, without writing a line of code.
 
-The integration is currently in beta. Everything below works today; the set of triggers and actions will grow.
-
-![The Publora app page on Zapier, marked Beta under the Social Media Marketing category](../../images/zapier/zapier-a-app-page.png)
+![The Publora app page on Zapier, under the Social Media Marketing category](../../images/zapier/zapier-a-app-page.png)
 
 ## Before you start
 
@@ -19,7 +17,7 @@ In the Publora dashboard, open **API** in the left sidebar (or go straight to [a
 
 ## Step 2 — Open the Publora app on Zapier
 
-Go to [zapier.com/apps/publora/integrations](https://zapier.com/apps/publora/integrations) and pick a template, or start a Zap from scratch and search for **Publora** in the editor.
+Go to [zapier.com/apps/publora/integrations](https://zapier.com/apps/publora/integrations) and click **Connect Publora to 9,000+ apps**, or start a Zap from scratch and search for **Publora** in the editor.
 
 ## Step 3 — Connect your account
 
@@ -33,25 +31,28 @@ Once it goes through, the account shows up in the step and can be reused by ever
 
 ## Step 4 — What you can build
 
-**Triggers** (Publora starts the Zap). Both are instant: Publora pushes the event to Zapier the moment it happens, instead of Zapier polling for changes on a schedule.
+**Triggers** (Publora starts the Zap). All four are instant: Publora pushes the event to Zapier the moment it happens, instead of Zapier polling for changes on a schedule.
 
 - **New Published Post** — a post was published to a connected account
 - **New Scheduled Post** — a post was scheduled for publishing
-
-![The New Published Post and New Scheduled Post triggers, both marked Instant, next to the Create Post and Delete Post actions](../../images/zapier/zapier-e-triggers.png)
+- **New Failed Post** — a post failed to publish to a connected account
+- **Post Returned to Draft** — a scheduled post went back to draft and won't publish until it's scheduled again
 
 **Actions** (Publora does something):
 
-- **Create Post** — creates and schedules a post across your connected platforms
-- **Update Post** — changes a scheduled post's timing, status, or media
-- **Delete Post** — deletes a scheduled post
+- **Create Post** — schedules a post, saves a draft, or publishes right away
+- **Update Post** — changes a draft or scheduled post's text, accounts, timing, media, or settings
+- **Delete Post** — deletes a post
+- **Create LinkedIn Comment** — adds a comment to a LinkedIn post
+- **Add LinkedIn Reaction** — adds your reaction to a LinkedIn post
+- **Reshare LinkedIn Post** — reshares a post to your profile or Company Page
+
+The LinkedIn actions take the post's URN, which **New Published Post** provides as Posted ID.
 
 **Searches:**
 
 - **Find Connected Account** — looks up a connected social account
-- **Find Posts** — finds posts by status, platform, or date range
-
-![The Update Post action and the Find Connected Account and Find Posts searches](../../images/zapier/zapier-f-actions.png)
+- **Find Posts** — finds posts by status, platform, or scheduled date
 
 ## Example: publish new blog posts automatically
 
@@ -59,15 +60,19 @@ Wire up **RSS by Zapier → New Item in Feed** as the trigger, then **Publora �
 
 ![Choosing a Publora trigger event in the Zap editor](../../images/zapier/zapier-g-trigger-event.png)
 
-Create Post has four fields:
+Create Post starts with Content, Platforms, Schedule Time, Media URLs and Publish Now. The optional fields sit below them:
 
-![The Create Post action expanded, showing the Content, Platforms, Schedule Time and Media URLs fields](../../images/zapier/zapier-h-create-post.png)
+![The Create Post form showing the Media URLs, Publish Now and First Comment fields](../../images/zapier/zapier-h-create-post.png)
 
-Pick your accounts under **Platforms**. The dropdown lists the accounts you've connected in Publora, so there are no IDs to copy by hand. Map the feed's title and link into **Content**, and either leave **Schedule Time** empty to create a draft or set a time to schedule it. Test the step, then publish the Zap. Every new post in the feed now becomes a post on your networks.
+Pick your accounts under **Platforms**. The dropdown lists the accounts you've connected in Publora, so there are no IDs to copy by hand. Map the feed's title and link into **Content**, then leave **Schedule Time** empty to create a draft, set a time to schedule it, or turn on **Publish Now** to post right away. Test the step, then publish the Zap. Every new post in the feed now becomes a post on your networks.
+
+**First Comment 1 to 3** add up to three comments under your own post on LinkedIn, X, Threads, Bluesky and Mastodon. **Platform Options** shows extra settings for the platforms you choose, such as who can view a TikTok, a YouTube title, or who can reply on Threads.
 
 ## Example: get alerted when something publishes
 
 Use **Publora → New Scheduled Post** or **New Published Post** as the trigger, then send it wherever you keep an eye on things: **Email by Zapier** for a notification, **Google Sheets → Create Row** for a running log, or **Slack → Send Channel Message** for a ping.
+
+To catch problems, use **New Failed Post** or **Post Returned to Draft** the same way, so a post that didn't go out reaches you right away.
 
 ![A live two-step Zap: New Scheduled Post in Publora followed by Send Outbound Email](../../images/zapier/zapier-i-zap-live.png)
 
@@ -81,8 +86,10 @@ Use **Publora → New Scheduled Post** or **New Published Post** as the trigger,
 
 ## Tips and troubleshooting
 
-- Leaving **Schedule Time** empty creates a draft, not an immediate post.
+- Leaving **Schedule Time** empty creates a draft unless **Publish Now** is on.
+- **Publish Now** can't be combined with a future **Schedule Time**.
 - Instagram, TikTok, and YouTube require media. Pass public `https` URLs in **Media URLs**.
+- In Update Post, **Media URLs** adds to the media already on the post.
 - You can't update a post that has already published. Deleting a published post removes it from Publora, but not from the platforms it already went out to.
 - Times are ISO 8601, in UTC, and **Schedule Time** must be in the future. Zaps can queue behind rate limits — if the time you mapped has already passed when the step runs, Publora clamps a small delay to "now" (returning a `SCHEDULED_TIME_COERCED` warning) and rejects anything five or more minutes stale. Add a few minutes of buffer.
 
