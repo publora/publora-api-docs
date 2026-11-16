@@ -79,13 +79,13 @@ TikTok has extensive publishing settings that you can control through the `platf
 
 ### Interaction Settings
 
-> Each flag is direct: `true` allows the interaction, `false` blocks it.
+> Each flag is direct: `true` allows the interaction, `false` blocks it. All three default to `false`; enable them only after the creator explicitly opts in.
 >
 > **Note:** Duet and Stitch apply to video posts only. TikTok also honors the account's own permissions — if a creator has disabled Duet, Stitch, or comments at the account level, that takes precedence over the request.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `allowComments` | boolean | `true` | Allow viewers to comment |
+| `allowComments` | boolean | `false` | Allow viewers to comment |
 | `allowDuet` | boolean | `false` | Allow viewers to create Duets |
 | `allowStitch` | boolean | `false` | Allow viewers to Stitch your video |
 
