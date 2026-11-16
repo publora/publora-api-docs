@@ -265,7 +265,7 @@ When creating via the API, these defaults are applied automatically. If you prov
 {
   "tiktok": {
     "viewerSetting": "PUBLIC_TO_EVERYONE",
-    "allowComments": true,
+    "allowComments": false,
     "allowDuet": false,
     "allowStitch": false,
     "commercialContent": false,
