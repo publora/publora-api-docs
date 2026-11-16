@@ -2,6 +2,16 @@
 
 This page records externally relevant REST and MCP contract changes. Dates are deployment or documentation publication dates, not announcement estimates.
 
+## 2026-11-16 — TikTok interaction consent
+
+New TikTok posts default `allowComments` to `false`, matching `allowDuet` and
+`allowStitch`, across REST, MCP and the editor. Previously comments defaulted to
+`true`. Send `allowComments: true` only when the creator explicitly enables
+comments. Stored choices are preserved by this rollout. Personal updates merge settings;
+Company updates replace the supplied `platformSettings` map, so include any saved
+choices you want to retain. This rollout also removes the unused `video.upload` OAuth scope;
+Direct Post continues to use `video.publish`.
+
 ## Upcoming
 
 ### Agency LinkedIn Page reshares and client decisions — publora.com #831

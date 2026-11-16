@@ -2373,7 +2373,7 @@ components:
               default: PUBLIC_TO_EVERYONE
             allowComments:
               type: boolean
-              default: true
+              default: false
             allowDuet:
               type: boolean
               default: false
