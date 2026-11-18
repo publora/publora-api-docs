@@ -527,8 +527,8 @@ print(result.content[0].text)  # Check for error messages
 If you're still stuck:
 
 1. **Documentation:** Check [docs.publora.com](https://docs.publora.com)
-2. **Email:** serge@publora.com
-3. **Twitter/X:** [@publorainc](https://x.com/publorainc)
+2. **Email:** support@publora.com
+3. **Twitter/X:** [@publora_](https://x.com/publora_)
 
 **When reporting issues, include:**
 

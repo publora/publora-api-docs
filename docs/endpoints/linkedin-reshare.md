@@ -174,7 +174,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'My commentary on this great post.',
     platforms: ['linkedin-Tz9W5i6ZYG'],
-    scheduledTime: '2026-08-01T14:00:00.000Z',
+    scheduledTime: '2027-08-01T14:00:00.000Z',
     platformSettings: {
       linkedin: {
         repostParentUrn: 'urn:li:share:7123456789012345678',

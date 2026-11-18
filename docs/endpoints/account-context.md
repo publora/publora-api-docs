@@ -146,7 +146,7 @@ import requests
 res = requests.get(
     'https://api.publora.com/api/v1/account-context',
     headers={'x-publora-key': 'YOUR_API_KEY'},
-    params={'scheduledTime': '2026-11-03T09:00:00Z'},
+    params={'scheduledTime': '2027-11-03T09:00:00Z'},
 )
 context = res.json()['context']
 print(context['plan']['name'], context['quotas']['scheduleHorizon']['maxScheduledDate'])

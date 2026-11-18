@@ -197,7 +197,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-01T14:00:00.000Z'
+    scheduledTime: '2027-03-01T14:00:00.000Z'
   })
 });
 ```
@@ -245,7 +245,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: `Your long-form thread content here...`,
     platforms: ['twitter-123'],
-    scheduledTime: '2026-03-15T14:30:00.000Z'
+    scheduledTime: '2027-03-15T14:30:00.000Z'
   })
 });
 ```

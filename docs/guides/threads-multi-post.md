@@ -193,9 +193,9 @@ await fetch(uploadUrl, {
 
 | Type | Limit | Notes |
 |------|-------|-------|
-| Images | Up to 10 (carousel) | WebP auto-converted to JPEG |
+| Images | Up to 20 (carousel) | WebP auto-converted to JPEG |
 | Video | 1 | MP4 or MOV format |
-| Carousel | Up to 10 items | Images only |
+| Carousel | Up to 20 items | Images only |
 
 ## Scheduling Threads Posts
 
@@ -209,7 +209,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: `Your long thread content...`,
     platforms: ['threads-789'],
-    scheduledTime: '2026-03-15T09:00:00.000Z'
+    scheduledTime: '2027-03-15T09:00:00.000Z'
   })
 });
 ```

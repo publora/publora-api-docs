@@ -298,13 +298,13 @@ Generate the key **once per logical update** and reuse it across retries. Genera
 {
   "success": true,
   "message": "Post updated successfully",
-  "scheduledTime": "2026-03-15T10:00:00.000Z",
+  "scheduledTime": "2027-03-15T10:00:00.000Z",
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",
     "content": "Corrected launch announcement.",
     "platforms": ["linkedin-ABC123", "twitter-XYZ789"],
-    "scheduledTime": "2026-03-15T10:00:00.000Z"
+    "scheduledTime": "2027-03-15T10:00:00.000Z"
   }
 }
 ```
@@ -371,7 +371,7 @@ const response = await fetch(
       'x-publora-key': 'YOUR_API_KEY'
     },
     body: JSON.stringify({
-      scheduledTime: '2026-03-15T10:00:00.000Z'
+      scheduledTime: '2027-03-15T10:00:00.000Z'
     })
   }
 );
@@ -386,7 +386,7 @@ response = requests.put(
         'Content-Type': 'application/json',
         'x-publora-key': 'YOUR_API_KEY'
     },
-    json={'scheduledTime': '2026-03-15T10:00:00.000Z'}
+    json={'scheduledTime': '2027-03-15T10:00:00.000Z'}
 )
 ```
 
@@ -396,7 +396,7 @@ response = requests.put(
 curl -X PUT https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011 \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
-  -d '{"scheduledTime": "2026-03-15T10:00:00.000Z"}'
+  -d '{"scheduledTime": "2027-03-15T10:00:00.000Z"}'
 ```
 
 ### Change a draft to scheduled
@@ -410,7 +410,7 @@ await fetch(`https://api.publora.com/api/v1/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-04-01T12:00:00.000Z'
+    scheduledTime: '2027-04-01T12:00:00.000Z'
   })
 });
 ```

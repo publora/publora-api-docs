@@ -68,7 +68,7 @@ asyncio.run(list_scheduled_posts())
       "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
       "content": "Excited to share our latest update!",
       "status": "scheduled",
-      "scheduledTime": "2026-02-20T14:00:00Z",
+      "scheduledTime": "2027-02-20T14:00:00Z",
       "platforms": [
         {
           "platformId": "linkedin-123456",
@@ -230,7 +230,7 @@ asyncio.run(schedule_post())
 {
   "success": true,
   "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
-  "scheduledTime": "2026-07-20T09:00:00.000Z"
+  "scheduledTime": "2027-07-20T09:00:00.000Z"
 }
 ```
 
@@ -315,7 +315,7 @@ async def get_post_details():
   "success": true,
   "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
   "status": "scheduled",
-  "scheduledTime": "2026-07-20T14:30:00.000Z",
+  "scheduledTime": "2027-07-20T14:30:00.000Z",
   "platformSettings": {},
   "firstComment": { "text": "Full write-up: https://example.com/update" },
   "firstComments": [{ "text": "Full write-up: https://example.com/update" }],
@@ -422,7 +422,7 @@ async def edit_post():
                 "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
                 "content": "Corrected launch announcement.",
                 "platforms": ["linkedin-ABC123", "threads-DEF456"],
-                "scheduledTime": "2026-03-01T15:00:00Z"
+                "scheduledTime": "2027-03-01T15:00:00Z"
             })
             print(result.content[0].text)
 ```
@@ -433,13 +433,13 @@ async def edit_post():
 {
   "success": true,
   "message": "Post updated successfully",
-  "scheduledTime": "2026-03-01T15:00:00.000Z",
+  "scheduledTime": "2027-03-01T15:00:00.000Z",
   "postGroup": {
     "_id": "67a1b2c3d4e5f6a7b8c9d0e1",
     "status": "scheduled",
     "content": "Corrected launch announcement.",
     "platforms": ["linkedin-ABC123", "threads-DEF456"],
-    "scheduledTime": "2026-03-01T15:00:00Z"
+    "scheduledTime": "2027-03-01T15:00:00Z"
   }
 }
 ```
@@ -700,7 +700,7 @@ async def check_account():
 
             # Monthly period of a batch planned for November
             result = await session.call_tool("account_context", {
-                "scheduledTime": "2026-11-03T09:00:00Z"
+                "scheduledTime": "2027-11-03T09:00:00Z"
             })
             print(result.content[0].text)
 
@@ -1589,7 +1589,7 @@ try:
     result = await session.call_tool("create_post", {
         "content": "Hello world!",
         "platforms": ["linkedin-abc123"],
-        "scheduledTime": "2026-03-01T14:00:00Z"
+        "scheduledTime": "2027-03-01T14:00:00Z"
     })
     print(result.content[0].text)
 except Exception as e:

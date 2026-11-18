@@ -130,6 +130,19 @@ After restarting Claude Code:
 
 ---
 
+## ChatGPT
+
+Publora is available as an app in ChatGPT. Open the listing and add it to your ChatGPT account:
+
+**[Publora in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6a7074e91c008191942479b885fb0d9b)**
+
+1. ChatGPT opens a Publora window. Sign in to Publora if you aren't already, and approve access. Publora mints a dedicated API key for this connection (named `MCP (<client name> #<id>)`), so you never paste a key. Manage or revoke it any time on the **API** page in your dashboard.
+2. Start a chat and ask ChatGPT to use Publora, for example *"List my connected Publora accounts"*.
+
+The app belongs to your ChatGPT account, so the same connection is available in the ChatGPT desktop app and in Codex when you sign in with that account. Files you generate or upload in a ChatGPT conversation can be attached to a draft with the `attach_media` tool.
+
+---
+
 ## Cursor
 
 Cursor is an AI-powered code editor with MCP support.

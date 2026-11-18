@@ -4,7 +4,7 @@
 
 Schedule posts to X/Twitter, LinkedIn, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon, and Telegram — all from a single API call. **Free tier available**, paid plans from **$3.99/month** per connected account (graduated volume discounts).
 
-**Website:** [publora.com](https://publora.com) | **Dashboard:** [app.publora.com](https://app.publora.com) | **Email:** serge@publora.com
+**Website:** [publora.com](https://publora.com) | **Dashboard:** [app.publora.com](https://app.publora.com) | **Email:** support@publora.com
 
 ## Quick Start
 
