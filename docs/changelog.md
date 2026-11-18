@@ -12,64 +12,6 @@ Company updates replace the supplied `platformSettings` map, so include any save
 choices you want to retain. This rollout also removes the unused `video.upload` OAuth scope;
 Direct Post continues to use `video.publish`.
 
-## Upcoming
-
-### Agency LinkedIn Page reshares and client decisions — publora.com #831
-
-- **Affected surface:** Company REST `POST /linkedin-page-posts`, Company drafts
-  (`repostSourceSnapshot`, `includeRepostSource`), client reviews
-  (`POST /post-groups/:postGroupId/approval`), Company webhooks, and the new
-  `company_list_linkedin_page_posts` MCP tool (49 Company / 69 total tools).
-- **Tag:** Additive and opt-in. Publish this documentation with or after the
-  [feature rollout](https://github.com/publora/publora.com/issues/831).
-- **Change:** List published posts of a connected Company Page as reshare sources
-  and save the original's text as a review preview. Clients can decline a review
-  with an optional comment; `approvalStatus` accepts `declined`. A review requested
-  with a future `scheduledTime` schedules the approved version automatically.
-  Workspace webhooks can subscribe to `approval.decided`, with stable event IDs and
-  bounded retries.
-- **Migration action:** Existing clients need no change. To read declined or timed
-  reviews, send `Accept: application/vnd.publora.company-approval.v2+json,
-  application/json` on approval reads; to manage `approval.decided`, send
-  `Accept: application/vnd.publora.company-webhooks.v2+json` on Company webhook
-  requests. Older clients receive `409 *_CLIENT_UPDATE_REQUIRED` for those
-  records instead of a silently changed shape. Refresh the MCP tool catalogue. See
-  [Agency LinkedIn Page reshares](guides/agency-linkedin-reshares.md) and
-  [Agency webhooks](guides/agency-webhooks.md#approval-decisions).
-
-### TikTok automatic photo music — publora.com #790
-
-- **Affected surface:** personal and Company REST draft create/update, personal
-  `create_post`/`update_post`, Company `company_create_post`/`company_update_post`,
-  and the personal/Agency editors.
-- **Tag:** Additive, opt-in. Publish this documentation with or after the
-  [feature rollout](https://github.com/publora/publora.com/issues/790).
-- **Change:** Optional boolean `platformSettings.tiktok.autoAddMusic` asks TikTok
-  to automatically choose music for photo Direct Post. Publora cannot select or
-  preview a specific track. Explicit `false` and omission are preserved; videos
-  never send this parameter. Enabling it for known non-photo media and invalid
-  types fail validation; `false` allows switching to video, and incomplete drafts
-  remain allowed.
-- **Migration action:** Existing callers need no change. Agency clients preserve
-  the complete settings map on update and request a new client approval after
-  changing this publishing setting when review is required. See
-  [TikTok music](platforms/tiktok.md#automatic-music-for-photo-posts).
-
-### Independent Company MCP operations — publora.com #780
-
-- **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).
-- **Tag:** Breaking MCP names and argument envelopes; personal contracts, Company REST endpoints and OAuth are unchanged.
-- **Change:** Each operation has a specific schema, description and effect annotations. Arguments move out of `command`; choose the operation by its tool name instead of `action`.
-- **Migration action:** Refresh the client's tool catalogue after the [server rollout](https://github.com/publora/publora.com/issues/780). Follow the [Company tool reference](mcp/tools-reference.md#company-tools-52); do not send the old wrappers. This documentation must publish with or after that server deployment.
-
-
-### 2026-08-25 — scheduledTime strict-mode ramp
-
-- **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
-- **Tag:** **Potentially breaking**, configuration-dependent.
-- **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
-- **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
-
 ## 2026-11-11
 
 ### Zapier app 1.3.0 leaves beta
@@ -157,6 +99,58 @@ Direct Post continues to use `video.publish`.
   settings map on update and request a new client approval after changing this setting when
   review is required. See [AI-Generated Content Disclosure](endpoints/create-post.md#ai-generated-content-disclosure)
   and [Agency platform settings](guides/agency-platform-settings.md#ai-generated-content-disclosure).
+
+## 2026-11-03
+
+### Agency LinkedIn Page reshares and client decisions — publora.com #831
+
+- **Affected surface:** Company REST `POST /linkedin-page-posts`, Company drafts
+  (`repostSourceSnapshot`, `includeRepostSource`), client reviews
+  (`POST /post-groups/:postGroupId/approval`), Company webhooks, and the new
+  `company_list_linkedin_page_posts` MCP tool (49 Company / 69 total tools).
+- **Tag:** Additive and opt-in.
+- **Change:** List published posts of a connected Company Page as reshare sources
+  and save the original's text as a review preview. Clients can decline a review
+  with an optional comment; `approvalStatus` accepts `declined`. A review requested
+  with a future `scheduledTime` schedules the approved version automatically.
+  Workspace webhooks can subscribe to `approval.decided`, with stable event IDs and
+  bounded retries.
+- **Migration action:** Existing clients need no change. To read declined or timed
+  reviews, send `Accept: application/vnd.publora.company-approval.v2+json,
+  application/json` on approval reads; to manage `approval.decided`, send
+  `Accept: application/vnd.publora.company-webhooks.v2+json` on Company webhook
+  requests. Older clients receive `409 *_CLIENT_UPDATE_REQUIRED` for those
+  records instead of a silently changed shape. Refresh the MCP tool catalogue. See
+  [Agency LinkedIn Page reshares](guides/agency-linkedin-reshares.md) and
+  [Agency webhooks](guides/agency-webhooks.md#approval-decisions).
+
+## 2026-10-27
+
+### TikTok automatic photo music — publora.com #790
+
+- **Affected surface:** personal and Company REST draft create/update, personal
+  `create_post`/`update_post`, Company `company_create_post`/`company_update_post`,
+  and the personal/Agency editors.
+- **Tag:** Additive, opt-in.
+- **Change:** Optional boolean `platformSettings.tiktok.autoAddMusic` asks TikTok
+  to automatically choose music for photo Direct Post. Publora cannot select or
+  preview a specific track. Explicit `false` and omission are preserved; videos
+  never send this parameter. Enabling it for known non-photo media and invalid
+  types fail validation; `false` allows switching to video, and incomplete drafts
+  remain allowed.
+- **Migration action:** Existing callers need no change. Agency clients preserve
+  the complete settings map on update and request a new client approval after
+  changing this publishing setting when review is required. See
+  [TikTok music](platforms/tiktok.md#automatic-music-for-photo-posts).
+
+## 2026-10-23
+
+### Independent Company MCP operations — publora.com #780
+
+- **Affected surface:** the 13 Company MCP dispatchers are replaced by 48 independently exposed operations (20 personal / 68 total tools).
+- **Tag:** Breaking MCP names and argument envelopes; personal contracts, Company REST endpoints and OAuth are unchanged.
+- **Change:** Each operation has a specific schema, description and effect annotations. Arguments move out of `command`; choose the operation by its tool name instead of `action`.
+- **Migration action:** Refresh the client's tool catalogue. Follow the [Company tool reference](mcp/tools-reference.md#company-tools-52); do not send the old wrappers.
 
 ## 2026-10-22
 
@@ -337,6 +331,15 @@ Direct Post continues to use `video.publish`.
 - **Tag:** Additive.
 - **Change:** The [Zapier guide](examples/no-code/zapier-integration.md) was rewritten for the native app. It previously documented a workaround through Webhooks by Zapier; that approach still works and stays documented on the same page for endpoints the app does not expose.
 - **Migration action:** None. Existing Webhooks-by-Zapier Zaps keep working; the native app is the recommended path for new Zaps.
+
+## 2026-08-25
+
+### scheduledTime strict-mode ramp
+
+- **Affected surface:** REST `create-post` and `update-post`, plus MCP tools that schedule through them.
+- **Tag:** **Potentially breaking**, configuration-dependent.
+- **Change:** A `scheduledTime` at least five minutes in the past is scheduled to return `400 SCHEDULED_TIME_IN_PAST` starting on 2026-08-25. This calendar behavior applies only when production configuration does not explicitly override it with `SCHEDULED_TIME_STRICT`; an explicit flag wins in either direction.
+- **Migration action:** Always send a future ISO 8601 UTC time. During the warn-first period, inspect `warnings[].code === "SCHEDULED_TIME_COERCED"` and the returned `scheduledTime` to find callers that need correction.
 
 ## 2026-08-24
 

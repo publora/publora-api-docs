@@ -11,7 +11,7 @@ info:
     volume discounts from the 6th account. See https://publora.com/pricing.
   version: "1.0.0"
   contact:
-    email: serge@publora.com
+    email: support@publora.com
     url: https://publora.com
 servers:
   - url: https://api.publora.com/api/v1

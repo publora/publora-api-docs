@@ -111,7 +111,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-15T14:30:00.000Z'
+    scheduledTime: '2027-03-15T14:30:00.000Z'
   })
 });
 
@@ -172,7 +172,7 @@ requests.put(
     headers=HEADERS,
     json={
         'status': 'scheduled',
-        'scheduledTime': '2026-03-15T14:30:00.000Z'
+        'scheduledTime': '2027-03-15T14:30:00.000Z'
     }
 )
 
@@ -219,7 +219,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-15T14:30:00.000Z"
+    "scheduledTime": "2027-03-15T14:30:00.000Z"
   }'
 ```
 
@@ -263,7 +263,7 @@ console.log('Image uploaded:', uploadData.fileUrl);
 // Step 4: Schedule the post
 await api.put(`/update-post/${postData.postGroupId}`, {
   status: 'scheduled',
-  scheduledTime: '2026-03-15T14:30:00.000Z'
+  scheduledTime: '2027-03-15T14:30:00.000Z'
 });
 
 console.log('Post scheduled!');
@@ -334,7 +334,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-15T16:00:00.000Z'
+    scheduledTime: '2027-03-15T16:00:00.000Z'
   })
 });
 
@@ -391,7 +391,7 @@ requests.put(
     headers=HEADERS,
     json={
         'status': 'scheduled',
-        'scheduledTime': '2026-03-15T16:00:00.000Z'
+        'scheduledTime': '2027-03-15T16:00:00.000Z'
     }
 )
 
@@ -438,7 +438,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-15T16:00:00.000Z"
+    "scheduledTime": "2027-03-15T16:00:00.000Z"
   }'
 ```
 
@@ -484,7 +484,7 @@ console.log('Video uploaded:', postData.postGroupId);
 // Step 4: Schedule the post
 await api.put(`/update-post/${postData.postGroupId}`, {
   status: 'scheduled',
-  scheduledTime: '2026-03-15T16:00:00.000Z'
+  scheduledTime: '2027-03-15T16:00:00.000Z'
 });
 
 console.log('Post scheduled!');
@@ -567,7 +567,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-15T12:00:00.000Z'
+    scheduledTime: '2027-03-15T12:00:00.000Z'
   })
 });
 
@@ -637,7 +637,7 @@ requests.put(
     headers=HEADERS,
     json={
         'status': 'scheduled',
-        'scheduledTime': '2026-03-15T12:00:00.000Z'
+        'scheduledTime': '2027-03-15T12:00:00.000Z'
     }
 )
 
@@ -692,7 +692,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-15T12:00:00.000Z"
+    "scheduledTime": "2027-03-15T12:00:00.000Z"
   }'
 ```
 
@@ -744,7 +744,7 @@ for (const image of images) {
 // Step 3: Schedule the post
 await api.put(`/update-post/${postData.postGroupId}`, {
   status: 'scheduled',
-  scheduledTime: '2026-03-15T12:00:00.000Z'
+  scheduledTime: '2027-03-15T12:00:00.000Z'
 });
 
 console.log('Carousel post scheduled!');

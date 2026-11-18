@@ -1,10 +1,21 @@
 # n8n Integration Guide
 
-Connect Publora to 400+ apps using n8n's HTTP Request node.
+Connect Publora to 400+ apps with the verified Publora node in n8n. The HTTP Request node still works as a fallback.
 
-## Overview
+## Verified Publora node
 
-n8n is a free, self-hostable workflow automation platform. Use the **HTTP Request** node to call the Publora API and automate your social media posting.
+Publora has an official, n8n-verified node package: [`@publora/n8n-nodes-publora`](https://www.npmjs.com/package/@publora/n8n-nodes-publora). In n8n Cloud, open the nodes panel, search for **Publora** and add the node. On self-hosted n8n, install the package as a community node by following n8n's [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/).
+
+The package has two nodes:
+
+- **Publora**: Post (Create, Get, Get Many, Update, Delete), Media (Upload) and Account (Get Many). Create publishes now, schedules or saves a draft, and attaches images or a video from public URLs or from files produced by earlier nodes. n8n AI agents can use the node as a tool.
+- **Publora Trigger**: starts a workflow when a post is published, scheduled, fails to publish, or returns to draft. It subscribes to Publora when the workflow is activated and removes the subscription when it is deactivated, so every active workflow with this trigger uses one of the 10 webhooks of your account. Publora must be able to reach your n8n instance over the internet.
+
+To connect the node, create a **Publora API** credential in n8n and paste an API key from the **API** page of the Publora dashboard. The credential test lists your connected accounts.
+
+## HTTP Request node
+
+n8n is a free, self-hostable workflow automation platform. You can also call the Publora API directly with the **HTTP Request** node, as in the examples below. Use this when the verified node does not cover an endpoint you need.
 
 ## Prerequisites
 

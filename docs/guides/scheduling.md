@@ -97,12 +97,12 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Excited to announce our new product launch!',
     platforms: ['twitter-123', 'linkedin-ABC'],
-    scheduledTime: '2026-03-15T14:30:00.000Z'
+    scheduledTime: '2027-03-15T14:30:00.000Z'
   })
 });
 
 const data = await response.json();
-// Response: { success: true, postGroupId: "664f1a2b3c4d5e6f7a8b9c0d", scheduledTime: "2026-03-15T14:30:00.000Z" }
+// Response: { success: true, postGroupId: "664f1a2b3c4d5e6f7a8b9c0d", scheduledTime: "2027-03-15T14:30:00.000Z" }
 console.log('Post group created:', data.postGroupId);
 ```
 
@@ -120,12 +120,12 @@ response = requests.post(
     json={
         'content': 'Excited to announce our new product launch!',
         'platforms': ['twitter-123', 'linkedin-ABC'],
-        'scheduledTime': '2026-03-15T14:30:00.000Z'
+        'scheduledTime': '2027-03-15T14:30:00.000Z'
     }
 )
 
 data = response.json()
-# Response: { "success": true, "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d", "scheduledTime": "2026-03-15T14:30:00.000Z" }
+# Response: { "success": true, "postGroupId": "664f1a2b3c4d5e6f7a8b9c0d", "scheduledTime": "2027-03-15T14:30:00.000Z" }
 print(f"Post group created: {data['postGroupId']}")
 ```
 
@@ -138,7 +138,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Excited to announce our new product launch!",
     "platforms": ["twitter-123", "linkedin-ABC"],
-    "scheduledTime": "2026-03-15T14:30:00.000Z"
+    "scheduledTime": "2027-03-15T14:30:00.000Z"
   }'
 ```
 
@@ -152,7 +152,7 @@ const { data } = await axios.post(
   {
     content: 'Excited to announce our new product launch!',
     platforms: ['twitter-123', 'linkedin-ABC'],
-    scheduledTime: '2026-03-15T14:30:00.000Z'
+    scheduledTime: '2027-03-15T14:30:00.000Z'
   },
   {
     headers: {
@@ -204,13 +204,13 @@ const scheduleResponse = await fetch(
     },
     body: JSON.stringify({
       status: 'scheduled',
-      scheduledTime: '2026-03-20T09:00:00.000Z'
+      scheduledTime: '2027-03-20T09:00:00.000Z'
     })
   }
 );
 
 const scheduled = await scheduleResponse.json();
-// Response: { success: true, message: "Post updated successfully", scheduledTime: "2026-03-20T09:00:00.000Z", postGroup: { _id: "...", status: "scheduled", scheduledTime: "2026-03-20T09:00:00.000Z" } }
+// Response: { success: true, message: "Post updated successfully", scheduledTime: "2027-03-20T09:00:00.000Z", postGroup: { _id: "...", status: "scheduled", scheduledTime: "2027-03-20T09:00:00.000Z" } }
 console.log('Now scheduled:', scheduled.postGroup.status); // "scheduled"
 ```
 
@@ -246,7 +246,7 @@ schedule_response = requests.put(
     headers=HEADERS,
     json={
         'status': 'scheduled',
-        'scheduledTime': '2026-03-20T09:00:00.000Z'
+        'scheduledTime': '2027-03-20T09:00:00.000Z'
     }
 )
 
@@ -272,7 +272,7 @@ curl -X PUT https://api.publora.com/api/v1/update-post/POST_GROUP_ID \
   -H "x-publora-key: YOUR_API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-20T09:00:00.000Z"
+    "scheduledTime": "2027-03-20T09:00:00.000Z"
   }'
 ```
 
@@ -300,7 +300,7 @@ console.log('Draft created:', draft.postGroupId);
 // Step 2: Schedule the draft (both status and scheduledTime are required)
 const { data: scheduled } = await api.put(`/update-post/${draft.postGroupId}`, {
   status: 'scheduled',
-  scheduledTime: '2026-03-20T09:00:00.000Z'
+  scheduledTime: '2027-03-20T09:00:00.000Z'
 });
 
 console.log('Now scheduled:', scheduled.postGroup.status); // "scheduled"

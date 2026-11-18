@@ -426,7 +426,7 @@ export const mockConnections = [
 export const mockCreatePostResponse = {
   success: true,
   postGroupId: '67a1b2c3d4e5f6a7b8c9d0e1',
-  scheduledTime: '2026-03-01T14:00:00.000Z',
+  scheduledTime: '2027-03-01T14:00:00.000Z',
 };
 
 export const mockPostGroup = {

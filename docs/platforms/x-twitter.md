@@ -60,7 +60,7 @@ Set X-specific targets in `platformSettings.twitter` when creating or updating a
 {
   "content": "Thanks for the mention — here is the answer.",
   "platforms": ["twitter-12345678"],
-  "scheduledTime": "2026-08-25T14:00:00.000Z",
+  "scheduledTime": "2027-08-25T14:00:00.000Z",
   "platformSettings": {
     "twitter": {
       "replyTo": "https://x.com/customer/status/1234567890123456789",
@@ -87,7 +87,7 @@ Set `platformSettings.twitter.aiGenerated: true` to mark the post's media as AI-
 {
   "content": "Concept render of the new store front.",
   "platforms": ["twitter-12345678"],
-  "scheduledTime": "2026-11-10T14:00:00.000Z",
+  "scheduledTime": "2027-11-10T14:00:00.000Z",
   "mediaUrls": ["https://cdn.example.com/renders/store-front.png"],
   "platformSettings": {
     "twitter": { "aiGenerated": true }

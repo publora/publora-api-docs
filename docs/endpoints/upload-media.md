@@ -153,7 +153,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   headers: { 'Content-Type': 'application/json', 'x-publora-key': API_KEY },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-01T14:00:00.000Z'
+    scheduledTime: '2027-03-01T14:00:00.000Z'
   })
 });
 console.log('Post scheduled!');
@@ -192,7 +192,7 @@ print(f"Uploaded: {data['fileUrl']} (mediaId: {data['mediaId']})")
 # Step 4: Schedule the post
 requests.put(f'{BASE_URL}/update-post/{post_group_id}', headers=headers, json={
     'status': 'scheduled',
-    'scheduledTime': '2026-03-01T14:00:00.000Z'
+    'scheduledTime': '2027-03-01T14:00:00.000Z'
 })
 print('Post scheduled!')
 ```
@@ -236,7 +236,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-01T14:00:00.000Z"
+    "scheduledTime": "2027-03-01T14:00:00.000Z"
   }'
 ```
 

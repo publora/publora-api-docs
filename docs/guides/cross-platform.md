@@ -108,7 +108,7 @@ const postResponse = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'We just launched our new feature! Check it out at https://example.com',
     platforms: platforms,
-    scheduledTime: '2026-03-15T14:00:00.000Z'
+    scheduledTime: '2027-03-15T14:00:00.000Z'
   })
 });
 
@@ -144,7 +144,7 @@ post_response = requests.post(
     json={
         'content': 'We just launched our new feature! Check it out at https://example.com',
         'platforms': platforms,
-        'scheduledTime': '2026-03-15T14:00:00.000Z'
+        'scheduledTime': '2027-03-15T14:00:00.000Z'
     }
 )
 
@@ -199,7 +199,7 @@ console.log('Connected platforms:', platforms);
 const { data: post } = await api.post('/create-post', {
   content: 'We just launched our new feature! Check it out at https://example.com',
   platforms: platforms,
-  scheduledTime: '2026-03-15T14:00:00.000Z'
+  scheduledTime: '2027-03-15T14:00:00.000Z'
 });
 
 console.log('Post scheduled to all platforms:', post.postGroupId);
@@ -225,7 +225,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
       'linkedin-ABCDEF',
       'instagram-789012'
     ],
-    scheduledTime: '2026-03-15T09:00:00.000Z'
+    scheduledTime: '2027-03-15T09:00:00.000Z'
   })
 });
 
@@ -253,7 +253,7 @@ response = requests.post(
             'linkedin-ABCDEF',
             'instagram-789012'
         ],
-        'scheduledTime': '2026-03-15T09:00:00.000Z'
+        'scheduledTime': '2027-03-15T09:00:00.000Z'
     }
 )
 
@@ -274,7 +274,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       "linkedin-ABCDEF",
       "instagram-789012"
     ],
-    "scheduledTime": "2026-03-15T09:00:00.000Z"
+    "scheduledTime": "2027-03-15T09:00:00.000Z"
   }'
 ```
 
@@ -292,7 +292,7 @@ const { data: post } = await axios.post(
       'linkedin-ABCDEF',
       'instagram-789012'
     ],
-    scheduledTime: '2026-03-15T09:00:00.000Z'
+    scheduledTime: '2027-03-15T09:00:00.000Z'
   },
   {
     headers: {
@@ -345,7 +345,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
       'telegram-141516',   // Handled within Telegram limits
       'bluesky-171819'     // Bluesky: 300 char limit (no threading — content must fit within limit)
     ],
-    scheduledTime: '2026-03-15T10:00:00.000Z'
+    scheduledTime: '2027-03-15T10:00:00.000Z'
   })
 });
 
@@ -409,7 +409,7 @@ response = requests.post(
             'telegram-141516',
             'bluesky-171819'
         ],
-        'scheduledTime': '2026-03-15T10:00:00.000Z'
+        'scheduledTime': '2027-03-15T10:00:00.000Z'
     }
 )
 
@@ -444,7 +444,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
       "telegram-141516",
       "bluesky-171819"
     ],
-    "scheduledTime": "2026-03-15T10:00:00.000Z"
+    "scheduledTime": "2027-03-15T10:00:00.000Z"
   }'
 
 # Check post status (replace POST_GROUP_ID with the actual postGroupId)
@@ -490,7 +490,7 @@ const { data: post } = await api.post('/create-post', {
     'telegram-141516',
     'bluesky-171819'
   ],
-  scheduledTime: '2026-03-15T10:00:00.000Z'
+  scheduledTime: '2027-03-15T10:00:00.000Z'
 });
 
 console.log('Post created:', post.postGroupId);

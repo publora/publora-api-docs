@@ -595,9 +595,9 @@ class RateLimitedScheduler {
 const scheduler = new RateLimitedScheduler(PUBLORA_API_KEY, 5);
 
 const posts = [
-  { content: 'Post 1', platforms: ['twitter-123456'], scheduledTime: '2026-03-01T10:00:00Z' },
-  { content: 'Post 2', platforms: ['twitter-123456'], scheduledTime: '2026-03-01T12:00:00Z' },
-  { content: 'Post 3', platforms: ['twitter-123456'], scheduledTime: '2026-03-01T14:00:00Z' }
+  { content: 'Post 1', platforms: ['twitter-123456'], scheduledTime: '2027-03-01T10:00:00Z' },
+  { content: 'Post 2', platforms: ['twitter-123456'], scheduledTime: '2027-03-01T12:00:00Z' },
+  { content: 'Post 3', platforms: ['twitter-123456'], scheduledTime: '2027-03-01T14:00:00Z' }
 ];
 
 scheduler.scheduleBatch(posts);

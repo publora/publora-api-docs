@@ -40,7 +40,7 @@ Returns HTTP **200** on success (not 201).
 {
   "success": true,
   "postGroupId": "507f1f77bcf86cd799439011",
-  "scheduledTime": "2026-03-01T14:00:00.000Z"
+  "scheduledTime": "2027-03-01T14:00:00.000Z"
 }
 ```
 
@@ -203,7 +203,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Excited to share our new product launch! 🚀 #launch",
     "platforms": ["twitter-123456789"],
-    "scheduledTime": "2026-03-01T14:00:00.000Z"
+    "scheduledTime": "2027-03-01T14:00:00.000Z"
   }'
 ```
 
@@ -319,7 +319,7 @@ Use `platformSettings.twitter` to publish as a reply, quote another post, or do 
 {
   "content": "Thanks for the mention — here is the detail you asked for.",
   "platforms": ["twitter-123456789"],
-  "scheduledTime": "2026-08-25T14:00:00.000Z",
+  "scheduledTime": "2027-08-25T14:00:00.000Z",
   "platformSettings": {
     "twitter": {
       "replyTo": "https://x.com/customer/status/1234567890123456789",
@@ -348,7 +348,7 @@ Instagram, TikTok, YouTube and X each offer a self-disclosure flag for realistic
 {
   "content": "Concept video rendered with a generative model.",
   "platforms": ["instagram-123456789", "tiktok-123456789", "youtube-UCxxxxxxxx", "twitter-123456789"],
-  "scheduledTime": "2026-11-10T14:00:00.000Z",
+  "scheduledTime": "2027-11-10T14:00:00.000Z",
   "mediaUrls": ["https://cdn.example.com/renders/concept.mp4"],
   "platformSettings": {
     "instagram": { "aiGenerated": true },
@@ -382,7 +382,7 @@ Set `platformSettings.linkedin.repostParentUrn` to schedule a **repost** (reshar
 {
   "content": "My commentary on this great post.",
   "platforms": ["linkedin-Tz9W5i6ZYG"],
-  "scheduledTime": "2026-08-01T14:00:00.000Z",
+  "scheduledTime": "2027-08-01T14:00:00.000Z",
   "platformSettings": {
     "linkedin": {
       "repostParentUrn": "urn:li:share:7123456789012345678",
@@ -460,7 +460,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: 'Excited to share our new product launch! 🚀 #launch',
     platforms: ['twitter-123456789', 'linkedin-ABC123'],
-    scheduledTime: '2026-03-01T14:00:00.000Z'
+    scheduledTime: '2027-03-01T14:00:00.000Z'
   })
 });
 const data = await response.json();
@@ -481,7 +481,7 @@ response = requests.post(
     json={
         'content': 'Excited to share our new product launch! 🚀 #launch',
         'platforms': ['twitter-123456789', 'linkedin-ABC123'],
-        'scheduledTime': '2026-03-01T14:00:00.000Z'
+        'scheduledTime': '2027-03-01T14:00:00.000Z'
     }
 )
 print(response.json()['postGroupId'])
@@ -496,7 +496,7 @@ curl -X POST https://api.publora.com/api/v1/create-post \
   -d '{
     "content": "Excited to share our new product launch! 🚀 #launch",
     "platforms": ["twitter-123456789", "linkedin-ABC123"],
-    "scheduledTime": "2026-03-01T14:00:00.000Z"
+    "scheduledTime": "2027-03-01T14:00:00.000Z"
   }'
 ```
 
@@ -510,7 +510,7 @@ const { data } = await axios.post(
   {
     content: 'Excited to share our new product launch! 🚀 #launch',
     platforms: ['twitter-123456789', 'linkedin-ABC123'],
-    scheduledTime: '2026-03-01T14:00:00.000Z'
+    scheduledTime: '2027-03-01T14:00:00.000Z'
   },
   { headers: { 'x-publora-key': 'YOUR_API_KEY' } }
 );
@@ -536,7 +536,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
       'facebook-777', 'bluesky-888', 'mastodon-999',
       'telegram-000'
     ],
-    scheduledTime: '2026-03-01T09:00:00.000Z'
+    scheduledTime: '2027-03-01T09:00:00.000Z'
   })
 });
 ```

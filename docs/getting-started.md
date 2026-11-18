@@ -2,7 +2,7 @@
 
 ## Overview
 
-Publora API lets you schedule and publish social media posts across 10 platforms from a single REST endpoint. Base URL: `https://api.publora.com`
+Publora API lets you schedule and publish social media posts across 10 platforms from a single REST endpoint. Base URL: `https://api.publora.com/api/v1`
 
 Machine-readable API descriptions are available as [OpenAPI YAML](https://docs.publora.com/openapi.yaml) and [OpenAPI JSON](https://docs.publora.com/openapi.json).
 

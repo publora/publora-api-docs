@@ -38,7 +38,7 @@ GET https://api.publora.com/api/v1/list-posts
       "postGroupId": "507f1f77bcf86cd799439011",
       "content": "Excited to share our new product launch!",
       "status": "scheduled",
-      "scheduledTime": "2026-03-15T14:30:00.000Z",
+      "scheduledTime": "2027-03-15T14:30:00.000Z",
       "createdAt": "2026-03-10T09:00:00.000Z",
       "updatedAt": "2026-03-10T09:00:00.000Z",
       "platforms": [

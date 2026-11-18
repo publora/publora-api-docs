@@ -36,7 +36,7 @@ x-publora-key: YOUR_API_KEY
 ```json
 {
   "status": "scheduled",
-  "scheduledTime": "2026-03-15T14:00:00.000Z"
+  "scheduledTime": "2027-03-15T14:00:00.000Z"
 }
 ```
 
@@ -55,13 +55,13 @@ x-publora-key: YOUR_API_KEY
 {
   "success": true,
   "message": "Post updated successfully",
-  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "scheduledTime": "2027-03-15T14:00:00.000Z",
   "postGroup": {
     "_id": "507f1f77bcf86cd799439011",
     "status": "scheduled",
     "content": "Corrected launch announcement.",
     "platforms": ["linkedin-ABC123", "twitter-XYZ789"],
-    "scheduledTime": "2026-03-15T14:00:00.000Z"
+    "scheduledTime": "2027-03-15T14:00:00.000Z"
   }
 }
 ```
@@ -396,7 +396,7 @@ if __name__ == '__main__':
 curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011" \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
-  -d '{"scheduledTime": "2026-03-15T14:00:00.000Z"}'
+  -d '{"scheduledTime": "2027-03-15T14:00:00.000Z"}'
 ```
 
 ### Pause a post (move to draft)
@@ -414,7 +414,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011
 curl -X PUT "https://api.publora.com/api/v1/update-post/507f1f77bcf86cd799439011" \
   -H "Content-Type: application/json" \
   -H "x-publora-key: YOUR_API_KEY" \
-  -d '{"status": "scheduled", "scheduledTime": "2026-03-15T14:00:00.000Z"}'
+  -d '{"status": "scheduled", "scheduledTime": "2027-03-15T14:00:00.000Z"}'
 ```
 
 ## Edge Cases and Error Handling
@@ -500,7 +500,7 @@ const updateResponse = await fetch(
     },
     body: JSON.stringify({
       status: 'scheduled',
-      scheduledTime: '2026-03-15T14:00:00.000Z'
+      scheduledTime: '2027-03-15T14:00:00.000Z'
     })
   }
 );

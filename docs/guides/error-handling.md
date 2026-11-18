@@ -310,7 +310,7 @@ try {
     body: JSON.stringify({
       content: 'Hello from Publora!',
       platforms: ['twitter-123456'],
-      scheduledTime: '2026-03-15T14:00:00.000Z'
+      scheduledTime: '2027-03-15T14:00:00.000Z'
     })
   });
 
@@ -443,7 +443,7 @@ HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/create-post" \
   -d '{
     "content": "Hello from Publora!",
     "platforms": ["twitter-123456"],
-    "scheduledTime": "2026-03-15T14:00:00.000Z"
+    "scheduledTime": "2027-03-15T14:00:00.000Z"
   }')
 
 # Split response body and status code
@@ -535,7 +535,7 @@ try {
   const { data: post } = await api.post('/create-post', {
     content: 'Hello from Publora!',
     platforms: ['twitter-123456'],
-    scheduledTime: '2026-03-15T14:00:00.000Z'
+    scheduledTime: '2027-03-15T14:00:00.000Z'
   });
 
   console.log('Post created:', post.postGroupId);
@@ -610,7 +610,7 @@ try {
     body: JSON.stringify({
       content: 'Retryable post!',
       platforms: ['twitter-123456'],
-      scheduledTime: '2026-03-15T14:00:00.000Z'
+      scheduledTime: '2027-03-15T14:00:00.000Z'
     })
   });
 
@@ -672,7 +672,7 @@ try:
         json={
             'content': 'Retryable post!',
             'platforms': ['twitter-123456'],
-            'scheduledTime': '2026-03-15T14:00:00.000Z'
+            'scheduledTime': '2027-03-15T14:00:00.000Z'
         }
     )
     print(f"Post created: {post['postGroupId']}")
@@ -728,7 +728,7 @@ try {
   const post = await publoraRequestWithRetry('POST', '/create-post', {
     content: 'Retryable post!',
     platforms: ['twitter-123456'],
-    scheduledTime: '2026-03-15T14:00:00.000Z'
+    scheduledTime: '2027-03-15T14:00:00.000Z'
   });
 
   console.log('Post created:', post.postGroupId);

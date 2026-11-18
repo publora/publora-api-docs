@@ -227,7 +227,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
   body: JSON.stringify({
     content: `Your thread content here...`,
     platforms: ['twitter-123'],
-    scheduledTime: '2026-03-15T14:00:00.000Z'  // 2 PM UTC
+    scheduledTime: '2027-03-15T14:00:00.000Z'  // 2 PM UTC
   })
 });
 ```
@@ -240,7 +240,7 @@ const response = await fetch('https://api.publora.com/api/v1/create-post', {
 {
   "content": "Thanks for the mention — long answer follows.\n\n---\n\nPart two of the answer.",
   "platforms": ["twitter-123"],
-  "scheduledTime": "2026-03-15T14:00:00.000Z",
+  "scheduledTime": "2027-03-15T14:00:00.000Z",
   "platformSettings": {
     "twitter": { "replyTo": "https://x.com/customer/status/1234567890123456789" }
   }

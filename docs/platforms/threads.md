@@ -279,7 +279,7 @@ await fetch(`${BASE_URL}/update-post/${postGroupId}`, {
   },
   body: JSON.stringify({
     status: 'scheduled',
-    scheduledTime: '2026-03-15T14:00:00.000Z'
+    scheduledTime: '2027-03-15T14:00:00.000Z'
   })
 });
 
@@ -339,7 +339,7 @@ requests.put(
     headers=HEADERS,
     json={
         'status': 'scheduled',
-        'scheduledTime': '2026-03-15T14:00:00.000Z'
+        'scheduledTime': '2027-03-15T14:00:00.000Z'
     }
 )
 
@@ -387,7 +387,7 @@ curl -X PUT "https://api.publora.com/api/v1/update-post/$POST_GROUP_ID" \
   -H "x-publora-key: $API_KEY" \
   -d '{
     "status": "scheduled",
-    "scheduledTime": "2026-03-15T14:00:00.000Z"
+    "scheduledTime": "2027-03-15T14:00:00.000Z"
   }'
 ```
 
