@@ -2,6 +2,21 @@
 
 This page records externally relevant REST and MCP contract changes. Dates are deployment or documentation publication dates, not announcement estimates.
 
+## 2026-11-19
+
+### MCP editor handoff for agents without upload egress
+
+- **Affected surface:** MCP `get_post` response, and the `create_post`, `get_upload_url` and `get_post` tool descriptions. No REST change; tool names and counts are unchanged.
+- **Tag:** Additive.
+- **Change:**
+  - `get_post` returns `editorUrl`, a link that opens the post in the Publora editor; it survives sign-in.
+  - When the presigned `PUT` cannot reach the upload host (for example, claude.ai code execution with package-manager-only egress, which fails with `CONNECT tunnel failed, response 403`), the descriptions tell the agent to stop retrying and give the user that link.
+  - The agent names the unfinished slot and its position in `get_post` media, so the user can remove it.
+  - The agent reads an S3 403 by its error code.
+  - The mobile editor can now remove saved attachments.
+  - See [troubleshooting](mcp/troubleshooting.md).
+- **Migration action:** None. Clients that cache the tool list pick up the new descriptions after a refresh.
+
 ## 2026-11-16 — TikTok interaction consent
 
 New TikTok posts default `allowComments` to `false`, matching `allowDuet` and
