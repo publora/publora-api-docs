@@ -333,6 +333,19 @@ tomorrow at 9am (AI converts this, but tool needs ISO 8601)
 
 ---
 
+### Claude: image upload fails with `CONNECT tunnel failed, response 403`
+
+**Cause:** Claude sends the file from its code-execution sandbox. On Claude Team and Enterprise, the sandbox's network access is restricted to package managers by default. The sandbox proxy refuses the `PUT` to the presigned storage URL before it reaches Publora. Publora and your API key are fine, and text posts keep working. The slot created by `get_upload_url` stays in `uploading` and blocks scheduling.
+
+**Solution:**
+
+1. **Attach the file in the Publora editor.** `get_post` returns `editorUrl`, a link to the post in the editor. Open it, sign in if asked (you return to the same post), add the file, then tell Claude it's done. Claude checks the result with `get_post`. If the file exists only in Claude's sandbox, download it from the chat first.
+2. **Remove the unfinished slot.** Claude names the file and its position in `media[]` from `get_post`; the editor shows the attachments in the same order. Remove it in the editor (on mobile, tap ✕ twice), or ask Claude to remove it with `delete_media`.
+3. **Or allow the upload host.** An organization owner can allow the exact host of `uploadUrl` under **Organization settings → Capabilities** (package managers plus specific domains). Uploads from the chat then work directly. Don't allow `*.amazonaws.com`: it opens every S3 bucket to the sandbox.
+4. **Public image?** Pass its URL in `mediaUrls` instead. Publora downloads it server-side.
+
+---
+
 ## Session Issues
 
 ### "Invalid or missing session. Send a POST without mcp-session-id to start."

@@ -278,6 +278,8 @@ You can @mention people and companies in LinkedIn posts using this syntax in you
 
 Get details of a specific post group.
 
+The response includes `editorUrl`, a link that opens this post in the Publora editor. Give it to the user when you cannot upload a local file yourself: they attach the file there and you verify it with `get_post`. If they need to sign in first, they return to the same post afterwards.
+
 **Parameters:**
 
 | Parameter | Type | Required | Description |
@@ -314,6 +316,7 @@ async def get_post_details():
 {
   "success": true,
   "postGroupId": "67a1b2c3d4e5f6a7b8c9d0e1",
+  "editorUrl": "https://app.publora.com/dashboard/editor?id=67a1b2c3d4e5f6a7b8c9d0e1",
   "status": "scheduled",
   "scheduledTime": "2027-07-20T14:30:00.000Z",
   "platformSettings": {},
@@ -587,6 +590,8 @@ Get a presigned URL to upload media files.
 
 > **⚠ Attaching media demotes a scheduled post to draft.** Calling `get_upload_url` on an already-`scheduled` post demotes it back to `draft` (`postGroupDemoted: true` in the response). Attach media on a **draft**, then schedule with `update_post`. Companion media tools: **`complete_media`** (finalize/validate an uploaded `mediaId` — optional, the scheduling gate probes lazily) and **`delete_media`** (remove one attached media file; also demotes a scheduled post). Media attached via `mediaUrls` or `attach_media` needs neither.
 
+> **If the PUT cannot reach the upload host.** Some sandboxes have no network access to the storage host. For example, claude.ai code execution on Team and Enterprise allows only package managers by default, so the PUT fails at the sandbox proxy with `CONNECT tunnel failed, response 403`. In that case, do not retry the PUT and do not call `complete_media`. Give the user `editorUrl` from `get_post`, and offer a file that exists only in the sandbox for download first. The slot you already reserved stays in the draft and blocks scheduling. Name that file and its position in the `get_post` `media` list (the editor shows the same order) so the user can remove it, or remove it with `delete_media` if they ask. If you already know egress is blocked, skip `get_upload_url`. An HTTP 403 returned by S3 itself is different: read its error code (for example, a signed `Content-Type` mismatch or an expired URL) before choosing a fix.
+
 **Python example:**
 
 ```python
@@ -639,10 +644,11 @@ Remove a media slot from a post (detaches and deletes the underlying file). Dele
 |-----------|------|----------|-------------|
 | `mediaId` | string | Yes | The `mediaId` of the slot to remove (see the `media` array in `get_post`). |
 
-> **Three ways to attach media:**
+> **Four ways to attach media:**
 > 1. **Fast path**: pass `mediaUrls` (public https URLs) to `create_post`/`update_post`, and the server downloads them. No upload steps.
 > 2. **File reference (ChatGPT)**: create a draft, then call `attach_media` with the file ChatGPT supplies. The server downloads it, and the post stays a draft.
 > 3. **Upload dance**: `get_upload_url` → `PUT` the bytes to the presigned URL → `complete_media`. Needs a client that can send HTTP requests itself.
+> 4. **Editor handoff**: when the client can't send the bytes (for example, a sandbox without network access to the upload host), give the user `editorUrl` from `get_post`. They attach the file in the Publora editor, and you verify it with `get_post`.
 >
 > Use `delete_media` to drop a slot.
 
